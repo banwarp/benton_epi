@@ -1,0 +1,28 @@
+E. coli at the Winery
+
+Resources list and download instructions.
+
+Thank you for your interest in our presentation. We will be spending most of the presentation conducting a public health investigation, for which you will need some software. Follow these instructions to get everything you need. -Peter Banwarth and Bill Emminger
+
+If you have any questions, you can email me at peter.banwarth@co.benton.or.us.
+
+1.
+You will need a statistical software program called R. It is freely available from this website:
+https://cran.r-project.org/mirrors.html
+
+Choose a mirror (i.e. website) from the USA. https://cran.cnr.berkeley.edu/ is a good one. Follow the download and installation instructions.
+
+2.
+You may also want to install RStudio, which is an improved user interface that runs R. RStudio Desktop can be downloaded free here:
+https://www.rstudio.com/products/rstudio/download/
+
+3.
+Once you have R (and RStudio) downloaded and installed, you will need to install one additional package. (Packages are functions and scripts written by the open source community that enables more advanced statistical analysis and other capabilities). RStudio has a package installer, or you can copy this script snippet and paste it in the console window:
+
+install.packages(fmsb)
+
+4.
+You will also need a smartphone app called Poopemon Go. It is custom app we wrote for this presentation. It is available for free from the Google Play Store (Android) and the Apple Store (iPhone). Open the app store of your choosing and search for Poopemon Go. Download the app. It won't do much of anything until we hand out some materials at the presentation.
+
+5.
+That's it! You should be good to go. Please bring your smartphone to the presentation, and if it is convenient, your laptop as well. You may also want to bring a pad of paper. See you on April 25!
