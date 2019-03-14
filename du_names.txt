@@ -1,1 +1,0 @@
-"ID","Age","Gender","Education","Country","Ethnicity","Neuroticism","Extraversion","Openness","Agreeableness","Conscientiousness","Impulsiveness","Sensation","Alcohol","Amphetamine","Amylnitrite","Benzos","Caffeine","Cannabis","Chocolate","Cocaine","Crack","Ecstasy","Heroin","Ketamine","Legal_high","LSD","Methadone","Mushrooms","Nicotine","Semeron","VSA"
