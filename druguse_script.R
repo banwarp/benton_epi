@@ -7,6 +7,13 @@
 
 # this script uses parameter tuning in the generalized boosted model algorithm to predict drug use
 
+
+##################
+##### IMPORTANT: YOU DO NOT NEED TO RUN THIS SCRIPT BEFORE THE PRESENTATION. WE WILL BE RUNNING THE SCRIPT TOGETHER
+##### AT THE PRESENTATION IN ORDER TO DEMONSTRATE MACHINE LEARNING IN ACTION.
+##################
+
+
 ### Script Block 1 ######################################################################################################
 
 # install packages
