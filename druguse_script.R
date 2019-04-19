@@ -17,12 +17,16 @@
 ### Script Block 1 ######################################################################################################
 
 # install packages
-install.packages(data.table)
-install.packages(caret)
-install.packages(pROC)
-install.packages(plyr)
-install.packages(MLmetrics)
-install.packages(gbm)
+install.packages('data.table')
+install.packages('caret')
+install.packages'(pROC')
+install.packages('plyr')
+install.packages('MLmetrics')
+install.packages('gbm')
+
+######### EXTRA PACKAGES THAT MAY NEED TO BE INSTALLED ########
+install.packages('curl')
+install.packages('e1701')
 
 # load packages
 library(data.table)
@@ -127,7 +131,8 @@ cannabis_predictions[cannabis_predictions>0] <- 1
 accuracy <- postResample(pred=as.factor(cannabis_predictions), obs=as.factor(cannabis_check[,outcome_name]))
 
 ### Error computation: Log loss computation evaluation
-logloss <- LogLoss(cannabis_probs,as.numeric(cannabis_check[,outcome_name])-1)
+### Use absolute value of logloss
+logloss <- abs(LogLoss(cannabis_probs,as.numeric(cannabis_check[,outcome_name])-1))
 
 ### Script Block 10 ######################################################################################################
 
@@ -210,7 +215,8 @@ heroin_predictions[heroin_predictions>0] <- 1
 accuracy <- postResample(pred=as.factor(heroin_predictions), obs=as.factor(heroin_check[,outcome_name]))
 
 # Log loss computation evaluation
-logloss <- LogLoss(heroin_probs,as.numeric(heroin_check[,outcome_name])-1)
+# Use absolute value
+logloss <- abs(LogLoss(heroin_probs,as.numeric(heroin_check[,outcome_name])-1))
 
 ### Script Block 17 ######################################################################################################
 
