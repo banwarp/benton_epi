@@ -97,11 +97,14 @@ crswgs84=CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs")
 # number of rows in bap table
 baprows <- 20000
 
-# functions
-
 # transit_readin
 transit_readin <- function(shapefn,transit_type,typerank){
-  transit_df <- data.frame(rgdal::readOGR(shapefn))
+  
+  transit_shp <- st_read(shapefn)
+  transit_shp <- st_transform(transit_shp,crswgs84)
+  transit_shp <- as(transit_shp,'Spatial')
+  
+  transit_df <- data.frame(transit_shp)
   transit_df$FID_lbl_bl <- as.numeric(as.character(transit_df$FID_lbl_bl))
   
   if(typerank == 1){
@@ -113,13 +116,16 @@ transit_readin <- function(shapefn,transit_type,typerank){
     transit_df$COUNTYFP10 <- pmax(as.numeric(as.character(transit_df$COUNTYFP10)),as.numeric(as.character(transit_df$COUNTYFP_1)),na.rm=TRUE)
     transit_df[,transit_type] <- 0
     transit_df[transit_df$FID_lbl_bl!=-1,transit_type] <- 1
-    transit_df <- transit_df[,c('FID_lbl_bl','GEOID10','ALAND10','POP10','ClipArea','Latitude','Longitude','PctArea',transit_type)]
+    transit_df$polyID <- as.numeric(rownames(transit_df))
+    transit_df <- transit_df[,c('FID_lbl_bl','polyID','GEOID10','ALAND10','POP10','ClipArea','Latitude','Longitude','PctArea',transit_type)]
+    transit_shp <<- transit_shp
     return(transit_df)
   } else {
     transit_df <- data.frame(transit_df[,'FID_lbl_bl'],rep(1,nrow(transit_df)))
     names(transit_df) <- c('FID_lbl_bl',transit_type)
     transit_df <- merge(tcomb,transit_df,by='FID_lbl_bl',all.x=TRUE)
     transit_df[is.na(transit_df)] <- 0
+    transit_df[transit_df$AllRoutes==0,transit_type] <- 0
     return(transit_df)
   }
 }
@@ -139,17 +145,26 @@ addpop_function <- function(x,tdf,bgdf) {
   return(x1)
 }
 
-
-# function for flagging which population type
-poptype_fun <- function(sbpname,bapstart,bapend) {
-  flag <- rownames(bapstart[rep(row.names(bapstart),bapstart[,sbpname]),])
-  exp_df <- data.frame(flag,rep(1,length(flag)))
-  names(exp_df) <- c('RowNames',paste(sbpname,'Flag',sep=""))
-  bapend <- merge(bapend,exp_df,by='RowNames',all.x=TRUE)
-  return(bapend)
+# function to make one row for each person in bap_exp
+bap_fun <- function(x) {
+  nx <- tcomb[tcomb$polyID==x,'BufferPop17']
+  # print(c(x,nx))
+  if(nx>0){
+    rand_points <- data.frame(spsample(transit_shp@polygons[[x]]@Polygons[[1]],n=nx,'random'),x)
+    return(rand_points)
+  } else {
+    return(NULL)
+  }
 }
 
-
+# function for flagging which population type
+poptype_fun <- function(sbpname) {
+  cbuffer <- paste('Buffer',sbpname,sep='')
+  bap_exp[,sbpname] <- 0
+  indices <- unlist(lapply(unique(bap_exp$polyID),function(x) sample(which(bap_exp$polyID==x),min(bap_exp[bap_exp$polyID==x,cbuffer],bap_exp[bap_exp$polyID==x,'BufferPop17']))))
+  bap_exp[indices,sbpname] <- 1
+  return(bap_exp)
+}
 
 
 
@@ -191,36 +206,33 @@ tcomb[,buffer_colnames] <- as.data.frame(lapply(buffer_colnames,function(x) addp
 
 
 
-
 # Step 3: Compute blocks as points
-bap <- tcomb[,c('FID_lbl_bl','Latitude','Longitude','COUNTYFP10',routelist,buffer_colnames)]
 
-# one row for each person
-bap_exp <- bap[rep(row.names(bap),bap$BufferPop17),]
-bap_exp$RowNames <- rownames(bap_exp)
-bap_exp$BufferPop17Flag <- 1
+# one row for every person
+bap_coords <- data.frame(do.call('rbind',lapply(tcomb$polyID,function(x) bap_fun(x))))
+names(bap_coords) <- c('xCoord','yCoord','polyID')
+
+# merge to main table
+bap_exp <- merge(bap_coords,tcomb,by='polyID',all.x=TRUE)
+
+# keeping only necessary columns
+bap_exp <- bap_exp[,c('polyID','xCoord','yCoord','FID_lbl_bl','COUNTYFP10',routelist,buffer_colnames)]
+# Each row is a person
+bap_exp$Pop17 <- 1
 
 # indicating population type
-subpop_names <- buffer_colnames[-1]
-for(i in 1:length(subpop_names)) {
-  bap_exp <- poptype_fun(subpop_names[i],bap,bap_exp)
+for(i in 2:length(bg_colnames)) {
+  bap_exp <- poptype_fun(bg_colnames[i])
 }
-bap_exp[is.na(bap_exp)] <- 0
-
-# randomizing location
-bap_exp$Latitude <- bap_exp$Latitude+runif(nrow(bap_exp),0,.01)
-bap_exp$Longitude <- bap_exp$Longitude+runif(nrow(bap_exp),0,.01)
 
 # reordering/dropping columns
-bap_exp <- bap_exp[,c('FID_lbl_bl','Latitude','Longitude','COUNTYFP10',routelist,paste(buffer_colnames,'Flag',sep="")),]
-names(bap_exp) <- c('FID_lbl_bl','Latitude','Longitude','COUNTYFP10',routelist,bg_colnames)
-
+bap_exp <- bap_exp[,c('polyID','xCoord','yCoord','COUNTYFP10',routelist,'Pop17',subpop_names),]
 bap_exp$geography <- mapvalues(bap_exp$COUNTYFP10,from=c(3,41,43),to=c('Benton County','Lincoln County','Linn County'))
 
 # generating bap_rank column
 bap_exp$bap_rank <- 0
-
 for(i in 1:length(bg_colnames)) {
+  # getting names from variable_df since that table is ordered by ranks
   bapcolname <- sub('Buffer','',variable_df[i,'variable'])
   bap_exp[bap_exp[,bapcolname]==1,'bap_rank'] <- length(bg_colnames)+1-i
 }
@@ -228,11 +240,13 @@ for(i in 1:length(bg_colnames)) {
 # sample to reduce size
 bap_exp <-  bap_exp[sample(nrow(bap_exp),baprows),]
 
-# replicating bap_exp; one for each route type
+# replicating bap_exp; one for each transit type
 bap_exp <- bap_exp[rep(row.names(bap_exp),length(routelist)),]
 bap_exp$Access <- 0
+
 bap_exp$'Route type' <- rep(c('All routes','Local routes','Intercity routes',
                               'Hourly routes','Intermittent routes','Infrequent routes'),each=baprows)
+
 bap_exp$route_rank <- rep(c(1,2,3,4,5,6),each=baprows)
 for(i in 1:length(routelist)) {
   j <- (i-1)*baprows+1
@@ -241,14 +255,16 @@ for(i in 1:length(routelist)) {
 }
 
 # keeping only useful columns
-bap_exp <- bap_exp[,c('geography','Latitude','Longitude','bap_rank','Access','Route type','route_rank')]
+bap_exp <- bap_exp[,c('geography','xCoord','yCoord','bap_rank','Access','Route type','route_rank')]
 
 write.table(variable_df,'pop_type_table.txt',row.names=FALSE,sep=',')
 write.table(bap_exp,'bap_transit.txt',row.names = FALSE,sep=',')
 
+# removing tables now that the processing is done
+rm(bap_coords)
 rm(bap_exp)
-rm(bap)
 rm(bapcolname)
+rm(transit_shp)
 
 
 # Step 4: compute percent of population w/in 1/4 mile: BufferPop17Pct
