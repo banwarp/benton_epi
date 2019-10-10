@@ -1,0 +1,13 @@
+variable,long_variable,short_variable,varrank
+BufferPop17,Total population,Total population,1
+BufferChildren,Children under 18,Children,2
+BufferSeniors,Adults 65+,Adults 65+,3
+BufferWhite,People who identify as white,White,4
+BufferHispanic,People who identify as Hispanic/Latino,Hispanic/Latino,5
+BufferNonwhite,People who don't identify as white,Non-White,6
+BufferPoverty,People in poverty,Poverty,7
+BufferSNAP,People receiving SNAP,SNAP,8
+BufferDisability,Households with a person who has a disability,Disability,9
+BufferRenter,Renters,Renters,10
+BufferHousingCost,People with a housing cost burden,Housing burden,11
+BufferOHP,Oregon Health Plan recipients,OHP,12
