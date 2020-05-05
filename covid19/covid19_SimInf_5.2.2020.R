@@ -131,6 +131,7 @@ parmList = list(
                 ### plot parameters
                 "plotCompList" = "I",                      # List of compartments that will be plotted
                 "rollM" = 1,                               # Number of days for plotting rolling means, rollM = 1 means no rolling mean
+                "confIntv" = .95,                           # Confidence interval for plotting spread
                 "dateBreaks" = "1 month",                  # Plot parameter, x-axis displays months
                 "titleString" = "Daily active infections", # Title of plot
                 "xString" = "Date",                        # Title of x-axis
@@ -454,6 +455,7 @@ trajPlotI <- simInfPlottingFunction(
   dt= trajTable,          # trajectory of the result
   compSelect= c("I"),                        # compartments that will be plotted
   rollM = rollM,                             # number of days for rolling mean
+  confIntv = parmList$confIntv,              # confidence interval for plotting spread
   nTM = nodeTrialMat,                        # node-Trial matrix
   tS = tspan,                                # length of simulation
   enn = N,                                   # number of nodes per trial
