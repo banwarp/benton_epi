@@ -6,8 +6,9 @@ library(zoo)
 
 simInfPlottingFunction <- function(
                                    dt,                        # trajectory of the result
-                                   compSelect,                # compartments that will be plotted
-                                   rollM = 7,                 # number of days for rolling average
+                                   compts,                    # compartments that will be plotted
+                                   rollM = 1,                 # number of days for rolling average
+                                   confIntv = .95,            # confidence interval for plotting spread
                                    nTM = nodeTrialMat,        # node-Trial matrix
                                    tS = tspan,                # length of simulation
                                    enn = N,                   # number of nodes per trial
@@ -29,30 +30,30 @@ simInfPlottingFunction <- function(
   traj <- merge(x=dt,y=nTM,by="node")
   traj <- traj[,lapply(.SD,sum),by=.(time,trial)]
   
-  if(compSelect %in% c("prevalence","phi")) {
+  if(compts %in% c("prevalence","phi")) {
     traj[,prevalence:=prevalence/enn]
     traj[,phi:=phi/enn]
   }
   
   # central tendency and low/high
   trajCT <- traj[,lapply(.SD,median),by=.(time)]
-  trajSpread <- split(traj[,lapply(.SD,quantile,probs = c(.05,.95)),by=.(time)],1:2)
+  trajSpread <- split(traj[,lapply(.SD,quantile,probs = c((1-confIntv),confIntv)),by=.(time)],1:2)
  
   # getting element of trajList whose trial corresponds to the minSSETrial for low, central, and high
-  lowTraj <- as.data.table(apply(trajSpread[[1]][,..compSelect],2,rollmean,k=rollM))
-  lowTrajrollM <- melt.data.table(lowTraj,measure.vars=compSelect)
+  lowTraj <- as.data.table(apply(trajSpread[[1]][,..compts],2,rollmean,k=rollM))
+  lowTrajrollM <- melt.data.table(lowTraj,measure.vars=compts)
   names(lowTrajrollM) <- c("lowVar","lowVal")
   
-  highTraj <- as.data.table(apply(trajSpread[[2]][,..compSelect],2,rollmean,k=rollM))
-  highTrajrollM <- melt.data.table(highTraj,measure.vars=compSelect)
+  highTraj <- as.data.table(apply(trajSpread[[2]][,..compts],2,rollmean,k=rollM))
+  highTrajrollM <- melt.data.table(highTraj,measure.vars=compts)
   names(highTrajrollM) <- c("highVar","highVal")
   
-  medTraj <- as.data.table(apply(trajCT[,..compSelect],2,rollmean,k=rollM))
-  medTrajrollM <- melt.data.table(medTraj,measure.vars=compSelect)
+  medTraj <- as.data.table(apply(trajCT[,..compts],2,rollmean,k=rollM))
+  medTrajrollM <- melt.data.table(medTraj,measure.vars=compts)
   names(medTrajrollM) <- c("medVar","medVal")
   
   # creating date list
-  dateList <- rep(seq(as.Date(91+rollM-1,origin="2020-01-01"),by="day",length.out = max(tS) - rollM+1),length(compSelect))
+  dateList <- rep(seq(as.Date(91+rollM-1,origin="2020-01-01"),by="day",length.out = max(tS) - rollM+1),length(compts))
   
   # creating data frame for ggplot
   trajDF <- data.frame(cbind(medTrajrollM,lowTrajrollM,highTrajrollM,dateList))
