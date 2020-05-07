@@ -4,6 +4,7 @@
 
 # changes from covid19_SimInf_5.5.200.R
 # added isolation = Is compartment that exposed can enter to represent enhanced contact tracing
+# added cumulative infections = cumI compartment f
 
 # changes from covid19_SimInf_5.1.2020.R
 # reorganized parameters
@@ -81,9 +82,10 @@ parmList = list(
   "I0Pop" = 40,                              # Initial number of infectious
   "maxINodeProp" = 1/10,                     # Maximum proportion of nodes that intially have one or more infectious
   "E0Pop" = 0,                               # Initial number of exposed
-  "Is0Pop" = 0,                              # Initial number of isolated
   "R0Pop" = 0,                               # Initial number of recovered
   "Im0Pop" = 0,                              # Initial number of immune
+  "Is0Pop" = 0,                              # Initial number of isolated
+  "cumI0Pop" = 40,                           # Initial cumulative number of infections
   "M0Pop" = 0,                               # Initial number of dead
   
   ### gdata parameters
@@ -117,10 +119,10 @@ parmList = list(
   "phiMoveUp" = .25,                         # Rate at which phi increases when interventions are imposed
   "phiMoveDown" = .25,                       # Rate at which phi decreases when interventions are lifted
   "pdDecay" = 30,                            # Number of days until phi decays toward 1 in the absence of interventions.
-                                             # Represents gradual relaxation of physical distancing as people return to normal.
-                                             # pdDecay = -1 removes this decay factor
- 
-   ### other date parameters
+  # Represents gradual relaxation of physical distancing as people return to normal.
+  # pdDecay = -1 removes this decay factor
+  
+  ### other date parameters
   "kbDay1" = "2020-05-25",                   # Date of first phase of lifting stay-at-home orders
   "kbDay2" = "2020-06-14",                   # Date of second phase of lifting stay-at-home orders
   "kbDay3" = "2020-07-01",                   # Date of third phase of lifting stay-at-home orders
@@ -203,7 +205,7 @@ parachuteDist <- parachuteDist[parachuteDist < max(tspan)]
 
 # Model parameters
 # compartments
-compartments <- c("S","E","I","Is","R","Im","M")
+compartments <- c("S","E","I","R","Im","Is","cumI","M")
 
 # student event parameters - relies on compartments
 # September 20th (day students return) = day 264 in calendar year
@@ -217,8 +219,9 @@ sIProp <- parmList$sIProp # proportion of students who are infectious
 sRProp <- (1-(sSProp+sEProp+sIProp))*(1-parmList$delta) # proportion of students who are recovered
 sImProp <- (1-(sSProp+sEProp+sIProp))*parmList$delta # proportion of students who are immune
 sIsProp <- 0
+scumIProp <- sIProp
 sMProp <- 0
-studentPropTable <- data.frame(compartment = compartments, frac = c(sSProp,sEProp,sIProp,sIsProp,sRProp,sImProp,sMProp))
+studentPropTable <- data.frame(compartment = compartments, frac = c(sSProp,sEProp,sIProp,sRProp,sImProp,sIsProp,scumIProp,sMProp))
 
 # More model parameters
 # global parameters
@@ -243,8 +246,8 @@ transitions <- c(
   "S -> nu*S -> @",                                                   # Non-Covid deaths among susceptibles
   "S -> ((1/phi)*beta*betaRandomizer*(season)*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E",      # Exposures, allows for effective or ineffective policies and seasonal variation in beta
   "E -> nu*E -> @",                                                   # Non-Covid deaths among exposed
-  "E -> (1-rho)*sigma*E -> I",                                        # Development of disease among non-isolated exposed
-  "E -> rho*sigma*E -> Is",                                           # Isolation of exposed
+  "E -> (1-rho)*sigma*E -> I + cumI",                                 # Development of disease among non-isolated exposed
+  "E -> rho*sigma*E -> Is + cumI",                                    # Isolation of exposed
   "I -> nu*I -> @",                                                   # Non-Covid deaths among infectious
   "I -> (1-eta)*gamma*I -> R",                                        # Recovery among infectious
   "I -> eta*gamma*I -> M",                                            # Death from COVID
@@ -268,12 +271,13 @@ I0[as.numeric(names(I0indices))] <- I0indices
 # Initial state matrix
 u0 <- data.frame(
   S = S0,
-  E = rep(0,NnumTrials),
+  E = rep(parmList$E0Pop,NnumTrials),
   I = I0, # random number of initial infectious, allows for 0, capped at maxIPop for each trial
-  Is = rep(0,NnumTrials),
-  R = rep(0,NnumTrials),
-  Im = rep(0,NnumTrials),
-  M=rep(0,NnumTrials)
+  R = rep(parmList$R0Pop,NnumTrials),
+  Im = rep(parmList$Im0Pop,NnumTrials),
+  Is = rep(parmList$Is0Pop,NnumTrials),
+  cumI = rep(parmList$cumI0Pop,NnumTrials),
+  M=rep(parmList$M0Pop,NnumTrials)
 )
 
 # local parameters
@@ -335,7 +339,7 @@ pts_fun <- pts_funScript(
 
 # Events matrix
 # leaves of M from column 7
-E <- cbind(diag(length(compartments)),c(rep(1,length(compartments)-2),0,0))
+E <- cbind(diag(length(compartments)),c(rep(1,length(compartments)-3),rep(0,3)))
 dimnames(E) <- list(compartments,c(1:ncol(E)))
 
 ###### PARACHUTE EVENTS ######
@@ -352,7 +356,7 @@ if(max(unlist(numParachuteList)) > 0){
     dest = 0,
     n = parmList$parachuteNum,
     proportion = 0,
-    select = 2,
+    select = which(compartments == "I"),
     shift = 0
   )
 }
