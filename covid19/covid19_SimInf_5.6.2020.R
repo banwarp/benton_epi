@@ -1,4 +1,4 @@
-# covid19_SimInf_5.6.2020.R
+# covid19_SimInf_5.8.2020.R
 
 # copyright Peter Banwarth Benton County Health Department 2020
 
@@ -13,11 +13,14 @@
 # Bauer P, Engblom S, Widgren S (2016) Fast event-based epidemiological simulations on national scales.
 # International Journal of High Performance Computing Applications, 30(4), 438--453. doi: 10.1177/1094342016635723
 
+# changes from covid19_SimInf_5.5.200.R
+# added option for a "super spreader" through the events
 
 # changes from covid19_SimInf_5.5.200.R
 # added isolation = Is compartment that exposed can enter to represent enhanced contact tracing
 # added cumulative infections = cumI compartment
 # added code to simInfPlottingFunction to show daily new infections
+# changed plotting function to be able to plot continuous variables as well as compartments
 
 # changes from covid19_SimInf_5.1.2020.R
 # reorganized parameters
@@ -73,15 +76,15 @@ setwd("../")
 
 parmList = list(
   ### Simulation parameters
-  "simID" = "covid5.6.2020.1",               # Simulation ID
-  "simDate" = "2020-04-01",                  # Start date of simulation
+  "simID" = "covid5.7.2020.BG",              # Simulation ID
+  "simDate" = "2020-05-01",                  # Start date of simulation
   "maxT" = 365,                              # Length of simulation in days
   "numTrials" = 100,                         # Number of trials in simulation
   
   ### population parameters
   "trialPop" = 65000,                        # Total population in each trial
   "N" = 500,                                 # Number of population nodes
-  "I0Pop" = 40,                              # Initial number of infectious
+  "I0Pop" = round(.0023*65000,0),            # Initial number of infectious
   "maxINodeProp" = 1/10,                     # Maximum proportion of nodes that intially have one or more infectious
   "E0Pop" = 0,                               # Initial number of exposed
   "R0Pop" = 0,                               # Initial number of recovered
@@ -114,21 +117,21 @@ parmList = list(
   "maxPrev2" = 30,                           # Maximum prevalence before instituting major intervention
   "RTarget1" = 1.5,                          # Target for the reduction in R under minor intervention
   "RTarget2" = .9,                           # Target for the reduction in R under major intervention
-  "cosAmp" = .25,                            # Amplitude of seasonal variation in beta
+  "cosAmp" = 0.25,                           # Amplitude of seasonal variation in beta
   "upDelay" = 10,                            # Number of days after prevalence passes threshold until minor/major intervention
   "downDelay" = 28,                          # Number of days after prevalence drops below threshold until intervention lifted
   "phiMoveUp" = .25,                         # Rate at which phi increases when interventions are imposed
   "phiMoveDown" = .25,                       # Rate at which phi decreases when interventions are lifted
-  "pdDecay" = 30,                            # Number of days until phi decays toward 1 in the absence of interventions.
+  "pdDecay" = 30,                            # Number of days until RPhysicalDistancing decays toward RNoAction in the absence of interventions.
   ############################################ Represents gradual relaxation of physical distancing as people return to normal.
   ############################################ pdDecay = -1 removes this decay factor
   
   ### other date parameters
   "kbDay1" = "2020-05-25",                   # Date of first phase of lifting stay-at-home orders
-  "kbDay2" = "2020-06-14",                   # Date of second phase of lifting stay-at-home orders
-  "kbDay3" = "2020-07-01",                   # Date of third phase of lifting stay-at-home orders
+  "kbDay2" = "2020-06-20",                   # Date of second phase of lifting stay-at-home orders
+  "kbDay3" = "2020-07-15",                   # Date of third phase of lifting stay-at-home orders
   "switchOffPolicies" = 0,                   # Indicator if intervention policies will cease after a certain day
-  "switchOffDay" = "2021-03-01",             # Date intervention policies will cease if indicator == 1
+  "switchOffDay" = "2020-07-15",             # Date intervention policies will cease if indicator == 1
   
   ### event parameters
   "paraChi_df" = 4,                          # Distribution parameter for parachute events
@@ -145,7 +148,7 @@ parmList = list(
   "maxStudentNodes" = 100,                   # Maximum number of nodes that students enter
   "sSProp" = .9,                             # Proportion of students who are susceptible
   "sEProp" = .0001,                          # Proportion of students who are exposed
-  "sIProp" = .001,                           # Proportion of students who are infectious; R, Im, and M are calculated
+  "sIProp" = .0015,                          # Proportion of students who are infectious; R, Im, and M are calculated
   
   ### plot parameters
   "plotCompList" = "I",                      # List of compartments that will be plotted
@@ -480,10 +483,30 @@ trajPlotPhi <- simInfPlottingFunction(
   nT = numTrials,                            # number of trials in simulation
   startDate = startofSimDay,                 # start date of simulation
   dateBreaks = "1 month",                    # plot parameter: Date axis format
-  titleString = "Physical distancing interventions",   # plot parameter: Title of plot
+  titleString = "Interventions",   # plot parameter: Title of plot
   xString = "Date",                          # plot parameter: Title of x axis
   yString = "Intensity of intervention",          # plot parameter: Title of y axis
   lString = "Intervention metric"                    # plot parameter: Title of legend
+)
+
+trajPlotnewI <- simInfPlottingFunction(
+  result = result,                           # model result
+  table = "U",                               # which table: U or V
+  compts= c("newI"),                            # compartments that will be plotted
+  uNames = names(u0),                        # list of compartments
+  vNames = NULL,                             # list of variables
+  rollM = rollM,                             # number of days for rolling mean
+  confIntv = parmList$confIntv,              # confidence interval for plotting spread
+  nTM = nodeTrialMat,                        # node-Trial matrix
+  tS = tspan,                                # length of simulation
+  enn = N,                                   # number of nodes per trial
+  nT = numTrials,                            # number of trials in simulation
+  startDate = startofSimDay,                 # start date of simulation
+  dateBreaks = parmList$dateBreaks,          # plot parameter: Date axis format
+  titleString = parmList$titleString,        # plot parameter: Title of plot
+  xString = "Date",                          # plot parameter: Title of x axis
+  yString = "Number of infections",          # plot parameter: Title of y axis
+  lString = "Compartment"                    # plot parameter: Title of legend
 )
 
 # trajPlotI <- trajPlotI+
@@ -493,5 +516,6 @@ trajPlotPhi <- simInfPlottingFunction(
 # trajPlotPhi <- trajPlotPhi+
 # geom_vline(xintercept=as.numeric(as.Date("2020-07-07")),color="darkseagreen",size=1.5)
 # 
-# ggsave(paste0(plotName,"I.png"),trajPlotI,width=9,height=5,units="in")
-# ggsave(paste0(plotName,"phi.png"),trajPlotPhi,width=9,height=5,units="in")
+ggsave(paste0(plotName,"I.png"),trajPlotI,width=9,height=5,units="in")
+ggsave(paste0(plotName,"phi.png"),trajPlotPhi,width=9,height=5,units="in")
+ggsave(paste0(plotName,"newI.png"),trajPlotnewI,width=9,height=5,units="in")
