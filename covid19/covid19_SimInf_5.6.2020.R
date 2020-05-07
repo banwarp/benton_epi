@@ -145,7 +145,7 @@ parmList = list(
   "studentReturnDate" = "2020-09-21",        # Date OSU student return
   "studentReturnSpread" = 3,                 # Symmetric spread of days to spread out student return
   "studentPop" = 25000,                      # OSU student population
-  "maxStudentNodes" = 100,                   # Maximum number of nodes that students enter
+  "maxStudentNodes" = 100,                   # Maximum number of nodes that students enter. maxStudentNodes = 0 to remove studentEvent from model
   "sSProp" = .9,                             # Proportion of students who are susceptible
   "sEProp" = .0001,                          # Proportion of students who are exposed
   "sIProp" = .0015,                          # Proportion of students who are infectious; R, Im, and M are calculated
