@@ -4,7 +4,8 @@
 
 # changes from covid19_SimInf_5.5.200.R
 # added isolation = Is compartment that exposed can enter to represent enhanced contact tracing
-# added cumulative infections = cumI compartment f
+# added cumulative infections = cumI compartment
+# added code to simInfPlottingFunction to show daily new infections
 
 # changes from covid19_SimInf_5.1.2020.R
 # reorganized parameters
@@ -71,7 +72,7 @@ setwd("../")
 
 parmList = list(
   ### Simulation parameters
-  "simID" = "covid5.6.2020.1",            # Simulation ID
+  "simID" = "covid5.6.2020.1",               # Simulation ID
   "simDate" = "2020-04-01",                  # Start date of simulation
   "maxT" = 365,                              # Length of simulation in days
   "numTrials" = 100,                         # Number of trials in simulation
@@ -85,7 +86,6 @@ parmList = list(
   "R0Pop" = 0,                               # Initial number of recovered
   "Im0Pop" = 0,                              # Initial number of immune
   "Is0Pop" = 0,                              # Initial number of isolated
-  "cumI0Pop" = 40,                           # Initial cumulative number of infections
   "M0Pop" = 0,                               # Initial number of dead
   
   ### gdata parameters
@@ -156,13 +156,13 @@ parmList = list(
   "yString" = "Frequency",                   # Title of y-axis
   "lString" = "Compartment"                  # Title of legend
 )
-
-# saving parameter list
-setwd("./parameters")
-sink(paste0("parms",parmList$simID,".txt"))
-parmList
-sink()
-setwd("../")
+# 
+# # saving parameter list
+# setwd("./parameters")
+# sink(paste0("parms",parmList$simID,".txt"))
+# parmList
+# sink()
+# setwd("../")
 
 # Start of simulation
 startofSimDay <- as.numeric(as.Date(parmList$simDate)) - as.numeric(as.Date("2020-01-01"))
@@ -221,7 +221,8 @@ sImProp <- (1-(sSProp+sEProp+sIProp))*parmList$delta # proportion of students wh
 sIsProp <- 0
 scumIProp <- sIProp
 sMProp <- 0
-studentPropTable <- data.frame(compartment = compartments, frac = c(sSProp,sEProp,sIProp,sRProp,sImProp,sIsProp,scumIProp,sMProp))
+studentPropTable <- data.frame(compartment = compartments,
+                               frac = c(sSProp,sEProp,sIProp,sRProp,sImProp,sIsProp,scumIProp,sMProp))
 
 # More model parameters
 # global parameters
@@ -276,7 +277,7 @@ u0 <- data.frame(
   R = rep(parmList$R0Pop,NnumTrials),
   Im = rep(parmList$Im0Pop,NnumTrials),
   Is = rep(parmList$Is0Pop,NnumTrials),
-  cumI = rep(parmList$cumI0Pop,NnumTrials),
+  cumI = I0,
   M=rep(parmList$M0Pop,NnumTrials)
 )
 
@@ -396,9 +397,12 @@ if(maxStudentNodes > 0) {
   # Event for day(s) students return, with random returns around studentReturnDate
   studentNodes <- sort(sample(1:N,min(N,maxStudentNodes)))
   
-  # exclude deceased by length(compartments)-1
-  studentEventList <- lapply(c(1:(length(compartments)-1)),studentEventFunction)
+  # exclude isolated, cumulative, and deceased by length(compartments)-3
+  studentEventList <- lapply(c(1:(length(compartments)-3)),studentEventFunction)
   studentEvents <- bind_rows(studentEventList[lengths(studentEventList) != 0])
+  studentCumI <- studentEvents[which(studentEvents$select == which(compartments=="I")),]
+  studentCumI$select <- which(compartments=="cumI")
+  studentEvents <- rbind(studentEvents,studentCumI)
 }
 
 ###### ALL EVENTS ######
