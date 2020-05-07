@@ -1,4 +1,7 @@
-# simInfPlottingFunction5.5.2020.R
+# simInfPlottingFunction5.6.2020.R
+
+# changes from simInfPlottingFunction5.5.2020.R
+# added option to plot cumulative infections and daily infections
 
 # changes from simInfPlottingFunction.R
 # instead of making a data table of the full trajectory, extract just the compartments/variables that are being plotted
@@ -29,13 +32,25 @@ simInfPlottingFunction <- function(
   
   # if table is U or V
   if(table == "U") {
-    uIndex <- which(uNames %in% compts)
-    uIndices <- data.table(outer((0:(enn*nT-1))*length(uNames),uIndex,FUN = "+"))
-    names(uIndices) <- compts
-    dt <- data.table(apply(uIndices,2,function(x) result@U[x,]))
-    dt[,trial:=rep.int(nTM$trial,max(tS))]
-    dt[,time:=sort(rep.int(tspan,enn*nT),method="quick")]
-    traj <- dt[,lapply(.SD,sum),by=.(time,trial)]
+    if(compts == "newI") {
+      uIndex <- which(uNames == "cumI")
+      uIndices <- data.table(outer((0:(enn*nT-1))*length(uNames),uIndex,FUN = "+"))
+      names(uIndices) <- "cumI"
+      dt <- data.table(apply(uIndices,2,function(x) result@U[x,]))
+      dt[,trial:=rep.int(nTM$trial,max(tS))]
+      dt[,time:=sort(rep.int(tspan,enn*nT),method="quick")]
+      traj <- dt[,lapply(.SD,sum),by=.(time,trial)]
+      traj[,newI:=c(0,diff(cumI)), by = trial]
+      traj[,cumI:=NULL]
+    } else {
+      uIndex <- which(uNames %in% compts)
+      uIndices <- data.table(outer((0:(enn*nT-1))*length(uNames),uIndex,FUN = "+"))
+      names(uIndices) <- compts
+      dt <- data.table(apply(uIndices,2,function(x) result@U[x,]))
+      dt[,trial:=rep.int(nTM$trial,max(tS))]
+      dt[,time:=sort(rep.int(tspan,enn*nT),method="quick")]
+      traj <- dt[,lapply(.SD,sum),by=.(time,trial)]
+    }
     
   } else if (table == "V") {
     vIndex <- which(vNames %in% compts)
