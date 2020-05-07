@@ -2,6 +2,18 @@
 
 # copyright Peter Banwarth Benton County Health Department 2020
 
+# Using package SimInf to model stochastic disease spread
+# https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf
+# https://cran.r-project.org/web/packages/SimInf/SimInf.pdf
+# https://github.com/stewid/SimInf
+
+# Widgren S, Bauer P, Eriksson R, Engblom S (2019) SimInf: An R Package for Data-Driven Stochastic
+# Disease Spread Simulations. Journal of Statistical Software, 91(12), 1--42. doi: 10.18637/jss.v091.i12
+
+# Bauer P, Engblom S, Widgren S (2016) Fast event-based epidemiological simulations on national scales.
+# International Journal of High Performance Computing Applications, 30(4), 438--453. doi: 10.1177/1094342016635723
+
+
 # changes from covid19_SimInf_5.5.200.R
 # added isolation = Is compartment that exposed can enter to represent enhanced contact tracing
 # added cumulative infections = cumI compartment
@@ -36,17 +48,6 @@
 
 # changes from covid19_SimInf_4.9.2020.R
 # removed all the efforts before Effort 15
-
-# Using package SimInf to model stochastic disease spread
-# https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf
-# https://cran.r-project.org/web/packages/SimInf/SimInf.pdf
-# https://github.com/stewid/SimInf
-
-# Widgren S, Bauer P, Eriksson R, Engblom S (2019) SimInf: An R Package for Data-Driven Stochastic
-# Disease Spread Simulations. Journal of Statistical Software, 91(12), 1--42. doi: 10.18637/jss.v091.i12
-
-# Bauer P, Engblom S, Widgren S (2016) Fast event-based epidemiological simulations on national scales.
-# International Journal of High Performance Computing Applications, 30(4), 438--453. doi: 10.1177/1094342016635723
 
 
 library(ggplot2)
@@ -119,8 +120,8 @@ parmList = list(
   "phiMoveUp" = .25,                         # Rate at which phi increases when interventions are imposed
   "phiMoveDown" = .25,                       # Rate at which phi decreases when interventions are lifted
   "pdDecay" = 30,                            # Number of days until phi decays toward 1 in the absence of interventions.
-  # Represents gradual relaxation of physical distancing as people return to normal.
-  # pdDecay = -1 removes this decay factor
+  ############################################ Represents gradual relaxation of physical distancing as people return to normal.
+  ############################################ pdDecay = -1 removes this decay factor
   
   ### other date parameters
   "kbDay1" = "2020-05-25",                   # Date of first phase of lifting stay-at-home orders
@@ -156,13 +157,13 @@ parmList = list(
   "yString" = "Frequency",                   # Title of y-axis
   "lString" = "Compartment"                  # Title of legend
 )
-# 
-# # saving parameter list
-# setwd("./parameters")
-# sink(paste0("parms",parmList$simID,".txt"))
-# parmList
-# sink()
-# setwd("../")
+
+# saving parameter list
+setwd("./parameters")
+sink(paste0("parms",parmList$simID,".txt"))
+parmList
+sink()
+setwd("../")
 
 # Start of simulation
 startofSimDay <- as.numeric(as.Date(parmList$simDate)) - as.numeric(as.Date("2020-01-01"))
