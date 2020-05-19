@@ -43,9 +43,9 @@ The argument `numTrials` sets the number of trials in the simulation. The script
 #### Population parameters
 The model assumes a homogenous, partially-mixed, mostly closed population. Homogenous because every individual has the same disease dynamics (chance of infection/dying, length of infectious period, etc.). Partially-mixed because the total population is divided into nodes. The disease evolves independently in different nodes, with occasional transfers between nodes to expose other nodes to disease. Mostly closed because no individuals leave the population except through death, and no individuals enter the population except for the occasional parachuting of infectious individuals or planned entry events.  
 
-The `trialPop` argument is the total population of initially susceptible individuals at time t.  
+`trialPop` is the total population of initially susceptible individuals at time t.  
 
-`N` is the number of nodes. The node population is randomly generated with a mean population of approximately `0.8*trialPop/N`. The distribution is slightly skewed left. The distribution of the trial population can be changed in the code itself.  
+`N` is the number of nodes, limited to a maximum of 500 in the code. The node population is randomly generated with a mean population of approximately `0.8*trialPop/N`. The distribution is slightly skewed left. The maximum number of nodes and the distribution of the trial population can be changed in the code itself.  
 
 `nodeGroupList` is an optional parameter to split the nodes into different groups. This represents subpopulations that are more likely to mix within the group compared to across groups. For example, distinct cities can be grouped into different nodeGroups. `nodeGroupList` is either `NULL` or a vector of length `N` with entries equal to the node group for each node.  
 
