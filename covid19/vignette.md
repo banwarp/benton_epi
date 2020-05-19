@@ -94,6 +94,74 @@ Different policy interventions (stay-at-home orders, limited business operations
 
 `upDelay` (`downDelay`) is the number of timesteps after the prevalence threshold is crossed before imposing (lifting) a policy intervention.  
 
-`phiMoveUp` (`phiMoveDown`) is the rate at which phi converges exponentially to the new target when phi is increasing (`decreasing`).  
+`phiMoveUp` (`phiMoveDown`) is the rate at which phi converges exponentially to the new target when phi is increasing (decreasing).  
 
-`pdDecay` is the number of days it takes for individual physical distancing to decay once prevalence is below the minor threshold. This represents people returning to normal interactions after they no longer feel the more obvious effects of policy interventions.
+`pdDecay` is the number of days it takes for individual physical distancing to decay once prevalence is below the minor threshold. This represents people returning to normal interactions after they no longer feel the more obvious effects of policy interventions.  
+
+In Oregon, the plans for reopening involve three phases. `kbDay1`, `kbDay2`, and `kbDay3` are the dates each phase is instituted.  
+
+It may be helpful to compare the disease trajectories with or without the ability to use policy interventions. `switchOffPolicies` and `switchOffDay` control whether minor/major policies will be switched off permanently and when.
+#### Event parameters
+The covid script uses events to model different population dynamics.
+- People are always entering a population. Some of those people may bring an infection with them. I call these individuals "parachuters". For simplicity, this model does not include people leaving the population. You can add to the code itself if desired.
+- People tend to see the same people every day, but they occasionally move between nodes. These people may be in any of a number of compartments. These movements are captured with transfer events.
+- There is a non-zero probability than an infectious person will be a super-spreader, who does not fit the normal R0 for generating new infections.
+- There may be certain populations that undergo mass changes, like students returning to a college town, or military divisions shipping out. Because this model was built for a college community, a mass entry event is included. You can add to the code itself to represent a mass exit event.
+
+##### Parachute events
+I made the assumption that infectious movements are currently low, will grow as the economy and travel reopens, then will decline as global prevalence eventually declines. `paraChi_df` generates this kind of a distribution. The distribution can be changed in the code itself, for example, to a uniform distribution.  
+```
+paraChi_df = 4                          # Distribution parameter for parachute events
+parachuteRate = 1/21                    # Reciprocal of expected waiting time for a parachute event
+parachuteNum = 1                        # Number of infectious in each parachute event
+parachuteNodeGroups = NULL              # Which nodes groups the parachuters can land in. Default is all groups
+```  
+
+#### Transfer events
+People are more likely to transfer inside their node group compared to outside their node group. Change the following parameters to adjust the transfer dynamics.
+```
+inGroupTransferRate = 1/7               # Reciprocal of expected waiting time for in-transfer event
+inGroupTransferNodeNum = .1             # Average number/proportion of nodes that transfer at each transfer event
+inGroupTransferMinProp = .1             # Minimum proportion of node population that transfers in each event
+inGroupTransferMaxProp = .3             # Maximum proportion of node population that transfers in each event
+outGroupTransferRate = 1/15             # Reciprocal of expected waiting time for out-transfer event
+outGroupTransferNodeNum = .05           # Average number/proportion of nodes that transfer at each transfer event
+outGroupTransferMinProp = .05           # Minimum proportion of node population that transfers in each event
+outGroupTransferMaxProp = .15           # Maximum proportion of node population that transfers in each event
+```
+
+#### Super spreader events
+There may be zero, one, or more super spreader events at any given time step. The following parameters adjust the super spreader events. They are all lists to allow for multiple events.
+```
+superInfections = c()          # Number of infections caused by the super spreader
+superNodes = c()             # Number of nodes that the super spreader contacts
+superNodeGroups = NULL       # Which node groups the super spreader contacts. Must use list() syntax for multiple events.
+superDate = c()              # Date the super spreader lands. Date can also be numeric i.e. 200
+superSpread = c()            # Symmetric spread in days of super spreader infections
+```
+
+#### Student/mass entry events
+The following parameters adjust the student events.
+```
+studentReturnDate = "2020-09-21"        # Date OSU student return
+studentReturnSpread = 3                 # Symmetric spread of days to spread out student return
+studentPop = 25000                      # OSU student population
+maxStudentNodes = 0                     # Maximum number of nodes that students enter. Set to 0 to remove studentEvent
+studentNodeGroups = NULL                # Which node groups the students enter
+sSProp = .9                             # Proportion of students who are susceptible
+sEProp = .0001                          # Proportion of students who are exposed
+sIProp = .0015                          # Proportion of students who are infectious; R and Im are calculated, Is, H, and M are zero
+```
+
+#### Plotting parameters
+The script automatically plots 5 different sets of trajectories. These can be adjusted in the code itself. The script appropriately aggregates the different nodes within a given trial and the plots the median and the confidence spread for the different number of trials. The following are parameters for the plots.
+```
+plotCompList = "I"                      # List of compartments that will be plotted
+rollM = 1                               # Number of days for plotting rolling means, rollM = 1 means no rolling mean
+confIntv = .9                           # Confidence interval for plotting spread
+dateBreaks = "1 month"                  # Plot parameter, x-axis displays months
+titleString = "Generic Title"           # Title of plot
+xString = "Date"                        # Title of x-axis
+yString = "Frequency"                   # Title of y-axis
+lString = "Compartment"                  # Title of legend
+```
