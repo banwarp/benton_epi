@@ -158,7 +158,7 @@ The script automatically plots 5 different sets of trajectories. These can be ad
 ```
 plotCompList = "I"                      # List of compartments that will be plotted
 rollM = 1                               # Number of days for plotting rolling means, rollM = 1 means no rolling mean
-confIntv = .9                           # Confidence interval for plotting spread
+confIntv = .9                           # two-sided confidence interval for plotting spread
 dateBreaks = "1 month"                  # Plot parameter, x-axis displays months
 titleString = "Generic Title"           # Title of plot
 xString = "Date"                        # Title of x-axis
