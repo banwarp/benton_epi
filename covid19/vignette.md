@@ -79,7 +79,7 @@ nu = 0                                  # Natural non-Covid death rate
 
 `phi0` sets the initial value of `phi`.  
 
-Under the assumption that the natural infectiousness of the coronavirus varies seasonally, `cosAmp` sets the amplitude of the cosine function that scales R0 up or down, with a peak on February 1st and a trough on August 1st.  
+`cosAmp` sets the amplitude of the cosine function that scales R0 up or down, with a peak on February 1st and a trough on August 1st, under the assumption that the natural infectiousness of the coronavirus varies seasonally.  
 
 #### Policy and physical distancing parameters
 Different policy interventions (stay-at-home orders, limited business operations, etc.) correspond to different levels of phi, which in turn scale R0 to different values. For simplicity, all arguments are defined in terms of the resulting effective reproduction number.  
@@ -88,7 +88,12 @@ Different policy interventions (stay-at-home orders, limited business operations
 
 `RNoAction` is the effective reproduction number with no actions of any kind. `RNoAction` defaults to `R0`.
 
-`RTarget1` is the targeted effective reproduction number under a minor policy intervention.  
+`RTarget1` (`RTarget2`) is the targeted effective reproduction number under a minor (major) policy intervention.  
 
-`RTarget2` is the targeted effective reproduction number under a major policy intervention.  
+`maxPrev1` (`maxPrev2`) is the prevalence threshold before imposing or lifting a minor (major) policy intervention.
 
+`upDelay` (`downDelay`) is the number of timesteps after the prevalence threshold is crossed before imposing (lifting) a policy intervention.  
+
+`phiMoveUp` (`phiMoveDown`) is the rate at which phi converges exponentially to the new target when phi is increasing (`decreasing`).  
+
+`pdDecay` is the number of days it takes for individual physical distancing to decay once prevalence is below the minor threshold. This represents people returning to normal interactions after they no longer feel the more obvious effects of policy interventions.
