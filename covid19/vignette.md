@@ -74,5 +74,5 @@ nu = 0                                  # Natural non-Covid death rate
 ##### Local data parameters
 ` R0Spread = .1` is a parameter to generate a uniform distribution of R0 across different trials. `R0` is scaled by `[1-R0Spread,1+R0Spread].`
 ##### Continuous disease dynamics parameters
-`phi` is a factor that scales `R0` to produce an effective reproduction number at different time steps. `phi` responds to changes in the trial-wide prevalence of the disease. The mechanism is as follows:
-
+`phi` is a factor that scales `R0` to produce an effective reproduction number at different time steps. `phi` evolves in response to changes in the trial-wide prevalence of the disease. The mechanism is as follows:
+![Evolution of phi](images/phiEvolution.png)
