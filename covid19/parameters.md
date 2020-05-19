@@ -2,7 +2,7 @@
 #### Introduction
 This set of R scripts was developed for local modeling of the COVID-19 disease in Benton County, Oregon, and other small geographies. The scripts use a modified SEIR model with partially-mixed, but otherwise homogeneous population nodes. This vignette describes how to use the scripts.
 
-#### Acknowledgements:
+##### Acknowledgements:
 I'd like to thank the developers of the SimInf package for writing the code that these scripts use and for assisting me in adapting their code to meet the requirements of COVID-19 modeling.  
 
 Widgren S, Bauer P, Eriksson R, Engblom S (2019) SimInf: An R Package for Data-Driven Stochastic Disease Spread Simulations. Journal of Statistical Software, 91(12), 1--42. doi: 10.18637/jss.v091.i12  
@@ -13,10 +13,10 @@ Bauer P, Engblom S, Widgren S (2016) Fast event-based epidemiological simulation
 [SimInf technical documentation](https://cran.r-project.org/web/packages/SimInf/SimInf.pdf)  
 [SimInf git repository](https://github.com/stewid/SimInf)
 
-### Conceptual schematic of SimInf
+##### Conceptual schematic of SimInf
 ![Conceptual schematic of SimInf](images/simInfSchematic.png)
 The conceptual schematic of the SimInf model that I use has three stages: Building the model, Running the model, and the Result.
-#### Building the model:
+##### Building the model:
 - Specify the model with parameters for disease spread, population compartments, and transitions between compartments.
 - Set the initial states in the compartments and the initial values of the continuous variables.
 - (If the model used is not one of the built-in model) Write the post-time-step function that changes continuous variables after every time step.
