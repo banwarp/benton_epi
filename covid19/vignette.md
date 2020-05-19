@@ -1,4 +1,4 @@
-## A basic vignette to describe how to use the covid19 set of R scripts
+## A vignette to describe how to use the covid19 set of R scripts
 ### Introduction
 This set of R scripts was developed for local modeling of the COVID-19 disease in Benton County, Oregon, and other small geographies. The scripts use a modified SEIR model with partially-mixed, but otherwise homogeneous population nodes. This vignette describes how to use the scripts.
 
@@ -33,7 +33,7 @@ The conceptual schematic of the SimInf model that I use has three stages: Buildi
 - With the result, you can plot trajectories for the different compartments and/or the evolutino of the continuous variables.
 
 ### covid19_SimInf_5.16.2020.R (or updated date)
-The covid19_SimInf_DATE.R script pre- and post-processes data and sets parameters to use in the SimInf model. The script has a number of pre-processing steps and associated parameters, which are discussed below:
+The covid19_SimInf_DATE.R script pre- and post-processes data and sets parameters to use in the SimInf model. The script has a number of pre-processing steps and associated parameters, which are discussed below. Parameters are organized in two ways - thematically with the model and logistically with the code. For example, a parameter may fit thematically with "disease dynamics" and logistically within the post-time-step function.  In this vignette, the parameters are organized thematically.
 #### Simulation parameters
 The script relies on subroutines that need to be accessed. Set the folder where they are stored using the `folderpath` argument. This folderpath is also where the exported graphs will be saved. The `simID` argument is the heading for the different graphs.  
 
@@ -75,4 +75,20 @@ nu = 0                                  # Natural non-Covid death rate
 ` R0Spread = .1` is a parameter to generate a uniform distribution of R0 across different trials. `R0` is scaled by `[1-R0Spread,1+R0Spread].`
 ##### Continuous disease dynamics parameters
 `phi` is a factor that scales `R0` to produce an effective reproduction number at different time steps. `phi` evolves in response to changes in the trial-wide prevalence of the disease. The mechanism is as follows:
-![Evolution of phi](images/phiEvolution.png)
+![Evolution of phi](images/phiEvolution.png)  
+
+`phi0` sets the initial value of `phi`.  
+
+Under the assumption that the natural infectiousness of the coronavirus varies seasonally, `cosAmp` sets the amplitude of the cosine function that scales R0 up or down, with a peak on February 1st and a trough on August 1st.  
+
+#### Policy and physical distancing parameters
+Different policy interventions (stay-at-home orders, limited business operations, etc.) correspond to different levels of phi, which in turn scale R0 to different values. For simplicity, all arguments are defined in terms of the resulting effective reproduction number.  
+
+`RPhysicalDistancing` is the effective reproduction number when people practice individual physical distancing.  
+
+`RNoAction` is the effective reproduction number with no actions of any kind. `RNoAction` defaults to `R0`.
+
+`RTarget1` is the targeted effective reproduction number under a minor policy intervention.  
+
+`RTarget2` is the targeted effective reproduction number under a major policy intervention.  
+
