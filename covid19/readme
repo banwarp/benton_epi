@@ -23,7 +23,7 @@ To use the scripts:
 5. Unless you are modeling a community with a single large entry event (e.g. university students returning on/around a certain date), you probably don't want to include the studentEvent. Simply set maxStudentNodes = 0 and this event will not be created.
 6. You can include zero, one, or more super-spreader events. The parameters for the super spreader events are lists to accommodate more than one event.
 7. You have the option to group the nodes to represent segmented populations where movement is higher within node groups compared to across node groups.
-8. Run the script. The script automatically produces plots of daily active infections (I), intervention measures (phi), daily new infections (newI), daily hospital bed use (H), and cumulative deaths (M), and saves them to a folder. You can also use the code for these plots to plot other compartments or continuous variables. Read through simInfPlottingFunction5.8.2020.R for details. The function itself returns the modeled result, from which you can extract trajectories and other data and make other plots.
+8. Run the script. The script automatically produces plots of daily active infections (I), intervention measures (phi), daily new infections (newI), daily hospital bed use (H), and cumulative deaths (M), and saves them to a folder. You can also use the code for these plots to plot other compartments or continuous variables. Read through simInfPlottingFunction5.14.2020.R for details. The function itself returns the modeled result, from which you can extract trajectories and other data and make other plots.
 
 You are welcome to leave comments/questions on github or email me at peter.banwarth@co.benton.or.us.
 
