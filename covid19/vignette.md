@@ -4,14 +4,14 @@ This set of R scripts was developed for local modeling of the COVID-19 disease i
 
 ### Acknowledgements:
 I'd like to thank the developers of the SimInf package for writing the code that these scripts use and for assisting me in adapting their code to meet the requirements of COVID-19 modeling.  
+
 Widgren S, Bauer P, Eriksson R, Engblom S (2019) SimInf: An R Package for Data-Driven Stochastic Disease Spread Simulations. Journal of Statistical Software, 91(12), 1--42. doi: 10.18637/jss.v091.i12  
 
 Bauer P, Engblom S, Widgren S (2016) Fast event-based epidemiological simulations on national scales. International Journal of High Performance Computing Applications, 30(4), 438--453. doi: 10.1177/1094342016635723
 
-[SimInf vignettes](https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf)
-[SimInf technical documentation](https://cran.r-project.org/web/packages/SimInf/SimInf.pdf)
+[SimInf vignettes](https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf)  
+[SimInf technical documentation](https://cran.r-project.org/web/packages/SimInf/SimInf.pdf)  
 [SimInf git repository](https://github.com/stewid/SimInf)
-
 
 ### Conceptual schematic of SimInf
 ![Conceptual schematic of SimInf](images/simInfSchematic.png)
