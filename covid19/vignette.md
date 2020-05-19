@@ -15,6 +15,7 @@ The conceptual schematic of the SimInf model that I use has three stages: Buildi
 - Use the events dataframe to move individuals in/out/between nodes and/or compartments.
 - Advance the time step.
 - Change continuous variables according to the post-time-step functions.
+- Repeat for every time step.
 #### Result:
 - Trajectories of the compartments across the timespan.
 - Evolution of continous variables across the timespan.
