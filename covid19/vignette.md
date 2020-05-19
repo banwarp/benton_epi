@@ -53,7 +53,7 @@ The `trialPop` argument is the total population of initially susceptible individ
 
 `maxINodeProp` sets an upper limit on how many nodes can have a positive initial infectious population, to represent that the disease is not evenly distributed. `I0nodeGroups` allows the distribution of initial infectious to be restricted to certain node groups.
 #### Disease dynamics parameters
-The disease dynamic parameters are split into three groups: global data (`gdata`), local data (`ldata`), and continuous variables (`v0`). Global data applies to all nodes and trials in the simulation. Local data can be specified to the individual trial, nodeGroup, or node. Neither global nor local data change during the simulation. Continuous variables can be specified locally, and can change during the simulation. You can change where parameters are specific in the code itself. For example, the default is for the basic reproduction number to be a global parameter, but you could make it a local parameter or a continuous variable.  
+The disease dynamic parameters are split into three groups: global data (`gdata`), local data (`ldata`), and continuous variables (`v0`). Global data applies to all nodes and trials in the simulation. Local data can be specified to the individual trial, nodeGroup, or node. Neither global nor local data change during the simulation. Continuous variables can be specified locally, and can change during the simulation. You can change where parameters are specific in the code itself. For example, the default is for the basic reproduction number to be a global parameter, but you could make it a local parameter or a continuous variable. 
 ##### Global data parameters
 ```
 R0 = 2.9                                # Basic reproduction number
@@ -72,4 +72,7 @@ mu = 0                                  # Natural birth/susceptible immigration 
 nu = 0                                  # Natural non-Covid death rate
 ```
 ##### Local data parameters
-` R0Spread = .1           # A parameter to generate a uniform distribution of R0 across different trials. R0 is scaled by [1-R0Spread,1+R0Spread].`
+` R0Spread = .1` is a parameter to generate a uniform distribution of R0 across different trials. `R0` is scaled by `[1-R0Spread,1+R0Spread].`
+##### Continuous disease dynamics parameters
+`phi` is a factor that scales `R0` to produce an effective reproduction number at different time steps. `phi` responds to changes in the trial-wide prevalence of the disease. The mechanism is as follows:
+
