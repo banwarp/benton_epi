@@ -54,3 +54,20 @@ The `trialPop` argument is the total population of initially susceptible individ
 `maxINodeProp` sets an upper limit on how many nodes can have a positive initial infectious population, to represent that the disease is not evenly distributed. `I0nodeGroups` allows the distribution of initial infectious to be restricted to certain node groups.
 #### Disease dynamics parameters
 The disease dynamic parameters are split into three groups: global data (`gdata`), local data (`ldata`), and continuous variables (`v0`). Global data applies to all nodes and trials in the simulation. Local data can be specified to the individual trial, nodeGroup, or node. Neither global nor local data change during the simulation. Continuous variables can be specified locally, and can change during the simulation. You can change where parameters are specific in the code itself. For example, the default is for the basic reproduction number to be a global parameter, but you could make it a local parameter or a continuous variable.  
+Global data parameters
+```
+R0 = 2.9                                # Basic reproduction number
+infectiousPeriod = 1/8                  # Reciprocal of infectious period
+exposedPeriod = 1/4                     # Reciprocal of exposed period
+isoRate = .125                          # Proportion of exposed who are identified and isolated before they become infectious
+isoPeriod = 1/10                        # Reciprocal of length of isolation period
+RIsolated = .125                        # Reproduction number of isolated infectious
+hospRate = .033                         # Proportion of infectious/isolated that are hospitalized
+hospPeriod = 1/14                       # Reciprocal of length of hospitalization period
+nonHospDeathRate = 0                    # Non-hospitalized fatality rate
+hospDeathRate = .125                    # Hospitalized fatality rate NOT CASE FATALITY RATE
+reSuscepRate = .1                       # Proportion of recovereds who eventually become susceptible again
+tempImmPeriod = 1/100                   # Reciprocal of temporary immunity period, after which R becomes Im or S
+mu = 0                                  # Natural birth/susceptible immigration rate
+nu = 0                                  # Natural non-Covid death rate
+```
