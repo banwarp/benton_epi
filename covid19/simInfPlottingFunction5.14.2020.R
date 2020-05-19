@@ -1,4 +1,7 @@
-# simInfPlottingFunction5.8.2020.R
+# simInfPlottingFunction5.19.2020.R
+
+# changes from simInfPlottingFunction5.14.2020.R
+# Fixed confidence interval calculation
 
 # changes from simInfPlottingFunction5.6.2020.R
 # added functionality to plot sums of compartments
@@ -22,7 +25,7 @@ simInfPlottingFunction <- function(
                                    uNames = names(u0),        # list of compartments
                                    vNames = NULL,             # list of variables
                                    rollM = 1,                 # number of days for rolling average
-                                   confIntv = .95,            # confidence interval for plotting spread
+                                   confIntv = .90,            # two-sided confidence interval for plotting spread
                                    nTM = nodeTrialMat,        # node-Trial matrix
                                    tS = tspan,                # length of simulation
                                    enn = N,                   # number of nodes per trial
@@ -34,6 +37,9 @@ simInfPlottingFunction <- function(
                                    yString = NULL,            # plot parameter: Title of y axis
                                    lString = "Compartment"    # plot parameter: Title of legend
                                    ) {
+  
+  # turns two-sided confidence interval into one-sided
+  confIntv <- .5+confIntv/2
   
   # if table is U or V
   if(table == "U") {
