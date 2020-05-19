@@ -1,8 +1,8 @@
 ## Description of user-defined parameters in the Covid-19 scripts
-### Introduction
+#### Introduction
 This set of R scripts was developed for local modeling of the COVID-19 disease in Benton County, Oregon, and other small geographies. The scripts use a modified SEIR model with partially-mixed, but otherwise homogeneous population nodes. This vignette describes how to use the scripts.
 
-### Acknowledgements:
+#### Acknowledgements:
 I'd like to thank the developers of the SimInf package for writing the code that these scripts use and for assisting me in adapting their code to meet the requirements of COVID-19 modeling.  
 
 Widgren S, Bauer P, Eriksson R, Engblom S (2019) SimInf: An R Package for Data-Driven Stochastic Disease Spread Simulations. Journal of Statistical Software, 91(12), 1--42. doi: 10.18637/jss.v091.i12  
@@ -21,18 +21,18 @@ The conceptual schematic of the SimInf model that I use has three stages: Buildi
 - Set the initial states in the compartments and the initial values of the continuous variables.
 - (If the model used is not one of the built-in model) Write the post-time-step function that changes continuous variables after every time step.
 - Generate a dataframe of events that can introduce or remove individuals to different compartments, transfer them between nodes, or shift them between compartments, at different times.
-#### Run the model:
+##### Run the model:
 - Advance individuals through compartments using the transitions and disease parameters. Record the compartment counts and continous variable values for the disease trajectory.
 - Use the events dataframe to move individuals in/out/between nodes and/or compartments.
 - Advance the time step.
 - Change continuous variables according to the post-time-step functions.
 - Repeat for every time step.
-#### Result:
+##### Result:
 - Trajectories of the compartments across the timespan.
 - Evolution of continous variables across the timespan.
 - With the result, you can plot trajectories for the different compartments and/or the evolutino of the continuous variables.
 
-### covid19_SimInf_5.16.2020.R (or updated date)
+### covid19_SimInf_5.16.2020.R (or updated date) parameters
 The covid19_SimInf_DATE.R script pre- and post-processes data and sets parameters to use in the SimInf model. The script has a number of pre-processing steps and associated parameters, which are discussed below. Parameters are organized in two ways - thematically with the model and logistically with the code. For example, a parameter may fit thematically with "disease dynamics" and logistically within the post-time-step function.  In this vignette, the parameters are organized thematically.
 #### Simulation parameters
 The script relies on subroutines that need to be accessed. Set the folder where they are stored using the `folderpath` argument. This folderpath is also where the exported graphs will be saved. The `simID` argument is the heading for the different graphs.  
