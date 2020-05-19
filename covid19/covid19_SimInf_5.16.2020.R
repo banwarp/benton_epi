@@ -115,13 +115,13 @@ covidWrapper <- function(
   phi0 = 2.9/.9,                           # Initial phi under current (March 23rd) stay-at-home orders
   
   ### pts_fun parameters
+  cosAmp = 0.25,                           # Amplitude of seasonal variation in beta
   RPhysicalDistancing = 2,                 # Ongoing baseline Rt, reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
-  RNoAction = 2.9,                         # Ongoing baseline Rt if no actions at are all taken
-  maxPrev1 = .001,                         # Maximum prevalence before instituting minor intervention
-  maxPrev2 = .002,                         # Maximum prevalence before instituting major intervention
+  RNoAction = NULL,                         # Ongoing baseline Rt if no actions at are all taken
   RTarget1 = 1.5,                          # Target for the reduction in R under minor intervention
   RTarget2 = .9,                           # Target for the reduction in R under major intervention
-  cosAmp = 0.25,                           # Amplitude of seasonal variation in beta
+  maxPrev1 = .001,                         # Maximum prevalence before instituting minor intervention
+  maxPrev2 = .002,                         # Maximum prevalence before instituting major intervention
   upDelay = 10,                            # Number of days after prevalence passes threshold until minor/major intervention
   downDelay = 28,                          # Number of days after prevalence drops below threshold until intervention lifted
   phiMoveUp = .25,                         # Rate at which phi increases when interventions are imposed
@@ -143,11 +143,11 @@ covidWrapper <- function(
   parachuteNum = 1,                        # Number of infectious in each parachute event
   parachuteNodeGroups = c(1),              # Which nodes groups the parachuters can land in
   inGroupTransferRate = 1/7,               # Reciprocal of expected waiting time for in-transfer event
-  inGroupTransferNodeNum = .1,      # Average number/proportion of nodes that transfer at each transfer event
+  inGroupTransferNodeNum = .1,             # Average number/proportion of nodes that transfer at each transfer event
   inGroupTransferMinProp = .1,             # Minimum proportion of node population that transfers in each event
   inGroupTransferMaxProp = .3,             # Maximum proportion of node population that transfers in each event
   outGroupTransferRate = 1/15,             # Reciprocal of expected waiting time for out-transfer event
-  outGroupTransferNodeNum = .05,    # Average number/proportion of nodes that transfer at each transfer event
+  outGroupTransferNodeNum = .05,           # Average number/proportion of nodes that transfer at each transfer event
   outGroupTransferMinProp = .05,           # Minimum proportion of node population that transfers in each event
   outGroupTransferMaxProp = .15,           # Maximum proportion of node population that transfers in each event
   
@@ -163,7 +163,7 @@ covidWrapper <- function(
   studentReturnSpread = 3,                 # Symmetric spread of days to spread out student return
   studentPop = 25000,                      # OSU student population
   maxStudentNodes = 0,                     # Maximum number of nodes that students enter. Set to 0 to remove studentEvent
-  studentNodeGroups = c(1),                # Which node groups the students enter
+  studentNodeGroups = NULL,                # Which node groups the students enter
   sSProp = .9,                             # Proportion of students who are susceptible
   sEProp = .0001,                          # Proportion of students who are exposed
   sIProp = .0015,                          # Proportion of students who are infectious; R, Im, and M are calculated
@@ -171,7 +171,7 @@ covidWrapper <- function(
   ### plot parameters
   plotCompList = "I",                      # List of compartments that will be plotted
   rollM = 1,                               # Number of days for plotting rolling means, rollM = 1 means no rolling mean
-  confIntv = .95,                          # Confidence interval for plotting spread
+  confIntv = .95,                          # two-sided confidence interval for plotting spread
   dateBreaks = "1 month",                  # Plot parameter, x-axis displays months
   titleString = "Generic Title",           # Title of plot
   xString = "Date",                        # Title of x-axis
@@ -197,7 +197,7 @@ covidWrapper <- function(
   
   if(is.null(folderPath)) {setwd("L:/Health/Epidemiology/Banwarth_Epi/covid19/scripts")}
   source("eventFunctions5.16.2020.R")
-  source("simInfPlottingFunction5.14.2020.R")
+  source("simInfPlottingFunction5.19.2020.R")
   source("pts_funScript5.5.2020.R")
   if(is.null(folderPath)) {setwd("../")}
   
@@ -264,6 +264,7 @@ covidWrapper <- function(
   compartments <- c("S","E","I","R","Im","H","Is","cumI","M")
   
   # student event parameters - relies on compartments
+  if(is.null(studentNodeGroups)) {studentNodeGroups <- unique(nodeGroupList)}
   # September 20th (day students return) = day 264 in calendar year
   studentReturnDate <- as.numeric(as.Date(studentReturnDate)) - as.numeric(as.Date("2020-01-01")) - startofSimDay
   studentReturnSpread <- studentReturnSpread # symmetric spread around return date in number of days
@@ -373,6 +374,8 @@ covidWrapper <- function(
     RTee = rep(R0,NnumTrials),                 # tracking effective Rt
     pdCounter = rep(0,NnumTrials)                  # counter for pdDecay
   )
+  
+  if(is.null(RNoAction)) {RNoAction <- R0}
   
   # building pts_fun
   pts_fun <- pts_funScript(
@@ -519,6 +522,8 @@ covidWrapper <- function(
   }
   
   ###### SUPER SPREADER EVENTS #####
+  if(is.null(superNodeGroups)) {superNodeGroups <- unique(nodeGroupList)}
+  
   if(length(superInfections) > 0){
     eligibleSuperNodes <- lapply(superNodeGroups,function(x) nodeTrialMat[which(nodeTrialMat$nodeGroup %in% x & nodeTrialMat$trial==1),"node"]$node)
 
