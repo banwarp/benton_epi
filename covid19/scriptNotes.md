@@ -156,4 +156,136 @@ u0 <- data.frame(
 ##### Initial state of continous variables
 `phi` is initialized to `phi0`, which is a user defined parameter.  
 
-Whenever prevalence crosses a certain threshold, a timer starts before an intervention is imposed or lifted. At the beginning of the simulation, the timers are initialized to be 
+Whenever prevalence crosses a certain threshold, a timer starts before an intervention is imposed or lifted. At the beginning of the simulation, the timers are initialized to the ready state.
+```
+prevUp01 = rep(upDelay+1,NnumTrials),      # initialized variable for capturing delay in response when prevalence increases
+prevUp12 = rep(upDelay+1,NnumTrials),      # variable for capturing delay in response when prevalence increases
+prevDown21 = rep(downDelay+1,NnumTrials),  # variable for capturing delay in response when prevalence decreases
+prevDown10 = rep(downDelay+1,NnumTrials),  # variable for capturing delay in response when prevalence decreases
+```
+In the state of Oregon, the stay-home stay-healthy orders were lifted in three phases. `kbPhase` initializes the phase.  
+
+In order to explore counterfactuals, the user can choose to switch off policies on a certain date. `policy = 1` intializes the state to be able to use policies.  
+
+`season = 1` centers the seasonal scaling of `beta` about `1`.  
+
+The model records the daily `prevalence`, which is initialized to 0 for simplicity. It could be initialized to the prevalence in each trial, but that would not make a difference when the model runs.  
+
+Various parameters, states, and variables depend on whether prevalence is increasing or decreasing. `previousState` records what category the `prevalence` was in during the previous time step: baseline, minor, or major intervention. For example, if `previousState` was major intervention, and the current prevalence is now below the major threshold, the post-time-step function will start the timer for lifting the major intervention.  
+
+`RTee` tracks the effective reproduction number so that the user can plot it if they want to. It does not affect the disease dynamics or the model directly.
+
+`pdCounter` is a timer variable for the decay of physical distancing. The model assumes that if prevalence is low (below the minor threshold), people will eventually stop physically distancing. `pdCounter` is used to track the decay at each time step.
+
+##### Post-time-step function
+A whole .md could be (and will be) written about the post-time-step function (pts_function). In brief, the pts_function tells SimInf how to change continous variables (with the option of other effects) after every time step. The pts_function is written in C, which is nothing if not verbose. The function is stored as a single character and passed to the SimInf routine. To save space, I wrote the pts_function in a separate script and call pts_funScript to generate it. The parameters are passed through from user-defined parameters or paramters already described in this .md.
+```
+pts_fun <- pts_funScript(
+    phiPhysicalDistancing = (gdata$beta/gdata$infectiousPeriod)/RPhysicalDistancing, # Phi reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
+    phiNoAction = (gdata$beta/gdata$infectiousPeriod)/RNoAction,                     # Phi reflecting no actions
+    maxPrev1 = maxPrev1,                                                             # Maximum prevalence before instituting minor intervention
+    maxPrev2 = maxPrev2,                                                             # Maximum prevalence before instituting major intervention
+    phiFactor1 = (gdata$beta/gdata$infectiousPeriod)/RTarget1,                       # Target for the reduction in R0 under minor intervention
+    phiFactor2 = (gdata$beta/gdata$infectiousPeriod)/RTarget2,                       # Target for the reduction in R0 under major intervention
+    cosAmp = cosAmp,                                                                 # Amplitude of seasonal variation in beta
+    startDay = startofSimDay,                                                        # start of simulation
+    kbDay1 = kbDay1,                                                                 # date of first phase
+    kbDay2 = kbDay2,                                                                 # date of second phase
+    kbDay3 = kbDay3,                                                                 # date of third phase
+    enn = N,                                                                         # number of nodes in a trial
+    numComp = length(compartments),                                                  # number of compartments
+    prevType = ifelse(maxPrev1 < 1,1,0),                                             # prevalence type. 0 = count, 1 = proportion
+    upDelay = upDelay,                                                               # Number of days after prevalence passes threshold until minor/major intervention
+    downDelay = downDelay,                                                           # Number of days after prevalence drops below threshold until intervention lifted
+    phiMoveUp = phiMoveUp,                                                           # Rate at which phi increases when interventions are imposed
+    phiMoveDown = phiMoveDown,                                                       # Rate at which phi decreases when interventions are lifted
+    pdDecay = pdDecay,                                                               # Rate at which phi decreases toward 1 in the absence of interventions. Represents gradual relaxation of physical distancing
+    switchOffPolicies = switchOffPolicies,                                           # Logical variable to switch off policies (used for counterfactuals)
+    switchOffDay = as.numeric(as.Date(switchOffDay)) - as.numeric(as.Date("2020-01-01")) - startofSimDay # day policies would be switched off (used for counterfactuals)
+  )
+  ```
+
+##### Events
+Events specify time, compartment, node, number, and type (entry, exit, transfer, shift). For full details, refer to the [SimInf vignette](https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf).
+In order to use events, the user must define a matrix(ces) for SimInf that tells the routine which compartments the events happen to. `E` is for events that primarily affect transfers between nodes; `N` is for events that primarily affect transfer between compartments.
+```
+# Events matrix
+# leaves off Is, H, cumI, and M from last column
+E <- cbind(diag(length(compartments)),c(rep(1,length(compartments)-4),rep(0,4)))
+dimnames(E) <- list(compartments,c(1:ncol(E)))
+
+# Shift matrix
+Nmat <- matrix(c(1,rep(0,length(compartments)-1)),ncol=1)
+dimnames(Nmat) <- list(compartments,1)
+```
+The columns of `E` (`N`) correspond to different types of events, and the populated rows specify which compartments are impacted in each event.
+
+##### Parachute events
+The model allows for infectious individuals to parachute into the populations. The user can define how many parachute events there are, how many infectious individuals parachute in each time, and which node groups can receive a parachuter. In order to try to approximate reality, I sampled parachute events from a truncated chi square distribution with degree 4. If a uniform distribution is preferred, this can be changed in the code.  
+
+Each trial gets its own set of randomly distributed parachute events. Once the number of events for a trial is set, the specific node(s) is selected from among the eligible node groups (listed in `parachuteNodeGroups`). Then the `parachuteEvents` data frame is created.
+
+```
+# number of events in each trial
+  numParachuteList <- lapply(1:numTrials,function(x) rpois(1,parachuteRate*max(tspan)))
+  parachuteNTM <- nodeTrialMat[nodeTrialMat$nodeGroup %in% parachuteNodeGroups,]
+  pNList <- split(parachuteNTM$node,parachuteNTM$trial)
+  
+  if(max(unlist(numParachuteList)) > 0){
+    # parachute events data frame
+    parachuteEvents <- data.frame(
+      event = "enter",
+      time = unlist(lapply(numParachuteList, function(x) sample(parachuteDist,x,replace=TRUE))),
+      node = unlist(lapply(c(1:numTrials),function(x) sample(pNList[[x]],numParachuteList[[x]],replace=TRUE))),
+      dest = 0,
+      n = parachuteNum,
+      proportion = 0,
+      select = which(compartments == "I"),
+      shift = 0
+    )
+  }
+```
+
+##### Transfer Events
+In order to model partial mixing, I split each trial into a set of nodes, classified by node groups. The default is for there to be 1 node group, but the user can define a list of node groups. I use transfers between nodes to represent the broader mixing of the population. I assume that transfers within a node group are more common than transfer between node groups. This represents that people tend to mix with the same set of people in their node, occasionally mixing with others in their node group, and rarely mixing with still others in other node groups. For example, people in one suburb, occasionally mixing with people in their neighboring city, rarely mixing with people in other cities.  
+
+As with parachute events, the number and date of in-node and out-node transfers is randomly distributed and different in each trial. The distribution is uniform with the number of events following a Poisson distribution. The script uses the `transferFunction` subroutine to populate the `transferEvents` data frame.
+```
+numInTransferList <- lapply(1:numGroups,function(x) 
+  lapply(1:numTrials, function(y) rpois(1,inGroupTransferRate[x]*inGroupTransferNodeNum[x]*max(tspan))))
+  
+inTransferEventsList <- lapply(1:numGroups, transferFunction, ...)
+# See script for complete code
+
+numOutTransferList <- lapply(1:numGroups,function(x) 
+    lapply(1:numTrials, function(y) rpois(1,outGroupTransferRate[x]*outGroupTransferNodeNum[x]*max(tspan))))
+    
+  outTransferEventsList <- lapply(1:numGroups, transferFunction...)
+# See script for complete code
+```
+In order to keep a lid on transfers, I cap the number of people who can transfer based on the smaller population of the origination and destination node. I assume that a small node would not receive a huge in-transfer. Maybe this doesn't make much difference - I haven't explored it yet.
+```
+if(nrow(transferEvents)>0){
+  Sgrid <- data.frame(node=1:length(u0$S),nodePop = u0$S)
+  transferEvents <- merge(transferEvents,Sgrid,by="node",all.x=TRUE)
+  names(Sgrid) <- c("dest","destPop")
+  transferEvents <- merge(transferEvents,Sgrid,by="dest",all.x=TRUE)
+  transferEvents$maxProp <- transferEvents$destPop/transferEvents$nodePop
+  transferEvents[transferEvents$maxProp<1,"proportion"] <- transferEvents[transferEvents$maxProp<1,"maxProp"]*transferEvents[transferEvents$maxProp<1,"proportion"]
+  transferEvents <- transferEvents[,c("event","time","node","dest","n","proportion","select","shift")]
+}
+```
+
+##### Super-spreader events
+There is a small but nonzero probability that any given infected person becomes a super-spreader, i.e. does not conform to the parameterized `R0` in terms of number of generated infections. To model this, I allow for zero, one, or more super-spreader events. The super-spreader parameters are in lists to allow for more than one. For each event, the user selects the date. This could be randomized using `superDate = sample(maxT,n)`, where `n` is the number of events. Each event also has a spread of days when the infections take place. The event transitions a given number of individuals from the Susceptible compartment to the Exposed compartment. As with parachuters, the newly Exposed can be assigned to certain node groups and a quantity of nodes within those groups, representing that the super-spreader does not come in contact with everyone in the population.
+```
+eligibleSuperNodes <- lapply(superNodeGroups,function(x) nodeTrialMat[which(nodeTrialMat$nodeGroup %in% x & nodeTrialMat$trial==1),"node"]$node)
+
+superNodeList <- lapply(1:length(superNodes),
+                        function(x) if(length(eligibleSuperNodes[[x]])>1)
+                          {sort(sample(eligibleSuperNodes[[x]],min(length(eligibleSuperNodes[[x]]),superNodes[x])))}
+                          else{eligibleSuperNodes[[x]]})
+
+superEventList <- lapply(1:length(superInfections), superFunction,...)
+# See script for complete code
+```
