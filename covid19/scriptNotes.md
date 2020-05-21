@@ -49,7 +49,7 @@ Many of the user-defined parameters are used to set additional, internal paramet
 The date parameters are changed to numeric values, e.g. `startofSimDay <- as.numeric(as.Date(simDate)) - as.numeric(as.Date("2020-01-01"))`.
 
 ##### Trial and node parameters
-In order to make sure that the script runs within a reasonable amount of time, an upper limit is placed on the number of tirals and the number of nodes. The limits can be changed in the code.
+In order to make sure that the script runs within a reasonable amount of time, an upper limit is placed on the number of trials and the number of nodes. The limits can be changed in the code.
 ```
 numTrials <- min(100,numTrials) # capping number of trials at 100
 N <- min(1000,N) # capping number of nodes per trial at 1000
