@@ -1,6 +1,6 @@
 ## Description of user-defined parameters in the Covid-19 scripts
 #### Introduction
-This set of R scripts was developed for local modeling of the COVID-19 disease in Benton County, Oregon, and other small geographies. The scripts use a modified SEIR model with partially-mixed, but otherwise homogeneous population nodes. This vignette describes how to use the scripts.
+This set of R scripts was developed for local modeling of the COVID-19 disease in Benton County, Oregon, and other small geographies. The scripts use a modified SEIR model with partially-mixed, but otherwise homogeneous population nodes. This markdown document describes the user-defined function parameters for the covid scripts.
 
 ##### Acknowledgements:
 I'd like to thank the developers of the SimInf package for writing the code that these scripts use and for assisting me in adapting their code to meet the requirements of COVID-19 modeling.  
