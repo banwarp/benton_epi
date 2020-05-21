@@ -163,5 +163,5 @@ dateBreaks = "1 month"                  # Plot parameter, x-axis displays months
 titleString = "Generic Title"           # Title of plot
 xString = "Date"                        # Title of x-axis
 yString = "Frequency"                   # Title of y-axis
-lString = "Compartment"                  # Title of legend
+lString = "Compartment"                 # Title of legend
 ```
