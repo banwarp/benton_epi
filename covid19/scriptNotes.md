@@ -106,7 +106,7 @@ Transitions beginning or ending with `@` represent entry/exit from/to the empty 
 1. `@ -> mu*(S+E+I+R+Im) -> S` Natural population growth 
 2. `R -> reSuscepRate*tempImmPeriod*R -> S` Some proportion of recovered become susceptible again after a peiod of temporary immunity.
 3. `S -> nu*S -> @`, `E -> nu*E -> @`, `I -> nu*I -> @`, `Is -> nu*Is -> @`, `R -> nu*R -> @`, `Im -> nu*Im -> @` Natural death rate, not associated with COVID-19.
-4. `S -> ((1/phi)*beta*betaRandomizer*season*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E` Transition from Susceptible to Exposed.
+4. `S -> (beta*(1/phi)*season*betaRandomizer*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E` Transition from Susceptible to Exposed.
     - `beta` is the baseline transmissibility rate.
     - `(1/phi)` scales beta according to the intensity of policy intervention and/or physical distancing. A more intense intervention or more physical distancing increases `phi` which decreases the effective transmissibility rate.
     - `season` is the seasonality factor, which peaks in February and troughs in August.
