@@ -70,3 +70,20 @@ nodeAndGroupList <- lapply(nodeAndGroupList,function(x) split(x$node,x$trial))
 `nodeAndGroupList` is created to use `lapply` on different node groups.  
 
 `maxNodePop <- floor(trialPop/N)` is created for distributing populations across nodes within trials.
+
+##### Mass entry parameters
+The code allows for a single mass entry event. The mass entry event can be turned off by setting `massMassEntryNodes=0` in the user-defined parameters.  
+
+`maxMassEntryNodes <- min(length(which(nodeGroupList %in% massEntryNodeGroups)),maxMassEntryNodes)` is user-defined, but also limited by the number of available nodes in the set of node groups chosen to host the mass entry event.  
+
+`mRProp` through `mMProp` are created to distributed the mass entry individuals among the different departments.  `massEntryPropTable` gathers these proportions together into a single table.
+
+##### Global and local parameters
+SimInf uses `gdata` and `ldata` for the model transitions. Most of these parameters are user defined, except for `beta`, `isoRate`, and `betaIsolated`.  
+
+`beta` is calculated as a product of the user-defined `R0` and `infectiousPeriod`.  
+
+`isoRate` is user defined. However, assuming that all hospitalized individuals are isolated, `isoRate` is overwritten by the maximum of `isoRate` and `hospRate`.  
+
+`betaIsolated` is the transmissibility of the virus among isolated individuals, and it is the product of the user-defined `RIsolated` and `isoPeriod`, similar to `beta`.
+
