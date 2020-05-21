@@ -121,3 +121,39 @@ Transitions beginning or ending with `@` represent entry/exit from/to the empty 
 11. `H -> hospDeathRate*H -> M` Deaths among hospitalized COVID patients. Note that we assume the death rate among Isolated = 0, since they would have been hospitalized. This can be changed in the code.
 12. `Is -> isoPeriod*Is -> R` Recovery from COVID among isolated, assumes non-Hospitalized Isolated all recover.
 13. `R -> (1-reSuscepRate)*tempImmPeriod*R -> Im` Most Recovered become permanently Immune after a period of temporary immunity. Some fraction (`reSuscepRate`) become Susceptible again.  
+
+##### Initial state of compartments
+The initial susceptible population is randomly distributed across the nodes in each trial. Most nodes will have a population approximately equal to `.8*trialPop/N`. The distribution is skewed left, so that some nodes will have a much smaller population, and a decent number of nodes will have a population closer to `trialPop/N`. Is this necessary? Probably not, and it could be replaced with constant `trialPop/N` for each node.
+```
+S0 <- matrix(floor(maxNodePop/log(maxNodePop)*log(runif(NnumTrials,min=1,max=maxNodePop))),ncol=numTrials)
+S0 <- matrix(apply(S0,2,function(x) x+round(((trialPop-sum(x))/length(x)),0)))
+```
+The code allows the user to select which node groups contain initial infectious individuals and the maximum number of nodes within those node groups that can have 1 or more initial infectious individuals. This allows the user to model scenarios where the initial infection is highly clustered or widely spread.
+```
+eligibleInodes <- nodeTrialMat[which(nodeTrialMat$nodeGroup %in% I0nodeGroups & nodeTrialMat$trial==1),"node"]$node
+Inodes <- lapply(0:(numTrials-1),function(x) (x*N)+sample(eligibleInodes,ceiling(maxINodeProp*length(eligibleInodes))))
+I0indices <- lapply(Inodes,function(x) if(length(x)>1){sample(x,rbinom(1,2*I0Pop,.5),replace=TRUE)}
+                                              else{rep(x,I0Pop)})
+I0indices <- unlist(lapply(I0indices,function(x) table(x)))
+I0 <- matrix(0,nrow=NnumTrials)
+I0[as.numeric(names(I0indices))] <- I0indices
+```
+The default is to initialize all compartments except `S`, `I`, and `cumI` to 0.
+```
+u0 <- data.frame(
+  S = S0,
+  E = rep(E0Pop,NnumTrials),
+  I = I0, # random number of initial infectious, allows for 0, capped at maxIPop for each trial
+  R = rep(R0Pop,NnumTrials),
+  Im = rep(Im0Pop,NnumTrials),
+  H = rep(H0Pop,NnumTrials),
+  Is = rep(Is0Pop,NnumTrials),
+  cumI = I0,
+  M=rep(M0Pop,NnumTrials)
+)
+```
+
+##### Initial state of continous variables
+`phi` is initialized to `phi0`, which is a user defined parameter.  
+
+Whenever prevalence crosses a certain threshold, a timer starts before an intervention is imposed or lifted. At the beginning of the simulation, the timers are initialized to be 
