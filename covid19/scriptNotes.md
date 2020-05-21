@@ -78,6 +78,17 @@ The code allows for a single mass entry event. The mass entry event can be turne
 
 `mRProp` through `mMProp` are created to distributed the mass entry individuals among the different departments.  `massEntryPropTable` gathers these proportions together into a single table.
 
+##### Compartments
+1. `S` Susceptible
+2. `E` Exposed (pre-infectious)
+3. `I` Infectious
+4. `R` Recovered
+5. `Im` Immune
+6. `H` Hospitalized
+7. `Is` Isolated
+8. `cumI` Cumulative infected. Used for plotting, not for disease dynamics
+9. `M` Deceased
+
 ##### Global and local parameters
 SimInf uses `gdata` and `ldata` for the model transitions. Most of these parameters are user defined, except for `beta`, `isoRate`, and `betaIsolated`.  
 
@@ -85,5 +96,28 @@ SimInf uses `gdata` and `ldata` for the model transitions. Most of these paramet
 
 `isoRate` is user defined. However, assuming that all hospitalized individuals are isolated, `isoRate` is overwritten by the maximum of `isoRate` and `hospRate`.  
 
-`betaIsolated` is the transmissibility of the virus among isolated individuals, and it is the product of the user-defined `RIsolated` and `isoPeriod`, similar to `beta`.
+`betaIsolated` is the transmissibility of the virus among isolated individuals, and it is the product of the user-defined `RIsolated` and `isoPeriod`, similar to `beta`.  
 
+`firstNode` is the first node in a trial. Used for getting the correct indices in various subroutines.
+`betaRandomizer` is generated from a uniform distribution with mean 1 and a user-defined spread. Used to generate a distribution of transmissibility rates (`beta`) to add variability to the trials in the simulation.
+
+###### Model transitions
+Transitions beginning or ending with `@` represent entry/exit from/to the empty set.
+1. `@ -> mu*(S+E+I+R+Im) -> S' Natural population growth 
+2. `R -> reSuscepRate*tempImmPeriod*R -> S` Some proportion of recovered become susceptible again after a peiod of temporary immunity.
+3. `S -> nu*S -> @`, `E -> nu*E -> @`, `I -> nu*I -> @`, `Is -> nu*Is -> @`, `R -> nu*R -> @`, `Im -> nu*Im -> @` Natural death rate, not associated with COVID-19.
+4. `S -> ((1/phi)*beta*betaRandomizer*season*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E` Transition from Susceptible to Exposed.
+ - `beta` is the baseline transmissibility rate.
+ - `(1/phi)` scales beta according to the intensity of policy intervention and/or physical distancing. A more intense intervention or more physical distancing increases `phi` which decreases the effective transmissibility rate.
+ - `season` is the seasonality factor, which peaks in February and troughs in August.
+ - `betaRandomizer` creates a small distribution around `beta` for each separate trial to increase variability between trials.
+ - `betaIsolated` is the transmissibility rate for isolated individuals. It is close to zero but positive to represent incomplete isolation/quarantine or slightly delayed isolation/quarantine.
+5. `E -> (1-isoRate)*exposedPeriod*E -> I + cumI` Transition from Exposed to Infectious. Includes `isoRate` to represent Exposed individuals being isolated before they become infectious. `cumI` tracts the total number of infected individuals.
+6. `E -> (isoRate-hospRate)*exposedPeriod*E -> Is + cumI` Transition from Exposed to Isolated. Isolated individuals have a much lower transmissiblity factor, which slows the epidemic spread. Includes `hospRate` to represent that some Isolated individuals are hospitalized during their isolation.
+7. `E -> hospRate*exposedPeriod*E -> H` Transition from Exposed to Hospitalized. Note that we assume Hospitalized individuals have zero transmissibility. This can be changed in the code if (for example) you want to represent some infection before hospitalization.
+8. `I -> (1-nonHospDeathRate)*infectiousPeriod*I -> R` Recovery from being Infectious, less COVID-19 deaths among the Infectious (defined to excluded hospitalized COVID-19 patients).
+9. `I -> nonHospDeathRate*infectiousPeriod*I -> M` Deaths among non-hospitalized COVID patients
+10. `H -> (1-hospDeathRate)*hospPeriod*H -> R` Recovery among Hospitalized
+11. `H -> hospDeathRate*H -> M` Deaths among hospitalized COVID patients. Note that we assume the death rate among Isolated = 0, since they would have been hospitalized. This can be changed in the code.
+12. `Is -> isoPeriod*Is -> R` Recovery from COVID among isolated, assumes non-Hospitalized Isolated all recover.
+13. `R -> (1-reSuscepRate)*tempImmPeriod*R -> Im` Most Recovered become permanently immune after a period of temporary immunity. Some fraction (`reSuscepRate`) become Susceptible again.  
