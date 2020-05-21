@@ -107,11 +107,11 @@ Transitions beginning or ending with `@` represent entry/exit from/to the empty 
 2. `R -> reSuscepRate*tempImmPeriod*R -> S` Some proportion of recovered become susceptible again after a peiod of temporary immunity.
 3. `S -> nu*S -> @`, `E -> nu*E -> @`, `I -> nu*I -> @`, `Is -> nu*Is -> @`, `R -> nu*R -> @`, `Im -> nu*Im -> @` Natural death rate, not associated with COVID-19.
 4. `S -> ((1/phi)*beta*betaRandomizer*season*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E` Transition from Susceptible to Exposed.
-  - `beta` is the baseline transmissibility rate.
-  - `(1/phi)` scales beta according to the intensity of policy intervention and/or physical distancing. A more intense intervention or more physical distancing increases `phi` which decreases the effective transmissibility rate.
-  - `season` is the seasonality factor, which peaks in February and troughs in August.
-  - `betaRandomizer` creates a small distribution around `beta` for each separate trial to increase variability between trials.
-  - `betaIsolated` is the transmissibility rate for isolated individuals. It is close to zero but positive to represent incomplete isolation/quarantine or slightly delayed isolation/quarantine.
+    - `beta` is the baseline transmissibility rate.
+    - `(1/phi)` scales beta according to the intensity of policy intervention and/or physical distancing. A more intense intervention or more physical distancing increases `phi` which decreases the effective transmissibility rate.
+    - `season` is the seasonality factor, which peaks in February and troughs in August.
+    - `betaRandomizer` creates a small distribution around `beta` for each separate trial to increase variability between trials.
+    - `betaIsolated` is the transmissibility rate for isolated individuals. It is close to zero but positive to represent incomplete isolation/quarantine or slightly delayed isolation/quarantine.
 5. `E -> (1-isoRate)*exposedPeriod*E -> I + cumI` Transition from Exposed to Infectious. Includes `isoRate` to represent Exposed individuals being isolated before they become infectious. `cumI` tracts the total number of infected individuals.
 6. `E -> (isoRate-hospRate)*exposedPeriod*E -> Is + cumI` Transition from Exposed to Isolated. Isolated individuals have a much lower transmissiblity factor, which slows the epidemic spread. Includes `hospRate` to represent that some Isolated individuals are hospitalized during their isolation.
 7. `E -> hospRate*exposedPeriod*E -> H` Transition from Exposed to Hospitalized. Note that we assume Hospitalized individuals have zero transmissibility. This can be changed in the code if (for example) you want to represent some infection before hospitalization.
