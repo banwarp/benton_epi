@@ -120,4 +120,4 @@ Transitions beginning or ending with `@` represent entry/exit from/to the empty 
 10. `H -> (1-hospDeathRate)*hospPeriod*H -> R` Recovery among Hospitalized
 11. `H -> hospDeathRate*H -> M` Deaths among hospitalized COVID patients. Note that we assume the death rate among Isolated = 0, since they would have been hospitalized. This can be changed in the code.
 12. `Is -> isoPeriod*Is -> R` Recovery from COVID among isolated, assumes non-Hospitalized Isolated all recover.
-13. `R -> (1-reSuscepRate)*tempImmPeriod*R -> Im` Most Recovered become permanently immune after a period of temporary immunity. Some fraction (`reSuscepRate`) become Susceptible again.  
+13. `R -> (1-reSuscepRate)*tempImmPeriod*R -> Im` Most Recovered become permanently Immune after a period of temporary immunity. Some fraction (`reSuscepRate`) become Susceptible again.  
