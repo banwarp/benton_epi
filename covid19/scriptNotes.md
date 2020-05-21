@@ -32,9 +32,9 @@ The conceptual schematic of the SimInf model that I use has three stages: Buildi
 - Evolution of continous variables across the timespan.
 - With the result, you can plot trajectories for the different compartments and/or the evolutino of the continuous variables.
 
-#### Annotated code
+### Annotated code
 (Not every line of code is included; just the ones that need explanation)
-##### Libraries and subroutines; saving parameters
+#### Libraries and subroutines; saving parameters
 The script uses a number of packages in addition to SimInf:
 `ggplot2`, `reshape2`, `SimInf`, `data.table`, `dplyr`, `Matrix`, `zoo`  
 
@@ -42,14 +42,14 @@ The script also relies on two subroutines: `eventFunctionsDATE.R`, which generat
 
 Then the script saves the parameters for reference.
 
-##### Setting additional parameters
+#### Setting additional parameters
 Many of the user-defined parameters are used to set additional, internal parameters.
 
-###### Date parameters
+##### Date parameters
 The date parameters are changed to numeric values, e.g. `startofSimDay <- as.numeric(as.Date(simDate)) - as.numeric(as.Date("2020-01-01"))`.
 
 ##### Trial and node parameters
-In order to make sure that the script runs within a reasonable amount of time, an upper limit is placed on the number of tirals and the number of nodes. The limits can be changed in the code
+In order to make sure that the script runs within a reasonable amount of time, an upper limit is placed on the number of tirals and the number of nodes. The limits can be changed in the code.
 ```
 numTrials <- min(100,numTrials) # capping number of trials at 100
 N <- min(1000,N) # capping number of nodes per trial at 1000
@@ -60,13 +60,13 @@ nodeTrialMat <- data.table(node=c(1:(NnumTrials)),
                            nodeGroup = rep(nodeGroupList,numTrials),
                            trial=rep(1:numTrials,each=N))
 ```
-`nodeTrialMat` is used in subroutines when specific nodes needs to be linked to trials and/or node groups  
+`nodeTrialMat` is used in subroutines when specific nodes needs to be linked to trials and/or node groups.  
 
 `NList <- split(nodeTrialMat$node,nodeTrialMat$trial)` is created in order to use `lapply` on different trials.
 ```
 nodeAndGroupList <- split(nodeTrialMat,nodeTrialMat$nodeGroup)
 nodeAndGroupList <- lapply(nodeAndGroupList,function(x) split(x$node,x$trial))
 ```
-`nodeAndGroupList` is created to use `lapply` on different node groups  
+`nodeAndGroupList` is created to use `lapply` on different node groups.  
 
-'maxNodePop <- floor(trialPop/N)' is created for distributing populations across nodes within trials
+`maxNodePop <- floor(trialPop/N)` is created for distributing populations across nodes within trials.
