@@ -165,3 +165,5 @@ xString = "Date"                        # Title of x-axis
 yString = "Frequency"                   # Title of y-axis
 lString = "Compartment"                 # Title of legend
 ```
+
+Read [scriptNotes.md]() for an explanation of the different steps in the script.
