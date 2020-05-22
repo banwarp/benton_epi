@@ -356,4 +356,4 @@ The overall function returns the model, so that the user can extract the differe
 
 ```return(result)```
 
-Read the [COVID-19 Vignettes]() .md for examples of how to use the code.
+Read [COVID-19 Vignettes.md](covid19Vignettes.md) for examples of how to use the code.
