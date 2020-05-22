@@ -289,3 +289,71 @@ superNodeList <- lapply(1:length(superNodes),
 superEventList <- lapply(1:length(superInfections), superFunction,...)
 # See script for complete code
 ```
+
+##### Mass entry events
+I developed this model for local projections of a county whose population changes by 25% multiple times a year. Therefore I wanted to be able to model a mass entry event to understand how the disease dynamics may change when a shock to the system like a 25% increase in the susceptible population and the introduction of a number of new infections. As in the super-spreader event the user can define which node groups and how many nodes receive the mass entry. I have not written in a mass exit event or multiple mass entry events, but these can be added to the code by using the super-spreader/mass entry events as templates.
+```
+eligibleMassEntryNodes <- nodeTrialMat[which(nodeTrialMat$nodeGroup %in% massEntryNodeGroups & nodeTrialMat$trial==1),"node"]$node
+    massEntryNodeList <- sort(sample(eligibleMassEntryNodes,min(length(eligibleMassEntryNodes),maxMassEntryNodes)))
+    
+# exclude isolated, hospitalized, cumulative, and deceased by length(compartments)-4
+massEntryEventList <- lapply(c(1:(length(compartments)-4)),massEntryEventFunction,...)
+# See script for complete code
+# Add introduced infections to cumulative total
+massEntryCumI <- massEntryEvents[which(massEntryEvents$select == which(compartments=="I")),]
+massEntryCumI$select <- which(compartments=="cumI")
+massEntryEvents <- rbind(massEntryEvents,massEntryCumI)
+```
+
+##### Building and running the SimInf model
+The SimInf model requires just one events data frame:
+```
+allEvents <- data.frame(NULL)
+if(max(unlist(numParachuteList)) > 0) { allEvents <- rbind(allEvents,parachuteEvents) }
+if(nrow(transferEvents)>0) { allEvents <- rbind(allEvents,transferEvents) }
+if(maxMassEntryNodes > 0) { allEvents <- rbind(allEvents,massEntryEvents) }
+if(length(superInfections)>0) { allEvents <- rbind(allEvents,superEvents)}
+```
+
+The `mparse` command is built into SimInf and allows the user to define their own model based on the defined transitions. All of the arguments are passed to the SimInf routine, then the model is run.
+```
+model <- mparse(transitions = transitions, compartments = compartments,
+events = allEvents, E=E,N=Nmat,
+gdata = gdata, ldata=ldata,
+u0 = u0, v0=v0, tspan = tspan, pts_fun = pts_fun)
+
+result <- run(model)
+```
+
+##### Output and plots
+The output of `run()` is a model object that contains trajectories of the compartments, evolution of the continuous variables, and meta data about the arguments. To extract the trajectories use `trajectory(result)`. You can also directly plot the model using SimInf's implementation of `plot`. See the [vignettes](https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf) for more details. However, the built in plotter treats each node as its own trial, but I need to sum compartments across all nodes in the trial. Therefore I built a plotting subroutine that sums all the nodes in a given trial (or a given nodeGroup), creates a credibile spread (aka confidence interval) from the different trials, and plots the median and spread of the simulation.
+```
+trajPlotInfections <- simInfPlottingFunction(
+  result = result,                           # model result
+  table = "U",                               # which table: U or V
+  compts= c("I_Is_H"),                       # compartments that will be plotted
+  groups = NULL,                             # List of groups to aggregate and plot
+  sumGroups = TRUE,                          # Automatically sums over all groups
+  uNames = names(u0),                        # list of compartments
+  vNames = NULL,                             # list of variables
+  rollM = rollM,                             # number of days for rolling mean
+  confIntv = confIntv,                       # confidence interval for plotting spread
+  nTM = nodeTrialMat,                        # node-Trial matrix
+  tS = tspan,                                # length of simulation
+  enn = N,                                   # number of nodes per trial
+  nT = numTrials,                            # number of trials in simulation
+  startDate = startofSimDay,                 # start date of simulation
+  dateBreaks = dateBreaks,                   # plot parameter: Date axis format
+  titleString = paste0("Active infections in ",titleString," County"),        # plot parameter: Title of plot
+  xString = "Date",                          # plot parameter: Title of x axis
+  yString = "Number of infections",          # plot parameter: Title of y axis
+  lString = "Compartment"                    # plot parameter: Title of legend
+)
+```
+Details of `simInfPlottingFunction` will be explained in a different .md.  
+
+The overall function returns the model, so that the user can extract the different elements of the model, plot additional trajectories, etc.
+
+```return(result)```
+
+Read the [COVID-19 Vignettes]() .md for examples of how to use the code.
