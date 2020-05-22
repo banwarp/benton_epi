@@ -166,4 +166,4 @@ yString = "Frequency"                   # Title of y-axis
 lString = "Compartment"                 # Title of legend
 ```
 
-Read [scriptNotes.md]() for an explanation of the different steps in the script.
+Read [scriptNotes.md](/scriptNotes.md) for an explanation of the different steps in the script.
