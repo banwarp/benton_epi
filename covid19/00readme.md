@@ -16,7 +16,9 @@ Each simulation produces a user-defined number of trials to generate a confidenc
 The SimInf package produces trajectories of the different compartments (e.g. Infectious or Recovered) and of the continuous variables (e.g. the intensity of the policy intervention). The script can plot these different trajectories with their credibility spreads.
 
 To use the scripts:
-1. Download them to your machine, then open covid19_SimInf_5.12.2020.R and review the script.
+Review [01scriptParameters.md](01scriptParameters.md), [02scriptNotes.md)](02scriptNotes.md), and [03COVID19Vignettes](03COVID19Vignettes for details on the scripts).  
+
+1. Download them to your machine, then open covid19_SimInf_5.16.2020.R and review the script.
 2. Change any folder settings as needed in the script: search for "setwd(".
 3. Open covidExampleScript_5.12.2020.R for an example of how to produce projections for all Oregon counties under three scenarios.
 4. Select your parameters. There are 70+ adjustable parameters in the function. (Not counting the preset parameters in the rest of the code, which can be changed as you tinker). The parameters are explained in the comments. Refer to the pdf file BentonCountycovidProjections2020.05.12-0580.pdf for more detailed descriptions.
