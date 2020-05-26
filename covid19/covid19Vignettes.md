@@ -150,7 +150,7 @@ r3 <- covidWrapper(simID="Shocks",
 The infections plot shows the two super spreader events on 10/01/2020 and 02/01/2021. These can be further visualized in the daily new infections plot:
 ![trajPlotnewIShocks](images/plotShocksnewI.png)
 ###### Output: Plot of intervention intensity:
-[trajPlotphiShocks](images/plotShocksphi.png)
+![trajPlotphiShocks](images/plotShocksphi.png)
 The intervention plot demonstrates the internal response to the increased prevalence.
 
 #### Vignette 4: Changing policy interventions
