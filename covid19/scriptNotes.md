@@ -291,7 +291,7 @@ superEventList <- lapply(1:length(superInfections), superFunction,...)
 ```
 
 ##### Mass entry events
-I developed this model for local projections of a county whose population changes by 25% multiple times a year. Therefore I wanted to be able to model a mass entry event to understand how the disease dynamics may change when a shock to the system like a 25% increase in the susceptible population and the introduction of a number of new infections. As in the super-spreader event the user can define which node groups and how many nodes receive the mass entry. I have not written in a mass exit event or multiple mass entry events, but these can be added to the code by using the super-spreader/mass entry events as templates.
+I developed this model for local projections of a county whose population changes by 25% multiple times a year. Therefore I wanted to be able to model a mass entry event to understand how the disease dynamics may change under a shock to the system like a 25% increase in the susceptible population and the introduction of a number of new infections. As in the super-spreader event the user can define which node groups and how many nodes receive the mass entry. I have not written in a mass exit event or multiple mass entry events, but these can be added to the code by using the super-spreader/mass entry events as templates.
 ```
 eligibleMassEntryNodes <- nodeTrialMat[which(nodeTrialMat$nodeGroup %in% massEntryNodeGroups & nodeTrialMat$trial==1),"node"]$node
     massEntryNodeList <- sort(sample(eligibleMassEntryNodes,min(length(eligibleMassEntryNodes),maxMassEntryNodes)))
