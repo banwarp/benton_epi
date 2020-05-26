@@ -117,7 +117,24 @@ The simulation runs up to 100 trials. Each trial produces a trajectory. For simp
 
 ###### Output: Plot of the intervention intensity:
 ![trajPlotPhi](images/plotcovid.mo.day.2020.Genericphi.png)
-To interpret the intervention intensity:
-- The y-axis is the value of phi. Phi acts inversely on the transmissibility of the coronavirus (beta). `phi = 1.0` indicates no intervention. Phi changes as the observed prevalence of COVID-19 changes. Higher prevalence will start a higher-intensity intervention, after a user-defined delay. Instead of a discrete jump to the intervention, phi converges exponentially according to a user-defined parameter. The default parameters incorporate a phased re-opening in 3 phases from May 25th through July 15th 2020, which leads to the three-stepped shape. As with the infections graph, a credible spread is provided. Since the central tendency is the median at each time step, there may be sharp peaks around a more stable trend: read the sharp peaks as an artifact of the plotting procedure.  
+###### Interpretation the intervention intensity graph:  
+The y-axis is the value of phi. Phi acts inversely on the transmissibility of the coronavirus (beta). `phi = 1.0` indicates no intervention. Phi changes as the observed prevalence of COVID-19 changes. Higher prevalence will start a higher-intensity intervention, after a user-defined delay. Instead of a discrete jump to the intervention, phi converges exponentially according to a user-defined parameter. The default parameters incorporate a phased re-opening in 3 phases from May 25th through July 15th 2020, which leads to the three-stepped shape. As with the infections graph, a credible spread is provided. Since the central tendency is the median at each time step, there may be sharp peaks around a more stable trend: read the sharp peaks as an artifact of the plotting procedure.  
 
 There are three other plots produced in the script: Daily new infections, Daily active hospitalizations, and Cumulative deaths. These are interpreted similarly to the daily active infection.
+
+#### Vignette 2: More mixing in the population
+As the population becomes more mixed, any given infection has a larger pool of susceptibles into which it can spread. Under this model, this translates to a smaller number of larger epidemics, rather than a larger number of mini-epidemics. Overall, the number of infections is larger.  
+
+To represent more mixing, you can decrease the number of nodes and/or increase the rate of transfers. To change the user defined parameters, just define them in the function call. 
+```
+r2 <- covidWrapper(simID="moreMixing",
+             N = 5,
+             inGroupTransferRate=1/3)
+```
+###### Output: Plot of daily active infections:
+[trajPlotIMoreMixing](images/plotmoreMiximgI.png)
+
+#### Vignette 3: Shocks to the system
+The theorectical nature of the SEIR model does not allow for shocks to the system, like super-spreader events. The script can model super-spread events or mass entry events to exogeneously force these shocks to the system.
+```
+r3 <- 
