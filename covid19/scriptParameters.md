@@ -140,17 +140,17 @@ superDate = c()              # Date the super spreader lands. Date can also be n
 superSpread = c()            # Symmetric spread in days of super spreader infections
 ```
 
-#### Student/mass entry events
-The following parameters adjust the student events.
+#### Mass entry events
+The following parameters adjust the mass entry events.
 ```
-studentReturnDate = "2020-09-21"        # Date OSU student return
-studentReturnSpread = 3                 # Symmetric spread of days to spread out student return
-studentPop = 25000                      # OSU student population
-maxStudentNodes = 0                     # Maximum number of nodes that students enter. Set to 0 to remove studentEvent
-studentNodeGroups = NULL                # Which node groups the students enter
-sSProp = .9                             # Proportion of students who are susceptible
-sEProp = .0001                          # Proportion of students who are exposed
-sIProp = .0015                          # Proportion of students who are infectious; R and Im are calculated, Is, H, and M are zero
+massEntryReturnDate = "2020-09-21",      # Date of mass Entry
+massEntryReturnSpread = 3,               # Symmetric spread of days to spread out mass entry
+massEntryPop = 25000,                    # Mass entry population
+maxMassEntryNodes = 0,                   # Maximum number of nodes that individuals enter. Set to 0 to remove massEntry event
+massEntryNodeGroups = NULL,              # Which node groups the individuals enter
+mSProp = .9,                             # Proportion of individuals who are susceptible
+mEProp = .0001,                          # Proportion of individuals who are exposed
+mIProp = .0015,                          # Proportion of individuals who are infectious; R, Im, and M are calculated
 ```
 
 #### Plotting parameters
