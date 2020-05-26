@@ -132,7 +132,7 @@ r2 <- covidWrapper(simID="moreMixing",
              inGroupTransferRate=1/3)
 ```
 ###### Output: Plot of daily active infections:
-![trajPlotIMoreMixing](images/plotmoreMiximgI.png)
+![trajPlotImoreMixing](images/plotmoreMixingI.png)
 
 #### Vignette 3: Shocks to the system
 The theorectical nature of the SEIR model does not allow for shocks to the system, like super-spreader events. The script can model super-spread events or mass entry events to exogeneously force these shocks to the system.
