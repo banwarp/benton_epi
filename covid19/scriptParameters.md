@@ -159,6 +159,8 @@ The script automatically plots 5 different sets of trajectories. These can be ad
 plotCompList = "I"                      # List of compartments that will be plotted
 rollM = 1                               # Number of days for plotting rolling means, rollM = 1 means no rolling mean
 confIntv = .9                           # two-sided confidence interval for plotting spread
+plotGroups = NULL                       # Which node groups to plot. NULL plots all
+plotSum = TRUE                          # Whether to sum the node groups.
 dateBreaks = "1 month"                  # Plot parameter, x-axis displays months
 titleString = "Generic Title"           # Title of plot
 xString = "Date"                        # Title of x-axis
@@ -166,4 +168,7 @@ yString = "Frequency"                   # Title of y-axis
 lString = "Compartment"                 # Title of legend
 ```
 
+There is an option to separate nodes into different node groups. Then a subset of node groups can be plotted, and these can either sum nodes across all selected node groups, or to plot the different node group sums to compare different node groups.  
+
+### Further reading
 Read [scriptNotes.md](scriptNotes.md) for an explanation of the different steps in the script.
