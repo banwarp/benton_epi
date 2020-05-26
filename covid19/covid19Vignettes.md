@@ -205,9 +205,24 @@ r5 <- covidWrapper(simID="DiseaseDynamics",
 The increased seasonality causes more epidemic pressure in the winter and less in the summer.
 
 ###### Output: Plot of cumulative death rate:
-[trajPlotIDiseaseDynamics](images/plotDiseaseDynamicsI.png)
+[trajPlotdeathsDiseaseDynamics](images/plotDiseaseDynamicsdeaths.png)
 The increased hospitalization and hospital death rate causes increased mortality. The increased hospitalization rate slows the spread a little bit, but not enough to have a big effect on the overall dynamics.
 
 #### Vignette 5: Node Groups
 The nodes in a simulation can be grouped to represent populations that are more likely to mix within a group than between groups. Parachuting infections, mass entry, and super spreader events can be directed to selected node groups. The trajectories can be plotted for the sum of all nodes in a simulation, the sum of all nodes in a subset of groups, or for the sum of each group separately.
 ```
+r6 <- covidWrapper(simID="NodeGroups",
+                   nodeGroupList = c(rep(1,200),rep(2,150),rep(3,100),rep(4,50)), # List of group IDs for node groups. Default is 1 group of nodes.
+                   parachuteNodeGroups = c(1,2),             # Which nodes groups the parachuters can land in
+                   superInfections = c(100,50),              # Number of infections caused by the super spreader
+                   superNodes = c(20,20),                    # Number of nodes that the super spreader contacts
+                   superNodeGroups = c(3,4),                 # Which node groups the super spreader contacts. Must use list() syntax for multiple events
+                   superDate = c("2020-10-01","2021-02-01"), # Date the super spreader lands. Date can also be numeric i.e. 200
+                   superSpread = c(3,5),                     # Symmetric spread in days of super spreader infections
+                   plotGroups = c(1,3),                      # Which node groups to plot
+                   plotSum = FALSE,                          # Whether to sum across all node groups or sum them separately
+                   lString = "Node Group"                    # Title of legend
+)
+```
+###### Output: Plot of active daily infections by node group:
+[trajPlotINodeGroups](images/plotNodeGroupsI.png)
