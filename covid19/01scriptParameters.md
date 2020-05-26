@@ -171,4 +171,4 @@ lString = "Compartment"                 # Title of legend
 There is an option to separate nodes into different node groups. Then a subset of node groups can be plotted, and these can either sum nodes across all selected node groups, or to plot the different node group sums to compare different node groups.  
 
 ### Further reading
-Read [scriptNotes.md](scriptNotes.md) for an explanation of the different steps in the script.
+Read [02scriptNotes.md](02scriptNotes.md) for an explanation of the different steps in the script.
