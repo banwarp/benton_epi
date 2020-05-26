@@ -14,7 +14,7 @@
 # International Journal of High Performance Computing Applications, 30(4), 438--453. doi: 10.1177/1094342016635723
 
 # changes from covid19_SimInf_5.14.2020.R
-# Added option to choose which nodeGroups get initial infectious and to limit parachuter/super-spreader/student events to certain nodeGroups
+# Added option to choose which nodeGroups get initial infectious and to limit parachuter/super-spreader/massEntry events to certain nodeGroups
 
 # changes from covid19_SimInf_5.12.2020.R
 # Added node groups to represent structured sub-populations (e.g. cities, communities with higher mixing, etc.)
@@ -31,7 +31,7 @@
 
 # changes from covid19_SimInf_5.6.2020.R
 # added option for a "super spreader" through the events
-# changed file name for studentEVentFunction script to massEventFunction, and added super spreader function as another function in that script
+# changed file name for massEntryEVentFunction script to massEventFunction, and added super spreader function as another function in that script
 # added option to plot I+Is to represent all infected individuals
 
 # changes from covid19_SimInf_5.5.200.R
@@ -64,7 +64,7 @@
 
 # changes from covid19_SimInf_4.18.2020.R
 # moved pts_fun to a separate script for space and annotation
-# added more student functionality
+# added more massEntry functionality
 # added local data parameters for more variability
 
 # changes from covid19_SimInf_4.9.2020.R
@@ -117,7 +117,7 @@ covidWrapper <- function(
   ### pts_fun parameters
   cosAmp = 0.25,                           # Amplitude of seasonal variation in beta
   RPhysicalDistancing = 2,                 # Ongoing baseline Rt, reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
-  RNoAction = NULL,                         # Ongoing baseline Rt if no actions at are all taken
+  RNoAction = NULL,                        # Ongoing baseline Rt if no actions at are all taken
   RTarget1 = 1.5,                          # Target for the reduction in R under minor intervention
   RTarget2 = .9,                           # Target for the reduction in R under major intervention
   maxPrev1 = .001,                         # Maximum prevalence before instituting minor intervention
@@ -158,15 +158,15 @@ covidWrapper <- function(
   superDate = c(),                         # Date the super spreader lands. Date can also be numeric i.e. 200
   superSpread = c(),                       # Symmetric spread in days of super spreader infections
   
-  ### student parameters
-  studentReturnDate = "2020-09-21",        # Date OSU student return
-  studentReturnSpread = 3,                 # Symmetric spread of days to spread out student return
-  studentPop = 25000,                      # OSU student population
-  maxStudentNodes = 0,                     # Maximum number of nodes that students enter. Set to 0 to remove studentEvent
-  studentNodeGroups = NULL,                # Which node groups the students enter
-  sSProp = .9,                             # Proportion of students who are susceptible
-  sEProp = .0001,                          # Proportion of students who are exposed
-  sIProp = .0015,                          # Proportion of students who are infectious; R, Im, and M are calculated
+  ### massEntry parameters
+  massEntryReturnDate = "2020-09-21",      # Date of mass Entry
+  massEntryReturnSpread = 3,               # Symmetric spread of days to spread out mass entry
+  massEntryPop = 25000,                    # Mass entry population
+  maxMassEntryNodes = 0,                   # Maximum number of nodes that individuals enter. Set to 0 to remove massEntry event
+  massEntryNodeGroups = NULL,              # Which node groups the individuals enter
+  mSProp = .9,                             # Proportion of individuals who are susceptible
+  mEProp = .0001,                          # Proportion of individuals who are exposed
+  mIProp = .0015,                          # Proportion of individuals who are infectious; R, Im, and M are calculated
   
   ### plot parameters
   plotCompList = "I",                      # List of compartments that will be plotted
@@ -263,23 +263,19 @@ covidWrapper <- function(
   # compartments
   compartments <- c("S","E","I","R","Im","H","Is","cumI","M")
   
-  # student event parameters - relies on compartments
-  if(is.null(studentNodeGroups)) {studentNodeGroups <- unique(nodeGroupList)}
-  # September 20th (day students return) = day 264 in calendar year
-  studentReturnDate <- as.numeric(as.Date(studentReturnDate)) - as.numeric(as.Date("2020-01-01")) - startofSimDay
-  studentReturnSpread <- studentReturnSpread # symmetric spread around return date in number of days
-  maxStudentNodes <- min(length(which(nodeGroupList %in% studentNodeGroups)),maxStudentNodes) # maximum number of nodes students can enter
-  sSProp <- sSProp # proportion of students who are susceptible
-  sEProp <- sEProp # proportion of students who are exposed
-  sIProp <- sIProp # proportion of students who are infectious
-  sRProp <- (1-(sSProp+sEProp+sIProp))*(1-reSuscepRate) # proportion of students who are recovered
-  sImProp <- (1-(sSProp+sEProp+sIProp))*reSuscepRate # proportion of students who are immune
-  sHProp <- 0
-  sIsProp <- 0
-  scumIProp <- sIProp
-  sMProp <- 0
-  studentPropTable <- data.frame(compartment = compartments,
-                                 frac = c(sSProp,sEProp,sIProp,sRProp,sImProp,sHProp,sIsProp,scumIProp,sMProp))
+  # massEntry event parameters - relies on compartments
+  if(is.null(massEntryNodeGroups)) {massEntryNodeGroups <- unique(nodeGroupList)}
+  # September 20th (day individuals return) = day 264 in calendar year
+  massEntryReturnDate <- as.numeric(as.Date(massEntryReturnDate)) - as.numeric(as.Date("2020-01-01")) - startofSimDay
+  maxMassEntryNodes <- min(length(which(nodeGroupList %in% massEntryNodeGroups)),maxMassEntryNodes) # maximum number of nodes individuals can enter
+  mRProp <- (1-(mSProp+mEProp+mIProp))*(1-reSuscepRate) # proportion of individuals who are recovered
+  mImProp <- (1-(mSProp+mEProp+mIProp))*reSuscepRate # proportion of individuals who are immune
+  mHProp <- 0
+  mIsProp <- 0
+  mcumIProp <- mIProp
+  mMProp <- 0
+  massEntryPropTable <- data.frame(compartment = compartments,
+                                 frac = c(mSProp,mEProp,mIProp,mRProp,mImProp,mHProp,mIsProp,mcumIProp,mMProp))
   
   # More model parameters
   # global parameters
@@ -300,18 +296,18 @@ covidWrapper <- function(
     nu = nu                      # Non-Covid death rate
   )
   
-  # beta = R0*(1/infectiousPeriod)
-  # beta*(1/phi), higher the intervention, the lower the beta
-  # phi = 2.9/.9
-  # beta = R0*(1/10) = 2.9/10
-  # beta*(1/phi) = 2.9/10*(.9/2.9) = .9/10
+  # local parameters
+  ldata <- data.frame(
+    firstNode = sort(rep.int(0:(numTrials-1)*N,N),method="quick"), # first node in a trial, for computing trial prevalence
+    betaRandomizer = rep(runif(numTrials,min=1-R0Spread,max=1+R0Spread),each=N)  # randomizer for beta or R0
+  )
   
   # Transitions
   transitions <- c(
     "@ -> mu*(S+E+I+R+Im) -> S",                                        # natural birth rate
     "R -> reSuscepRate*tempImmPeriod*R -> S",                           # Recovereds who become susceptible again
     "S -> nu*S -> @",                                                   # Non-Covid deaths among susceptibles
-    "S -> ((1/phi)*beta*betaRandomizer*(season)*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E",      # Exposures, allows for effective or ineffective policies and seasonal variation in beta
+    "S -> (beta*(1/phi)*season*betaRandomizer*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E",      # Exposures, allows for effective or ineffective policies and seasonal variation in beta
     "E -> nu*E -> @",                                                   # Non-Covid deaths among exposed
     "E -> (1-isoRate)*exposedPeriod*E -> I + cumI",                     # Development of disease among non-isolated exposed
     "E -> (isoRate-hospRate)*exposedPeriod*E -> Is + cumI",             # Isolation of exposed (non-hospitalized)
@@ -353,52 +349,46 @@ covidWrapper <- function(
     M=rep(M0Pop,NnumTrials)
   )
   
-  # local parameters
-  ldata <- data.frame(
-    firstNode = sort(rep.int(0:(numTrials-1)*N,N),method="quick"), # first node in a trial, for computing trial prevalence
-    betaRandomizer = rep(runif(numTrials,min=1-R0Spread,max=1+R0Spread),each=N)  # randomizer for beta or R0
-  )
-  
   # Initialized continuous variables
   v0 = data.frame(
     phi = rep(phi0,NnumTrials),                # initial beta reduction factor (larger phi = more reduction)
-    prevUp01 = rep(upDelay+1,NnumTrials),      # initializedvariable for capturing delay in response when prevalence increases
+    prevUp01 = rep(upDelay+1,NnumTrials),      # initialized variable for capturing delay in response when prevalence increases
     prevUp12 = rep(upDelay+1,NnumTrials),      # variable for capturing delay in response when prevalence increases
     prevDown21 = rep(downDelay+1,NnumTrials),  # variable for capturing delay in response when prevalence decreases
     prevDown10 = rep(downDelay+1,NnumTrials),  # variable for capturing delay in response when prevalence decreases
-    kbPhase = rep(0,NnumTrials),                        # logical: 1 means current physical distancing, 0 means current physical distancing completely lifted
-    policy = rep(1,NnumTrials),                         # logical: 1 means policies can take effect; 0 means they don't
-    season = rep(1,NnumTrials),                         # seasonality factor for beta
-    prevalence = rep(0,NnumTrials),                     # prevalence tracker
-    previousState = rep(2,NnumTrials),                  # previous state: 0 = baseline, 1 = low intervention, 2 = high intervention, used for low intervention logic
+    kbPhase = rep(0,NnumTrials),               # logical: 1 means current physical distancing, 0 means current physical distancing completely lifted
+    policy = rep(1,NnumTrials),                # logical: 1 means policies can take effect; 0 means they don't
+    season = rep(1,NnumTrials),                # seasonality factor for beta
+    prevalence = rep(0,NnumTrials),            # prevalence tracker
+    previousState = rep(2,NnumTrials),         # previous state: 0 = baseline, 1 = low intervention, 2 = high intervention, used for low intervention logic
     RTee = rep(R0,NnumTrials),                 # tracking effective Rt
-    pdCounter = rep(0,NnumTrials)                  # counter for pdDecay
+    pdCounter = rep(0,NnumTrials)              # counter for pdDecay
   )
   
   if(is.null(RNoAction)) {RNoAction <- R0}
   
   # building pts_fun
   pts_fun <- pts_funScript(
-    phiPhysicalDistancing = (gdata$beta/gdata$infectiousPeriod)/RPhysicalDistancing, # Ongoing Rt, reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
-    phiNoAction = (gdata$beta/gdata$infectiousPeriod)/RNoAction, # Ongoing Rt, reflecting no actions
-    maxPrev1 = maxPrev1,                              # Maximum prevalence before instituting minor intervention
-    maxPrev2 = maxPrev2,                              # Maximum prevalence before instituting major intervention
-    phiFactor1 = (gdata$beta/gdata$infectiousPeriod)/RTarget1,   # Target for the reduction in R under minor intervention
-    phiFactor2 = (gdata$beta/gdata$infectiousPeriod)/RTarget2,   # Target for the reduction in R under major intervention
-    cosAmp = cosAmp,                                  # Amplitude of seasonal variation in beta
-    startDay = startofSimDay,                                  # start of simulation
-    kbDay1 = kbDay1, # date of first phase
-    kbDay2 = kbDay2, # date of second phase
-    kbDay3 = kbDay3, # date of third phase
-    enn = N,                                                   # number of nodes in a trial
-    numComp = length(compartments),                            # number of compartments
-    prevType = ifelse(maxPrev1 < 1,1,0),              # prevalence type. 0 = count, 1 = proportion
-    upDelay = upDelay,                                # Number of days after prevalence passes threshold until minor/major intervention
-    downDelay = downDelay,                            # Number of days after prevalence drops below threshold until intervention lifted
-    phiMoveUp = phiMoveUp,                            # Rate at which phi increases when interventions are imposed
-    phiMoveDown = phiMoveDown,                        # Rate at which phi decreases when interventions are lifted
-    pdDecay = pdDecay,                         # Rate at which phi decreases toward 1 in the absence of interventions. Represents gradual relaxation of physical distancing
-    switchOffPolicies = switchOffPolicies,            # Logical variable to switch off policies (used for counterfactuals)
+    phiPhysicalDistancing = (gdata$beta/gdata$infectiousPeriod)/RPhysicalDistancing, # Phi reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
+    phiNoAction = (gdata$beta/gdata$infectiousPeriod)/RNoAction,                     # Phi reflecting no actions
+    maxPrev1 = maxPrev1,                                                             # Maximum prevalence before instituting minor intervention
+    maxPrev2 = maxPrev2,                                                             # Maximum prevalence before instituting major intervention
+    phiFactor1 = (gdata$beta/gdata$infectiousPeriod)/RTarget1,                       # Target for the reduction in R0 under minor intervention
+    phiFactor2 = (gdata$beta/gdata$infectiousPeriod)/RTarget2,                       # Target for the reduction in R0 under major intervention
+    cosAmp = cosAmp,                                                                 # Amplitude of seasonal variation in beta
+    startDay = startofSimDay,                                                        # start of simulation
+    kbDay1 = kbDay1,                                                                 # date of first phase
+    kbDay2 = kbDay2,                                                                 # date of second phase
+    kbDay3 = kbDay3,                                                                 # date of third phase
+    enn = N,                                                                         # number of nodes in a trial
+    numComp = length(compartments),                                                  # number of compartments
+    prevType = ifelse(maxPrev1 < 1,1,0),                                             # prevalence type. 0 = count, 1 = proportion
+    upDelay = upDelay,                                                               # Number of days after prevalence passes threshold until minor/major intervention
+    downDelay = downDelay,                                                           # Number of days after prevalence drops below threshold until intervention lifted
+    phiMoveUp = phiMoveUp,                                                           # Rate at which phi increases when interventions are imposed
+    phiMoveDown = phiMoveDown,                                                       # Rate at which phi decreases when interventions are lifted
+    pdDecay = pdDecay,                                                               # Rate at which phi decreases toward 1 in the absence of interventions. Represents gradual relaxation of physical distancing
+    switchOffPolicies = switchOffPolicies,                                           # Logical variable to switch off policies (used for counterfactuals)
     switchOffDay = as.numeric(as.Date(switchOffDay)) - as.numeric(as.Date("2020-01-01")) - startofSimDay # day policies would be switched off (used for counterfactuals)
   )
   
@@ -410,7 +400,7 @@ covidWrapper <- function(
   ############### EVENTS ##################
   ############### EVENTS ##################
   
-  # create events: occasional infections parachute into the nodes; occasional transfers between the nodes. Students arrive in a wave
+  # create events: occasional infections parachute into the nodes; occasional transfers between the nodes. individuals arrive in a wave
   
   # Events matrix
   # leaves off Is, H, cumI, and M from last column
@@ -433,7 +423,7 @@ covidWrapper <- function(
   pNList <- split(parachuteNTM$node,parachuteNTM$trial)
   
   if(max(unlist(numParachuteList)) > 0){
-    # parchute events data frame
+    # parachute events data frame
     parachuteEvents <- data.frame(
       event = "enter",
       time = unlist(lapply(numParachuteList, function(x) sample(parachuteDist,x,replace=TRUE))),
@@ -461,7 +451,7 @@ covidWrapper <- function(
   }
   
   ###### IN-GROUP TRANSFER EVENTS ######
-  # Follows a poisson process
+  # Follows a poisson distribution
   # Partition transfers by trials and groups
   if(inGroupTransferNodeNum[1]<1) {inGroupTransferNodeNum <- ceiling(inGroupTransferNodeNum*N)} # converts proportion to number
   
@@ -522,7 +512,7 @@ covidWrapper <- function(
   }
   
   ###### SUPER SPREADER EVENTS #####
-  if(is.null(superNodeGroups)) {superNodeGroups <- unique(nodeGroupList)}
+  if(is.null(superNodeGroups)) {superNodeGroups <- lapply(superInfections,function(x) unique(nodeGroupList))}
   
   if(length(superInfections) > 0){
     eligibleSuperNodes <- lapply(superNodeGroups,function(x) nodeTrialMat[which(nodeTrialMat$nodeGroup %in% x & nodeTrialMat$trial==1),"node"]$node)
@@ -542,33 +532,33 @@ covidWrapper <- function(
                              enn = N)
     superEvents <- bind_rows(superEventList[lengths(superEventList) != 0])
   }
-  ###### STUDENT ARRIVAL EVENTS ######
+  ###### MASS ENTRY EVENTS ######
   
-  if(maxStudentNodes > 0) {
-    # Event for day(s) students return, with random returns around studentReturnDate
-    eligibleStudentNodes <- nodeTrialMat[which(nodeTrialMat$nodeGroup %in% studentNodeGroups & nodeTrialMat$trial==1),"node"]$node
-    studentNodeList <- sort(sample(eligibleStudentNodes,min(length(eligibleStudentNodes),maxStudentNodes)))
+  if(maxMassEntryNodes > 0) {
+    # Event for day(s) individuals return, with random returns around massEntryReturnDate
+    eligibleMassEntryNodes <- nodeTrialMat[which(nodeTrialMat$nodeGroup %in% massEntryNodeGroups & nodeTrialMat$trial==1),"node"]$node
+    massEntryNodeList <- sort(sample(eligibleMassEntryNodes,min(length(eligibleMassEntryNodes),maxMassEntryNodes)))
     
-    # exclude isolated, cumulative, and deceased by length(compartments)-3
-    studentEventList <- lapply(c(1:(length(compartments)-4)),studentEventFunction,
-                               fracTable = studentPropTable,
-                               nodeList = studentNodeList,
-                               pop = studentPop,
+    # exclude isolated, hospitalized,  cumulative, and deceased by length(compartments)-4
+    massEntryEventList <- lapply(c(1:(length(compartments)-4)),massEntryEventFunction,
+                               fracTable = massEntryPropTable,
+                               nodeList = massEntryNodeList,
+                               pop = massEntryPop,
                                nT = numTrials,
                                enn = N,
-                               sRD = studentReturnDate,
-                               sRS = studentReturnSpread)
-    studentEvents <- bind_rows(studentEventList[lengths(studentEventList) != 0])
-    studentCumI <- studentEvents[which(studentEvents$select == which(compartments=="I")),]
-    studentCumI$select <- which(compartments=="cumI")
-    studentEvents <- rbind(studentEvents,studentCumI)
+                               sRD = massEntryReturnDate,
+                               sRS = massEntryReturnSpread)
+    massEntryEvents <- bind_rows(massEntryEventList[lengths(massEntryEventList) != 0])
+    massEntryCumI <- massEntryEvents[which(massEntryEvents$select == which(compartments=="I")),]
+    massEntryCumI$select <- which(compartments=="cumI")
+    massEntryEvents <- rbind(massEntryEvents,massEntryCumI)
   }
   
   ###### ALL EVENTS ######
   allEvents <- data.frame(NULL)
   if(max(unlist(numParachuteList)) > 0) { allEvents <- rbind(allEvents,parachuteEvents) }
   if(nrow(transferEvents)>0) { allEvents <- rbind(allEvents,transferEvents) }
-  if(maxStudentNodes > 0) { allEvents <- rbind(allEvents,studentEvents) }
+  if(maxMassEntryNodes > 0) { allEvents <- rbind(allEvents,massEntryEvents) }
   if(length(superInfections)>0) { allEvents <- rbind(allEvents,superEvents)}
   
   ###### BUILDING MODEL ######
