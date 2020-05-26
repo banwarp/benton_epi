@@ -103,7 +103,7 @@ Compartments
  ```
 From this model, you can extract compartment trajectories, continous variables, the events data frame, etc. Refer to the [SimInf Vignettes](https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf) and the [SimInf technical documentation](https://cran.r-project.org/web/packages/SimInf/SimInf.pdf) for details.  
 
-In addition to returning the model, the script also plots 5 trajectories and saves them as .png files.
+In addition to returning the model, the script saves all the parameters to a .txt file and plots 5 trajectories and saves them as .png files.
 ```
 trajPlotInfections # Plot of daily active infections
 trajPlotPhi        # Plot of phi, the intervention intensity continuous variable
@@ -137,4 +137,21 @@ r2 <- covidWrapper(simID="moreMixing",
 #### Vignette 3: Shocks to the system
 The theorectical nature of the SEIR model does not allow for shocks to the system, like super-spreader events. The script can model super-spread events or mass entry events to exogeneously force these shocks to the system.
 ```
-r3 <- 
+r3 <- covidWrapper(simID="Shocks",
+                   superInfections = c(100,50),              # Number of infections caused by the super spreader
+                   superNodes = c(20,20),                    # Number of nodes that the super spreader contacts
+                   superNodeGroups = NULL,                   # Which node groups the super spreader contacts. Must use list() syntax for multiple events
+                   superDate = c("2020-10-01","2021-02-01"), # Date the super spreader lands. Date can also be numeric i.e. 200
+                   superSpread = c(3,5)                      # Symmetric spread in days of super spreader infections)
+)
+```
+###### Output: Plot of daily active infections:
+[trajPlotIShocks](images/plotShocksI.png)
+The infections plot shows the two super spreader events on 10/01/2020 and 02/01/2021. These can be further visualized in the daily new infections plot:
+[trajPlotnewIShocks](images/plotShocksnewI.png)
+###### Output: Plot of intervention intensity:
+[trajPlotphiShocks](images/plotShocksphi.png)
+The intervention plot demonstrates the internal response to the increased prevalence.
+
+#### Vignette 4: Switching off policy interventions
+It is possible to switch off policy interventions to explore counterfactuals.
