@@ -153,5 +153,61 @@ The infections plot shows the two super spreader events on 10/01/2020 and 02/01/
 [trajPlotphiShocks](images/plotShocksphi.png)
 The intervention plot demonstrates the internal response to the increased prevalence.
 
-#### Vignette 4: Switching off policy interventions
-It is possible to switch off policy interventions to explore counterfactuals.
+#### Vignette 4: Changing policy interventions
+The script can change the policy interventions in a number of ways:
+- The intervention intensity of the moderate/major policy.
+- The prevalence threshold at which the intervention is imposed/lifted, either count or proportion.
+- The speed at which phi converges to the new level.
+- The delay before phi starts to change, both as an intervention is imposed and as it is lifted.
+- The rate at which physical distancing decays once all interventions are lifted, and the level of phi under physical distancing.
+- To explore counterfactuals, the script can turn off interventions at a user-defined date.
+
+Depending on the epidemic pressure, these changes may or may not be apparent in the trajectories. For this vignette, the super-spreader events are included to shock the system into responding.
+```
+r4 <- covidWrapper(simID="Interventions",
+                   superInfections = c(100,50),              # Number of infections caused by the super spreader
+                   superNodes = c(20,20),                    # Number of nodes that the super spreader contacts
+                   superNodeGroups = NULL,                   # Which node groups the super spreader contacts. Must use list() syntax for multiple events
+                   superDate = c("2020-10-01","2021-02-01"), # Date the super spreader lands. Date can also be numeric i.e. 200
+                   superSpread = c(3,5),                     # Symmetric spread in days of super spreader infections)
+                   RPhysicalDistancing = 2.2,                # Ongoing baseline Rt, reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
+                   RTarget1 = 1.75,                          # Target for the reduction in R under minor intervention
+                   RTarget2 = .7,                            # Target for the reduction in R under major intervention
+                   maxPrev1 = .0015,                         # Maximum prevalence before instituting minor intervention
+                   maxPrev2 = .003,                          # Maximum prevalence before instituting major intervention
+                   upDelay = 20,                             # Number of days after prevalence passes threshold until minor/major intervention
+                   downDelay = 35,                           # Number of days after prevalence drops below threshold until intervention lifted
+                   phiMoveUp = .15,                          # Rate at which phi increases when interventions are imposed
+                   phiMoveDown = .5,                         # Rate at which phi decreases when interventions are lifted
+                   pdDecay = 10,                             # Number of days until RPhysicalDistancing decays toward RNoAction in the absence of interventions.
+                   switchOffPolicies = 1,                    # Indicator if intervention policies will cease after a certain day
+                   switchOffDay = "2020-12-31"               # Date intervention policies will cease if indicator == 1
+)
+```
+###### Output: Plot of daily active infections:
+[trajPlotIInterventions](images/plotInterventionsI.png)
+The shape of the trajectory is similar to vignette 3 up until the policy interventions are switched off; then the second super spreader creates a wave that burns through without control.
+###### Output: Plot of intervention intensity:
+[trajPlotphiInterventions](images/plotInterventionsphi.png)
+The movement of phi is a little slower since the delays, the jumps up are flatter since phiMoveUp has been increased and the jumps down are sharper since phiMoveDown has been increased. The policies switch off on 12/31/2020, leaving only physical distancing to increase phi above the 1.0 baseline.
+
+#### Vignette 5: Disease parameters
+Most of these parameters affect the dynamics in ways that are similar to other SEIR models. The few that have a big difference are included in this vignette.
+```
+r5 <- covidWrapper(simID="DiseaseDynamics",
+                   hospRate = .033,                        # Proportion of infectious/isolated that are hospitalized
+                   hospDeathRate = .35,                    # Hospitalized fatality rate NOT CASE FATALITY RATE
+                   cosAmp = 0.25                           # Amplitude of seasonal variation in beta
+)
+```
+###### Output: Plot of daily active infections:
+[trajPlotIDiseaseDynamics](images/plotDiseaseDynamicsI.png)
+The increased seasonality causes more epidemic pressure in the winter and less in the summer.
+
+###### Output: Plot of cumulative death rate:
+[trajPlotIDiseaseDynamics](images/plotDiseaseDynamicsI.png)
+The increased hospitalization and hospital death rate causes increased mortality. The increased hospitalization rate slows the spread a little bit, but not enough to have a big effect on the overall dynamics.
+
+#### Vignette 5: Node Groups
+The nodes in a simulation can be grouped to represent populations that are more likely to mix within a group than between groups. Parachuting infections, mass entry, and super spreader events can be directed to selected node groups. The trajectories can be plotted for the sum of all nodes in a simulation, the sum of all nodes in a subset of groups, or for the sum of each group separately.
+```
