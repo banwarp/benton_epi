@@ -132,7 +132,7 @@ r2 <- covidWrapper(simID="moreMixing",
              inGroupTransferRate=1/3)
 ```
 ###### Output: Plot of daily active infections:
-[trajPlotIMoreMixing](images/plotmoreMiximgI.png)
+![trajPlotIMoreMixing](images/plotmoreMiximgI.png)
 
 #### Vignette 3: Shocks to the system
 The theorectical nature of the SEIR model does not allow for shocks to the system, like super-spreader events. The script can model super-spread events or mass entry events to exogeneously force these shocks to the system.
@@ -146,9 +146,9 @@ r3 <- covidWrapper(simID="Shocks",
 )
 ```
 ###### Output: Plot of daily active infections:
-[trajPlotIShocks](images/plotShocksI.png)
+![trajPlotIShocks](images/plotShocksI.png)
 The infections plot shows the two super spreader events on 10/01/2020 and 02/01/2021. These can be further visualized in the daily new infections plot:
-[trajPlotnewIShocks](images/plotShocksnewI.png)
+![trajPlotnewIShocks](images/plotShocksnewI.png)
 ###### Output: Plot of intervention intensity:
 [trajPlotphiShocks](images/plotShocksphi.png)
 The intervention plot demonstrates the internal response to the increased prevalence.
@@ -185,10 +185,10 @@ r4 <- covidWrapper(simID="Interventions",
 )
 ```
 ###### Output: Plot of daily active infections:
-[trajPlotIInterventions](images/plotInterventionsI.png)
+![trajPlotIInterventions](images/plotInterventionsI.png)
 The shape of the trajectory is similar to vignette 3 up until the policy interventions are switched off; then the second super spreader creates a wave that burns through without control.
 ###### Output: Plot of intervention intensity:
-[trajPlotphiInterventions](images/plotInterventionsphi.png)
+![trajPlotphiInterventions](images/plotInterventionsphi.png)
 The movement of phi is a little slower since the delays, the jumps up are flatter since phiMoveUp has been increased and the jumps down are sharper since phiMoveDown has been increased. The policies switch off on 12/31/2020, leaving only physical distancing to increase phi above the 1.0 baseline.
 
 #### Vignette 5: Disease parameters
@@ -201,11 +201,11 @@ r5 <- covidWrapper(simID="DiseaseDynamics",
 )
 ```
 ###### Output: Plot of daily active infections:
-[trajPlotIDiseaseDynamics](images/plotDiseaseDynamicsI.png)
+![trajPlotIDiseaseDynamics](images/plotDiseaseDynamicsI.png)
 The increased seasonality causes more epidemic pressure in the winter and less in the summer.
 
 ###### Output: Plot of cumulative death rate:
-[trajPlotdeathsDiseaseDynamics](images/plotDiseaseDynamicsdeaths.png)
+![trajPlotdeathsDiseaseDynamics](images/plotDiseaseDynamicsdeaths.png)
 The increased hospitalization and hospital death rate causes increased mortality. The increased hospitalization rate slows the spread a little bit, but not enough to have a big effect on the overall dynamics.
 
 #### Vignette 5: Node Groups
@@ -225,4 +225,4 @@ r6 <- covidWrapper(simID="NodeGroups",
 )
 ```
 ###### Output: Plot of active daily infections by node group:
-[trajPlotINodeGroups](images/plotNodeGroupsI.png)
+![trajPlotINodeGroups](images/plotNodeGroupsI.png)
