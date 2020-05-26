@@ -111,5 +111,13 @@ trajPlotnewI       # Plot of daily new infections
 trajPlotHosp       # Plot of daily hospitalizations
 trajPlotDeaths     # Plot of cumulative deaths
 ```
-Here is the plot of daily active infections:
-![trajPlotInfections](images/trajPlotIGeneric.png)
+###### Output: Plot of daily active infections:
+![trajPlotInfections](images/plotcovid.mo.day.2020.GenericI.png)
+The simulation runs up to 100 trials. Each trial produces a trajectory. For simplicity the plot shows the median of each trajectory at each time step, rather than some central tendency of all the trials. The gray shaded area shows the user-defined credible spread (default = 90%), defined as the 5th percentile and the 95th percentile at each time step.  
+
+###### Output: Plot of the intervention intensity:
+![trajPlotPhi](images/plotcovid.mo.day.2020.Genericphi.png)
+To interpret the intervention intensity:
+- The y-axis is the value of phi. Phi acts inversely on the transmissibility of the coronavirus (beta). `phi = 1.0` indicates no intervention. Phi changes as the observed prevalence of COVID-19 changes. Higher prevalence will start a higher-intensity intervention, after a user-defined delay. Instead of a discrete jump to the intervention, phi converges exponentially according to a user-defined parameter. The default parameters incorporate a phased re-opening in 3 phases from May 25th through July 15th 2020, which leads to the three-stepped shape. As with the infections graph, a credible spread is provided. Since the central tendency is the median at each time step, there may be sharp peaks around a more stable trend: read the sharp peaks as an artifact of the plotting procedure.  
+
+There are three other plots produced in the script: Daily new infections, Daily active hospitalizations, and Cumulative deaths. These are interpreted similarly to the daily active infection.
