@@ -18,9 +18,13 @@ This is the base function in syndSurveillance. All other functions use it in som
 Given a population `n` and a sample size `k`, there are `choose(n,k)` possible samples. Of these samples, we want just those that include exactly `x` cases of disease. This number depends on the prevalence `prev` in the population. Specifically:  
 
 There are `choose(prev,x)` ways to select exactly `x` cases from the total cases in the population. These fill out the first `x` spots in the sample of size `k`. Then there are `choose(n-prev,k-x)` ways to select the remaining `k-x` spots from among the non-infected in the population. Therefore, the number of samples of size `k` with exactly `x` cases is given by:
-```choose(prev,x) * choose(n-prev,k-x)```
+```
+choose(prev,x) * choose(n-prev,k-x)
+```
 and the probability of exactly `x` cases is given by:
-```p <- choose(prev,x) * choose(n-prev,k-x) / choose(n,k)```
+```
+p <- choose(prev,x) * choose(n-prev,k-x) / choose(n,k)
+```
 
 This the basic formula. However, with large `n`, the factorials involved tend toward infinity. To get around this, I take the logs of the combinatorial formula and get:
 * *log(choose(m,n)) = sum_\[from 1 to m \] log(i) - sum_\[from 1 to n\] Log(j) - sum_\[from n+1 to m\] Log(k)* *  
@@ -166,7 +170,7 @@ syndSamples <- function(n,      # population
 
 #### syndPower
 Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute the statistical Power of syndromic surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct syndromic surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup under the assumption that the disease is present in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be observed given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
-Furthemore, if we assume that any symptomatic person will be tested immediatel, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
+Furthermore, if we assume that any symptomatic person will be tested immediately, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
 Also, detection of disease depends on the sensitivity of the test, so the Power is multiplied by `sensitivity`:
 ```
 syndPower <- function(N,              # population of community
@@ -200,7 +204,7 @@ combn(8,5)
 #### Selecting the subgroup
 From a combinatorial perspective, it doesn't matter whether the subgroup individuals have fixed numbers (e.g. 1,2,3,4,5) and the cases are randomly assigned to them, or whether the cases have fixed numbers (e.g. 1,2) and they are randomly assigned to the subgroup. We use the second approach. So assume that individuals 1 and 2 are the cases. 30 of the 56 combinations include exactly 1 case, and an additional 20 include exactly two cases. These 50 combinations represent the state of the world where there is one or more diseases in the subgroup.  
 
-We want to the know probability that we fail to observe the disease if there is exactly 1 case and if there are exactly 2 cases in our subgroup.  
+We want to know the probability that we fail to observe the disease if there is exactly 1 case, and if there are exactly 2 cases in our subgroup.  
 
 ##### Exactly 1 case in our subgroup
 There are `choose(n,k) = choose(5,3)` ways to select our sample for testing. By renumbering, assume individual 1 is the case.
@@ -213,4 +217,4 @@ combn(5,3)
 There are still `choose(5,3)` ways to select our sample for testing, and now individuals 1 and 2 are cases.  Now only 1 of the 10 combinations excludes both individuals 1 and 2.
 
 ##### Computing Power
-The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. If we assume the sensitivity of the test is 100%, the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2)` = 0.75
+The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. If we assume the sensitivity of the test is 100%, the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2,asymp=1,sensitivity=1)` = 0.75
