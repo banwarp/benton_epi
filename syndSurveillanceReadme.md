@@ -1,16 +1,16 @@
 ### Readme file for syndSurveillance
 This file contains descriptions of the functions and an example.
 
-### Please check my work - I think I have the counting correct, but I would appreciate confirmation/corrections.
+#### Please check my work - I think I have the counting correct, but I would appreciate confirmation/corrections.
 
-#### Scripts included in [syndSurveillance.R](sundSurveillance.R)
+### Scripts included in [syndSurveillance.R](sundSurveillance.R)
 - `syndExact(n,k,x,prev)`
 - `syndSuccess(n,k,prev)`
 - `syndDistribution(n,k,prev,nSamp)`
 - `syndSamples(n,k,prev,nSamp,nTrials)`
 - `syndPower(N,n,k,prev,asymp,sensitivity)`
 
-#### syndExact
+### syndExact
 This is the base function in syndSurveillance. All other functions use it in some way.  
 `syndExact(n,k,x,prev)` computes the probability of observing `x` cases of disease, given a population `n`, a sample size `k`, and a population prevalence (count, not proportion) `prev`. `syndExact` uses a combinatorial counting method to calculate exact probabilities. However, because populations and sample sizes can be very large, using the built-in `choose(n,k)` function can lead to `Inf`. Therefore `syndExact` uses a "log and sum" approach to the combinatorial counting instead of the factorial approach normally used in combinatorics.  
 
@@ -123,7 +123,7 @@ choose(prev,x)*choose(n-prev,k-x)/choose(n,k)
 syndExact(n,k,x,prev)
 ```
 
-#### syndSuccess
+### syndSuccess
 The main goal of syndromic surveillance in a setting like the COVID-19 pandemic is to determine if the disease exists in the sample at all. It is not as important exactly how many cases, just if there is a positive number. `syndSuccess(n,k,prev)` computes the probability of observing at least 1 case given a population `p`, sample size `k`, and prevalence `prev`. It works by calling `syndExact` for all `x` from `1` to `prev` (or `prev*n` if `prev` is decimal).
 ```
 syndSuccess <- function(n,   # population
@@ -168,7 +168,7 @@ syndSamples <- function(n,      # population
 }
 ```
 
-#### syndPower
+### syndPower
 Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute the statistical Power of syndromic surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct syndromic surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup under the assumption that the disease is present in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be observed given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
 Furthermore, if we assume that any symptomatic person will be tested immediately, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
 Also, detection of disease depends on the sensitivity of the test, so the Power is multiplied by `sensitivity`:
@@ -200,9 +200,33 @@ Suppose that the community population is `N=8`, the subgroup population is `n=5`
 - There are `choose(N,n) = choose(8,5)` possible subgroups.
 ```
 combn(8,5)
+     [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10] [,11] [,12] [,13] [,14] [,15] [,16] [,17] [,18]
+[1,]    1    1    1    1    1    1    1    1    1     1     1     1     1     1     1     1     1     1
+[2,]    2    2    2    2    2    2    2    2    2     2     2     2     2     2     2     2     2     2
+[3,]    3    3    3    3    3    3    3    3    3     3     4     4     4     4     4     4     5     5
+[4,]    4    4    4    4    5    5    5    6    6     7     5     5     5     6     6     7     6     6
+[5,]    5    6    7    8    6    7    8    7    8     8     6     7     8     7     8     8     7     8
+     [,19] [,20] [,21] [,22] [,23] [,24] [,25] [,26] [,27] [,28] [,29] [,30] [,31] [,32] [,33] [,34] [,35]
+[1,]     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1     1
+[2,]     2     2     3     3     3     3     3     3     3     3     3     3     4     4     4     4     5
+[3,]     5     6     4     4     4     4     4     4     5     5     5     6     5     5     5     6     6
+[4,]     7     7     5     5     5     6     6     7     6     6     7     7     6     6     7     7     7
+[5,]     8     8     6     7     8     7     8     8     7     8     8     8     7     8     8     8     8
+     [,36] [,37] [,38] [,39] [,40] [,41] [,42] [,43] [,44] [,45] [,46] [,47] [,48] [,49] [,50] [,51] [,52]
+[1,]     2     2     2     2     2     2     2     2     2     2     2     2     2     2     2     3     3
+[2,]     3     3     3     3     3     3     3     3     3     3     4     4     4     4     5     4     4
+[3,]     4     4     4     4     4     4     5     5     5     6     5     5     5     6     6     5     5
+[4,]     5     5     5     6     6     7     6     6     7     7     6     6     7     7     7     6     6
+[5,]     6     7     8     7     8     8     7     8     8     8     7     8     8     8     8     7     8
+     [,53] [,54] [,55] [,56]
+[1,]     3     3     3     4
+[2,]     4     4     5     5
+[3,]     5     6     6     6
+[4,]     7     7     7     7
+[5,]     8     8     8     8
 ```
 #### Selecting the subgroup
-From a combinatorial perspective, it doesn't matter whether the subgroup individuals have fixed numbers (e.g. 1,2,3,4,5) and the cases are randomly assigned to them, or whether the cases have fixed numbers (e.g. 1,2) and they are randomly assigned to the subgroup. We use the second approach. So assume that individuals 1 and 2 are the cases. 30 of the 56 combinations include exactly 1 case, and an additional 20 include exactly two cases. These 50 combinations represent the state of the world where there is one or more diseases in the subgroup.  
+From a combinatorial perspective, it doesn't matter whether the subgroup individuals have fixed numbers (e.g. 1,2,3,4,5) and the cases are randomly assigned to them, or whether the cases have fixed numbers (e.g. 1,2) and they are randomly assigned to the subgroup. We use the second approach. So assume that individuals 1 and 2 are the cases. 30 of the 56 combinations include exactly 1 case, and a separate 20 include exactly two cases. These 50 combinations represent the state of the world where there is one or more diseases in the subgroup.  
 
 We want to know the probability that we fail to observe the disease if there is exactly 1 case, and if there are exactly 2 cases in our subgroup.  
 
@@ -210,6 +234,10 @@ We want to know the probability that we fail to observe the disease if there is 
 There are `choose(n,k) = choose(5,3)` ways to select our sample for testing. By renumbering, assume individual 1 is the case.
 ```
 combn(5,3)
+     [,1] [,2] [,3] [,4] [,5] [,6] [,7] [,8] [,9] [,10]
+[1,]    1    1    1    1    1    1    2    2    2     3
+[2,]    2    2    2    3    3    4    3    3    4     4
+[3,]    3    4    5    4    5    5    4    5    5     5
 ```
 4 of the 10 combinations exclude individual 1.
 
