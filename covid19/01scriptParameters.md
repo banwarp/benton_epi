@@ -77,6 +77,8 @@ tempImmPeriod = 1/100,                   # Reciprocal of temporary immunity peri
 mu = 0,                                  # Natural birth/susceptible immigration rate
 nu = 0,                                  # Natural non-Covid death rate
 ```
+It is recommended to let `R0I+R0U` equal the overall reproduction number (e.g 2.9), but put more of the weight on `R0I` to represent higher infectiousness in the earlier period. Then set `R0P` sufficiently low to represent low transmissibility among isolated individuals.  
+
 ##### Local data parameters
 ` R0Spread = .1` is a parameter to generate a uniform distribution of R0 across different trials. `R0` is scaled by `[1-R0Spread,1+R0Spread].`
 ##### Continuous disease dynamics parameters
