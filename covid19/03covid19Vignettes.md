@@ -42,70 +42,72 @@ The output for `r1` is the model after it has been run:
 ```
 Model: SimInf_model
 Number of nodes: 50000
-Number of transitions: 18
-Number of scheduled events: 262217
+Number of transitions: 23
+Number of scheduled events: 262445
 
 Global data
 -----------
- Parameter        Value     
- beta             0.36250000
- infectiousPeriod 0.12500000
- exposedPeriod    0.25000000
- isoRate          0.12500000
- isoPeriod        0.10000000
- hospRate         0.03300000
- hospPeriod       0.07142857
- betaIsolated     0.01250000
- nonHospDeathRate 0.00000000
- hospDeathRate    0.12500000
- reSuscepRate     0.10000000
- tempImmPeriod    0.01000000
- mu               0.00000000
- nu               0.00000000
+ Parameter               Value    
+ betaI                   0.4750000
+ betaP                   0.0125000
+ betaU                   0.1666667
+ initInfectiousPeriod    0.2500000
+ postInfectiousPeriod    0.1000000
+ unknownInfectiousPeriod 0.1666667
+ exposedPeriod           0.2500000
+ monitoringSuccess       0.2500000
+ isoRate                 0.1250000
+ hospRateExp             0.0330000
+ hospRatePost            0.1600000
+ hospPeriod              0.1000000
+ nonHospDeathRate        0.0000000
+ hospDeathRate           0.1250000
+ reSuscepRate            0.1000000
+ tempImmPeriod           0.0100000
+ mu                      0.0000000
+ nu                      0.0000000
 
 Local data
 ----------
-                    Min.  1st Qu.   Median     Mean
- firstNode      0.00e+00 1.24e+04 2.48e+04 2.48e+04
- betaRandomizer 9.01e-01 9.48e-01 1.01e+00 1.00e+00
-                 3rd Qu.     Max.
- firstNode      3.71e+04 4.95e+04
- betaRandomizer 1.05e+00 1.10e+00
+                    Min.  1st Qu.   Median     Mean  3rd Qu.     Max.
+ firstNode      0.00e+00 1.24e+04 2.48e+04 2.48e+04 3.71e+04 4.95e+04
+ betaRandomizer 9.02e-01 9.49e-01 9.86e-01 9.93e-01 1.04e+00 1.09e+00
 
 Continuous state variables
 --------------------------
                    Min.  1st Qu.   Median     Mean  3rd Qu.     Max.
- phi           1.00e+00 1.20e+00 1.44e+00 1.65e+00 1.93e+00 3.22e+00
- prevUp01      0.00e+00 0.00e+00 0.00e+00 1.30e+00 1.00e+00 1.10e+01
- prevUp12      0.00e+00 0.00e+00 0.00e+00 2.56e-02 0.00e+00 1.10e+01
- prevDown21    0.00e+00 2.90e+01 2.90e+01 2.85e+01 3.00e+01 3.00e+01
- prevDown10    0.00e+00 2.90e+01 2.90e+01 2.66e+01 2.90e+01 2.90e+01
+ phi           1.00e+00 1.00e+00 1.11e+00 1.46e+00 1.49e+00 3.22e+00
+ prevUp01      0.00e+00 0.00e+00 0.00e+00 9.25e-01 1.00e+00 1.10e+01
+ prevUp12      0.00e+00 0.00e+00 0.00e+00 2.72e-02 0.00e+00 1.10e+01
+ prevDown21    0.00e+00 3.00e+01 3.00e+01 2.97e+01 3.00e+01 3.00e+01
+ prevDown10    0.00e+00 2.90e+01 2.90e+01 2.86e+01 2.90e+01 2.90e+01
  kbPhase       0.00e+00 3.00e+00 3.00e+00 2.60e+00 3.00e+00 3.00e+00
  policy        1.00e+00 1.00e+00 1.00e+00 1.00e+00 1.00e+00 1.00e+00
  season        7.50e-01 8.26e-01 9.96e-01 1.00e+00 1.17e+00 1.25e+00
- prevalence    0.00e+00 4.59e-04 8.08e-04 7.95e-04 1.07e-03 2.53e-03
- previousState 0.00e+00 0.00e+00 0.00e+00 3.66e-01 1.00e+00 2.00e+00
- RTee          7.12e-01 1.51e+00 2.02e+00 1.98e+00 2.43e+00 3.93e+00
- pdCounter     0.00e+00 0.00e+00 2.00e+00 1.95e+01 2.70e+01 2.91e+02
+ prevalence    0.00e+00 1.67e-04 4.09e-04 4.65e-04 7.06e-04 2.16e-03
+ previousState 0.00e+00 0.00e+00 0.00e+00 6.77e-02 0.00e+00 2.00e+00
+ RTee          9.35e+00 2.07e+01 3.18e+01 3.03e+01 3.92e+01 5.20e+01
+ pdCounter     0.00e+00 0.00e+00 3.00e+01 5.76e+01 9.20e+01 2.91e+02
 
 Compartments
 ------------
           Min.  1st Qu.   Median     Mean  3rd Qu.     Max.
- S    0.00e+00 9.20e+01 1.25e+02 1.28e+02 1.56e+02 5.45e+02
- E    0.00e+00 0.00e+00 0.00e+00 5.80e-02 0.00e+00 4.40e+01
- I    0.00e+00 0.00e+00 0.00e+00 1.06e-01 0.00e+00 6.80e+01
- R    0.00e+00 0.00e+00 0.00e+00 1.03e+00 0.00e+00 2.06e+02
- Im   0.00e+00 0.00e+00 0.00e+00 1.29e+00 0.00e+00 1.81e+02
- H    0.00e+00 0.00e+00 0.00e+00 2.58e-03 0.00e+00 6.00e+00
- Is   0.00e+00 0.00e+00 0.00e+00 1.29e-02 0.00e+00 1.10e+01
- cumI 0.00e+00 0.00e+00 0.00e+00 2.53e+00 0.00e+00 3.07e+02
- M    0.00e+00 0.00e+00 0.00e+00 5.01e-02 0.00e+00 1.10e+01
+ S    0.00e+00 9.20e+01 1.25e+02 1.28e+02 1.56e+02 4.84e+02
+ E    0.00e+00 0.00e+00 0.00e+00 6.80e-02 0.00e+00 5.30e+01
+ I    0.00e+00 0.00e+00 0.00e+00 6.23e-02 0.00e+00 4.90e+01
+ uI   0.00e+00 0.00e+00 0.00e+00 6.89e-02 0.00e+00 4.00e+01
+ R    0.00e+00 0.00e+00 0.00e+00 1.11e+00 0.00e+00 2.26e+02
+ Im   0.00e+00 0.00e+00 0.00e+00 1.24e+00 0.00e+00 1.97e+02
+ pI   0.00e+00 0.00e+00 0.00e+00 5.16e-02 0.00e+00 3.50e+01
+ H    0.00e+00 0.00e+00 0.00e+00 3.13e-03 0.00e+00 8.00e+00
+ cumI 0.00e+00 0.00e+00 0.00e+00 2.72e+00 0.00e+00 3.37e+02
+ M    0.00e+00 0.00e+00 0.00e+00 5.94e-02 0.00e+00 1.40e+01
  ```
 From this model, you can extract compartment trajectories, continous variables, the events data frame, etc. Refer to the [SimInf Vignettes](https://cran.r-project.org/web/packages/SimInf/vignettes/SimInf.pdf) and the [SimInf technical documentation](https://cran.r-project.org/web/packages/SimInf/SimInf.pdf) for details.  
 
 In addition to returning the model, the script saves all the parameters to a .txt file and plots 5 trajectories and saves them as .png files.
 ```
-trajPlotInfections # Plot of daily active infections
+trajPlotInfections # Plot of daily active infections, computed by the sum of I, uI, pI, and H
 trajPlotPhi        # Plot of phi, the intervention intensity continuous variable
 trajPlotnewI       # Plot of daily new infections
 trajPlotHosp       # Plot of daily hospitalizations
@@ -120,7 +122,7 @@ The simulation runs up to 100 trials. Each trial produces a trajectory. For simp
 ###### Interpretation the intervention intensity graph:  
 The y-axis is the value of phi. Phi acts inversely on the transmissibility of the coronavirus (beta). `phi = 1.0` indicates no intervention. Phi changes as the observed prevalence of COVID-19 changes. Higher prevalence will start a higher-intensity intervention, after a user-defined delay. Instead of a discrete jump to the intervention, phi converges exponentially according to a user-defined parameter. The default parameters incorporate a phased re-opening in 3 phases from May 25th through July 15th 2020, which leads to the three-stepped shape. As with the infections graph, a credible spread is provided. Since the central tendency is the median at each time step, there may be sharp peaks around a more stable trend: read the sharp peaks as an artifact of the plotting procedure.  
 
-There are three other plots produced in the script: Daily new infections, Daily active hospitalizations, and Cumulative deaths. These are interpreted similarly to the daily active infection.
+There are three other plots produced in the script: Daily new infections, Daily active hospitalizations, and Cumulative deaths. These are interpreted similarly to the daily active infections.
 
 #### Vignette 2: More mixing in the population
 As the population becomes more mixed, any given infection has a larger pool of susceptibles into which it can spread. Under this model, this translates to a smaller number of larger epidemics, rather than a larger number of mini-epidemics. Overall, the number of infections is larger.  
@@ -128,14 +130,14 @@ As the population becomes more mixed, any given infection has a larger pool of s
 To represent more mixing, you can decrease the number of nodes and/or increase the rate of transfers. To change the user defined parameters, just define them in the function call. 
 ```
 r2 <- covidWrapper(simID="moreMixing",
-             N = 5,
+             N = 5, # instead of N = 500
              inGroupTransferRate=1/3)
 ```
 ###### Output: Plot of daily active infections:
 ![trajPlotImoreMixing](images/plotmoreMixingI.png)
 
 #### Vignette 3: Shocks to the system
-The theorectical nature of the SEIR model does not allow for shocks to the system, like super-spreader events. The script can model super-spread events or mass entry events to exogeneously force these shocks to the system.
+The theorectical nature of the SEIR model does not allow for shocks to the system, like super-spreader events. But the script can model super-spread events or mass entry events to exogeneously force these shocks to the system.
 ```
 r3 <- covidWrapper(simID="Shocks",
                    superInfections = c(100,50),              # Number of infections caused by the super spreader
@@ -225,4 +227,17 @@ r6 <- covidWrapper(simID="NodeGroups",
 )
 ```
 ###### Output: Plot of active daily infections by node group:
-![trajPlotINodeGroups](images/plotNodeGroupsI.png)
+![trajPlotINodeGroups](images/plotNodeGroupsI.png)  
+
+#### Vignette 6: All simulation trajectories.
+Thanks to 
+Suppose that instead of plot the point-in-time median and spread of the simulation trajectories, you want to plot all trajectories. You can use the following code:
+```
+r7 <- covidWrapper(simID="allTraj",
+                   allTraj = TRUE,
+                   plotRandomTrajs = 5)
+```
+###### Output: Plot of active daily infections, all trajectories:
+![trajPlotIallTraj](images/plotallTrajI.png)
+
+Each trajectory is plotted as a thin black line, with some transperncy. The mor common trajectories overlap 
