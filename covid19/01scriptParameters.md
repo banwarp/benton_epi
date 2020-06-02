@@ -49,6 +49,8 @@ The model assumes a homogenous, partially-mixed, mostly closed population. Homog
 
 `nodeGroupList` is an optional parameter to split the nodes into different groups. This represents subpopulations that are more likely to mix within the group compared to across groups. For example, distinct cities can be grouped into different nodeGroups. `nodeGroupList` is either `NULL` or a vector of length `N` with entries equal to the node group for each node.  
 
+`unifPop` is a logical if the initial susceptible population is distributed uniformly or randomly between nodes.  
+
 `I0Pop` through `M0Pop` are the initial populations of the non-susceptible compartments. All of these compartments except `I0Pop` are set to 0 by default.  
 
 `maxINodeProp` sets an upper limit on how many nodes can have a positive initial infectious population, to represent that the disease is not evenly distributed. `I0nodeGroups` allows the distribution of initial infectious to be restricted to certain node groups.
@@ -56,20 +58,24 @@ The model assumes a homogenous, partially-mixed, mostly closed population. Homog
 The disease dynamic parameters are split into three groups: global data (`gdata`), local data (`ldata`), and continuous variables (`v0`). Global data applies to all nodes and trials in the simulation. Local data can be specified to the individual trial, nodeGroup, or node. Neither global nor local data change during the simulation. Continuous variables can be specified locally, and can change during the simulation. You can change where parameters are specific in the code itself. For example, the default is for the basic reproduction number to be a global parameter, but you could make it a local parameter or a continuous variable. 
 ##### Global data parameters
 ```
-R0 = 2.9                                # Basic reproduction number
-infectiousPeriod = 1/8                  # Reciprocal of infectious period
-exposedPeriod = 1/4                     # Reciprocal of exposed period
-isoRate = .125                          # Proportion of exposed who are identified and isolated before they become infectious
-isoPeriod = 1/10                        # Reciprocal of length of isolation period
-RIsolated = .125                        # Reproduction number of isolated infectious
-hospRate = .033                         # Proportion of infectious/isolated that are hospitalized
-hospPeriod = 1/14                       # Reciprocal of length of hospitalization period
-nonHospDeathRate = 0                    # Non-hospitalized fatality rate
-hospDeathRate = .125                    # Hospitalized fatality rate NOT CASE FATALITY RATE
-reSuscepRate = .1                       # Proportion of recovereds who eventually become susceptible again
-tempImmPeriod = 1/100                   # Reciprocal of temporary immunity period, after which R becomes Im or S
-mu = 0                                  # Natural birth/susceptible immigration rate
-nu = 0                                  # Natural non-Covid death rate
+R0I = 1.9,                               # Basic reproduction number for first infectiousPeriod days
+R0P = .125,                              # Basic reproduction number for post infectious (after successful monitoring)
+R0U = 1,                                 # Basic reproduction number for remaining infectious period if monitoring fails
+initInfectiousPeriod = 1/4,              # Reciprocal of initial infectious period
+postInfectiousPeriod = 1/10,             # Reciprocal of post-infectious period
+unknownInfectiousPeriod = 1/6,           # Reciprocal of remaining, unknown-infectious period
+exposedPeriod = 1/4,                     # Reciprocal of exposed period
+isoRate = .125,                          # Proportion of exposed who are identified and isolated before they become infectious
+monitoringSuccess = .25,                 # Proportion of infectious whose symptoms are identified and moved to post-infectious
+hospRateExp = .033,                      # Proportion of isolated that are hospitalized - should match overall population hospitalization rate
+hospRatePost = .16,                      # Proportion of successfully identified cases who are hospitalized - should match observed hospitalization rate
+hospPeriod = 1/10,                       # Reciprocal of length of hospitalization period
+nonHospDeathRate = 0,                    # Non-hospitalized fatality rate
+hospDeathRate = .125,                    # Hospitalized fatality rate NOT CASE FATALITY RATE
+reSuscepRate = .1,                       # Proportion of recovereds who eventually become susceptible again
+tempImmPeriod = 1/100,                   # Reciprocal of temporary immunity period, after which R becomes Im or S
+mu = 0,                                  # Natural birth/susceptible immigration rate
+nu = 0,                                  # Natural non-Covid death rate
 ```
 ##### Local data parameters
 ` R0Spread = .1` is a parameter to generate a uniform distribution of R0 across different trials. `R0` is scaled by `[1-R0Spread,1+R0Spread].`
@@ -109,12 +115,13 @@ The covid script uses events to model different population dynamics.
 - There may be certain populations that undergo mass changes, like students returning to a college town, or military divisions shipping out. Because this model was built for a college community, a mass entry event is included. You can add to the code itself to represent a mass exit event.
 
 ##### Parachute events
-I made the assumption that infectious movements are currently low, will grow as the economy and travel reopens, then will decline as global prevalence eventually declines. `paraChi_df` generates this kind of a distribution. The distribution can be changed in the code itself, for example, to a uniform distribution.  
+I use a beta distribution for the parachuted infections. The default is uniform, but it can be changed with `paraMu` and `paraSig`.  
 ```
-paraChi_df = 4                          # Distribution parameter for parachute events
-parachuteRate = 1/21                    # Reciprocal of expected waiting time for a parachute event
-parachuteNum = 1                        # Number of infectious in each parachute event
-parachuteNodeGroups = NULL              # Which nodes groups the parachuters can land in. Default is all groups
+paraMu = 1,                              # First shape parameter for beta function for timing of parachute events
+paraSig = 1,                             # Second shape parameter for beta function for timing of parachute events
+parachuteRate = 1/21,                    # Reciprocal of expected waiting time for a parachute event
+parachuteNum = 1,                        # Number of infectious in each parachute event
+parachuteNodeGroups = NULL,              # Which node groups the parachuters can land in
 ```  
 
 #### Transfer events
@@ -154,18 +161,20 @@ mIProp = .0015,                          # Proportion of individuals who are inf
 ```
 
 #### Plotting parameters
-The script automatically plots 5 different sets of trajectories. These can be adjusted in the code itself. The script appropriately aggregates the different nodes within a given trial and the plots the median and the confidence spread for the different number of trials. The following are parameters for the plots.
+The script automatically plots 5 different sets of trajectories. These can be adjusted in the code itself. The script appropriately aggregates the different nodes within a given trial and can either plot the median and the confidence spread for the different number of trials, or all simulation trajectories. The following are parameters for the plots.
 ```
-plotCompList = "I"                      # List of compartments that will be plotted
-rollM = 1                               # Number of days for plotting rolling means, rollM = 1 means no rolling mean
-confIntv = .9                           # two-sided confidence interval for plotting spread
-plotGroups = NULL                       # Which node groups to plot. NULL plots all
-plotSum = TRUE                          # Whether to sum the node groups.
-dateBreaks = "1 month"                  # Plot parameter, x-axis displays months
-titleString = "Generic Title"           # Title of plot
-xString = "Date"                        # Title of x-axis
-yString = "Frequency"                   # Title of y-axis
-lString = "Compartment"                 # Title of legend
+plotCompList = "I",                      # List of compartments that will be plotted
+rollM = 1,                               # Number of days for plotting rolling means, rollM = 1 means no rolling mean
+allTraj = FALSE,                         # Logical if all simulation trajectories are plotted or just median and spread
+plotRandomTrajs = 0,                     # Number of randomly selected trajectories to superimpose on the plot, used when allTraj == TRUE
+confIntv = .95,                          # two-sided confidence interval for plotting spread
+plotGroups = NULL,                       # Which node groups to plot. NULL plots all
+sumGroups = TRUE,                        # Whether to sum the node groups.
+dateBreaks = "1 month",                  # Plot parameter, x-axis displays months
+titleString = "Generic Title",           # Title of plot
+xString = "Date",                        # Title of x-axis
+yString = "Frequency",                   # Title of y-axis
+lString = "Median"                       # Title of legend
 ```
 
 There is an option to separate nodes into different node groups. Then a subset of node groups can be plotted, and these can either sum nodes across all selected node groups, or to plot the different node group sums to compare different node groups.  
