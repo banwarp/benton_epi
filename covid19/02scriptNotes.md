@@ -71,32 +71,30 @@ nodeAndGroupList <- lapply(nodeAndGroupList,function(x) split(x$node,x$trial))
 
 `maxNodePop <- floor(trialPop/N)` is created for distributing populations across nodes within trials.
 
-##### Mass entry parameters
-The code allows for a single mass entry event. The mass entry event can be turned off by setting `massMassEntryNodes=0` in the user-defined parameters.  
-
-`maxMassEntryNodes <- min(length(which(nodeGroupList %in% massEntryNodeGroups)),maxMassEntryNodes)` is user-defined, but also limited by the number of available nodes in the set of node groups chosen to host the mass entry event.  
-
-`mRProp` through `mMProp` are created to distributed the mass entry individuals among the different departments.  `massEntryPropTable` gathers these proportions together into a single table.
-
 ##### Compartments
+The model is based on SEIR dynamics, with a couple of twists.  
+
+First, as we become more aware of COVID-19, we are doing a better job monitoring for symptoms and testing. Therefore, after an initial infectious stage `I`, there is a probability that the infection is identified and the individual is moved to the post infectious `pI` compartment, whether they are much less infectious. Or, if the infection is not identified, they move to the `uI` compartment and remain infectious in the community. I chose a single chance to identify the infection rather than a recurring probability to simplify the transitions. This also leaves open the possibility of choosing three different infectious levels, one for initial infectious, one for post infectious, and one for unknown infectious.  
+
+Second, some proportion of infectious individuals require hospitalization. These individuals have differential recovery rates compared to the non-hospitalized infectious compartment.  
+
+Finally, some proportion of the recovered can again become susceptible after a period of time.
+
 1. `S` Susceptible
 2. `E` Exposed (pre-infectious)
-3. `I` Infectious
-4. `R` Recovered
-5. `Im` Immune
-6. `H` Hospitalized
-7. `Is` Isolated
-8. `cumI` Cumulative infected. Used for plotting, not for disease dynamics
-9. `M` Deceased
+3. `I` Initial infectious
+4. `uI` Unknown infectious
+5. `R` Recovered
+6. `Im` Immune
+7. `pI` Post infectious
+8. `H` Hospitalized
+9. `cumI` Cumulative infected. Used for plotting, not for disease dynamics
+10. `M` Deceased
 
 ##### Global and local parameters
-SimInf uses `gdata` and `ldata` for the model transitions. Most of these parameters are user defined, except for `beta`, `isoRate`, and `betaIsolated`.  
+SimInf uses `gdata` and `ldata` for the model transitions. Most of these parameters are user defined, except for `betaI`, `betaU`, and `betaP`.  
 
-`beta` is calculated as a product of the user-defined `R0` and `infectiousPeriod`.  
-
-`isoRate` is user defined. However, assuming that all hospitalized individuals are isolated, `isoRate` is overwritten by the maximum of `isoRate` and `hospRate`.  
-
-`betaIsolated` is the transmissibility of the virus among isolated individuals, and it is the product of the user-defined `RIsolated` and `isoPeriod`, similar to `beta`.  
+`betaI` is calculated as a product of the user-defined `R0I` and `initInfectiousPeriod`. `betaU` and `betaP` are defined similarly.
 
 `firstNode` is the first node in a trial. Used for getting the correct indices in various subroutines.
 `betaRandomizer` is generated from a uniform distribution with mean 1 and a user-defined spread. Used to generate a distribution of transmissibility rates (`beta`) to add variability to the trials in the simulation.
@@ -105,22 +103,25 @@ SimInf uses `gdata` and `ldata` for the model transitions. Most of these paramet
 Transitions beginning or ending with `@` represent entry/exit from/to the empty set.
 1. `@ -> mu*(S+E+I+R+Im) -> S` Natural population growth 
 2. `R -> reSuscepRate*tempImmPeriod*R -> S` Some proportion of recovered become susceptible again after a peiod of temporary immunity.
-3. `S -> nu*S -> @`, `E -> nu*E -> @`, `I -> nu*I -> @`, `Is -> nu*Is -> @`, `R -> nu*R -> @`, `Im -> nu*Im -> @` Natural death rate, not associated with COVID-19.
-4. `S -> (beta*(1/phi)*season*betaRandomizer*I+betaIsolated*Is)*S/(S+E+I+R+Im)-> E` Transition from Susceptible to Exposed.
-    - `beta` is the baseline transmissibility rate.
+3. `S -> (betaI*(1/phi)*I+betaP*pI+betaU*(1/phi)*uI)*season*betaRandomizer*S/(S+E+I+R+Im)-> E` Transition from Susceptible to Exposed.
+    - `betaI`, `betaP`, and `betaU` are the baseline transmissibility rates for `I`, `pI`, and `uI`, respectively.
     - `(1/phi)` scales beta according to the intensity of policy intervention and/or physical distancing. A more intense intervention or more physical distancing increases `phi` which decreases the effective transmissibility rate.
     - `season` is the seasonality factor, which peaks in February and troughs in August.
-    - `betaRandomizer` creates a small distribution around `beta` for each separate trial to increase variability between trials.
-    - `betaIsolated` is the transmissibility rate for isolated individuals. It is close to zero but positive to represent incomplete isolation/quarantine or slightly delayed isolation/quarantine.
-5. `E -> (1-isoRate)*exposedPeriod*E -> I + cumI` Transition from Exposed to Infectious. Includes `isoRate` to represent Exposed individuals being isolated before they become infectious. `cumI` tracts the total number of infected individuals.
-6. `E -> (isoRate-hospRate)*exposedPeriod*E -> Is + cumI` Transition from Exposed to Isolated. Isolated individuals have a much lower transmissiblity factor, which slows the epidemic spread. Includes `hospRate` to represent that some Isolated individuals are hospitalized during their isolation.
-7. `E -> hospRate*exposedPeriod*E -> H` Transition from Exposed to Hospitalized. Note that we assume Hospitalized individuals have zero transmissibility. This can be changed in the code if (for example) you want to represent some infection before hospitalization.
-8. `I -> (1-nonHospDeathRate)*infectiousPeriod*I -> R` Recovery from being Infectious, less COVID-19 deaths among the Infectious (defined to excluded hospitalized COVID-19 patients).
-9. `I -> nonHospDeathRate*infectiousPeriod*I -> M` Deaths among non-hospitalized COVID patients
-10. `H -> (1-hospDeathRate)*hospPeriod*H -> R` Recovery among Hospitalized
-11. `H -> hospDeathRate*H -> M` Deaths among hospitalized COVID patients. Note that we assume the death rate among Isolated = 0, since they would have been hospitalized. This can be changed in the code.
-12. `Is -> isoPeriod*Is -> R` Recovery from COVID among isolated, assumes non-Hospitalized Isolated all recover.
-13. `R -> (1-reSuscepRate)*tempImmPeriod*R -> Im` Most Recovered become permanently Immune after a period of temporary immunity. Some fraction (`reSuscepRate`) become Susceptible again.  
+    - `betaRandomizer` creates a small distribution around `beta_` for each separate trial to increase variability between trials.
+4. `E -> (1-isoRate)*exposedPeriod*E -> I + cumI` Transition from Exposed to Infectious. Includes `isoRate` to represent Exposed individuals being isolated before they become infectious. `cumI` tracts the total number of infected individuals.
+5. `E -> (1-hospRateExp)*isoRate*exposedPeriod*E -> pI + cumI` Transition from Exposed to post-infectious. Includes `hospRate` to represent that some post-infectious individuals are hospitalized during their isolation.
+6. `E -> hospRateExp*isoRate*exposedPeriod*E -> H + cumI` Transition from Exposed to Hospitalized. Note that we assume Hospitalized individuals have zero transmissibility. This can be changed in the code.
+7  `I -> monitoringSuccess*(1-hospRatePost)*initInfectiousPeriod*I -> pI` Transition from infectious to post-infectious (non-hospitalized). This represents individuals identified through symptoms or testing after being infectious for a short period.
+8. `I -> monitoringSuccess*hospRatePost*initInfectiousPeriod*I -> H` Transition from infectious to post-infectious (hospitalized).
+9. `I -> (1-monitoringSuccess)*initInfectiousPeriod*I -> uI` Transition from infectious to unknown infectious. This represents individuals who are never identified as infectious and continue to circulate in the community. It is assumed that none of these individuals are hospitalized or die.
+10. `pI -> (1-nonHospDeathRate)*postInfectiousPeriod*pI -> R` Recovery among post-infectious
+11. `pI -> nonHospDeathRate*postInfectiousPeriod*pI -> M` Mortality among post-infectious (non-hospitalized)
+12. `uI -> (1-nonHospDeathRate)*unknownInfectiousPeriod*uI -> R` Recovery among unknown-infectious
+13. `uI -> nonHospDeathRate*unknownInfectiousPeriod*I -> M` Deaths among non-hospitalized COVID patients (unknown-infectious)
+14. `H -> (1-hospDeathRate)*hospPeriod*H -> R` Recovery among hospitalized
+15. `H -> hospDeathRate*H -> M` Deaths among hospitalized COVID patients
+16. `R -> (1-reSuscepRate)*tempImmPeriod*R -> Im` Most Recovered become permanently Immune after a period of temporary immunity. Some fraction (`reSuscepRate`) become Susceptible again.
+17. `S -> nu*S -> @`, `E -> nu*E -> @`, `I -> nu*I -> @`, `pI -> nu*pI -> @`, `uI -> nu*uI -> @`,`R -> nu*R -> @`, `Im -> nu*Im -> @` Natural death rate, not associated with COVID-19.  
 
 ##### Initial state of compartments
 The initial susceptible population is randomly distributed across the nodes in each trial. Most nodes will have a population approximately equal to `.8*trialPop/N`. The distribution is skewed left, so that some nodes will have a much smaller population, and a decent number of nodes will have a population closer to `trialPop/N`. Is this necessary? Probably not, and it could be replaced with constant `trialPop/N` for each node.
@@ -293,7 +294,15 @@ superEventList <- lapply(1:length(superInfections), superFunction,...)
 ```
 
 ##### Mass entry events
-I developed this model for local projections of a county whose population changes by 25% multiple times a year. Therefore I wanted to be able to model a mass entry event to understand how the disease dynamics may change under a shock to the system like a 25% increase in the susceptible population and the introduction of a number of new infections. As in the super-spreader event the user can define which node groups and how many nodes receive the mass entry. I have not written in a mass exit event or multiple mass entry events, but these can be added to the code by using the super-spreader/mass entry events as templates.
+I developed this model for local projections of a county whose population changes by 25% multiple times a year. Therefore I wanted to be able to model a mass entry event to understand how the disease dynamics may change under a shock to the system like a 25% increase in the susceptible population and the introduction of a number of new infections. As in the super-spreader event the user can define which node groups and how many nodes receive the mass entry. I have not written in a mass exit event or multiple mass entry events, but these can be added to the code by using the super-spreader/mass entry events as templates.  
+
+###### Mass entry parameters
+The code allows for a single mass entry event. The mass entry event can be turned off by setting `massMassEntryNodes=0` in the user-defined parameters.  
+
+`maxMassEntryNodes <- min(length(which(nodeGroupList %in% massEntryNodeGroups)),maxMassEntryNodes)` is user-defined, but also limited by the number of available nodes in the set of node groups chosen to host the mass entry event.  
+
+`mRProp` through `mMProp` are created to distributed the mass entry individuals among the different departments.  `massEntryPropTable` gathers these proportions together into a single table.
+
 ```
 eligibleMassEntryNodes <- nodeTrialMat[which(nodeTrialMat$nodeGroup %in% massEntryNodeGroups & nodeTrialMat$trial==1),"node"]$node
     massEntryNodeList <- sort(sample(eligibleMassEntryNodes,min(length(eligibleMassEntryNodes),maxMassEntryNodes)))
