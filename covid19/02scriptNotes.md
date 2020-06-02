@@ -91,10 +91,12 @@ Finally, some proportion of the recovered can again become susceptible after a p
 9. `cumI` Cumulative infected. Used for plotting, not for disease dynamics
 10. `M` Deceased
 
+The final four compartments don't participate in external transfers, so `xCompt <- 4` is used in the Transfer Event data frame.  
+
 ##### Global and local parameters
 SimInf uses `gdata` and `ldata` for the model transitions. Most of these parameters are user defined, except for `betaI`, `betaU`, and `betaP`.  
 
-`betaI` is calculated as a product of the user-defined `R0I` and `initInfectiousPeriod`. `betaU` and `betaP` are defined similarly.
+`betaI` is calculated as a product of the user-defined `R0I` and `initInfectiousPeriod`. `betaU` and `betaP` are defined similarly. It is recommended to let `R0I+R0U` equal the overall reproduction number (e.g 2.9), but put more of the weight on `R0I` to represent higher infectiousness in the earlier period. Then set `R0P` sufficiently low to represent low transmissibility among isolated individuals.
 
 `firstNode` is the first node in a trial. Used for getting the correct indices in various subroutines.
 `betaRandomizer` is generated from a uniform distribution with mean 1 and a user-defined spread. Used to generate a distribution of transmissibility rates (`beta`) to add variability to the trials in the simulation.
@@ -124,10 +126,14 @@ Transitions beginning or ending with `@` represent entry/exit from/to the empty 
 17. `S -> nu*S -> @`, `E -> nu*E -> @`, `I -> nu*I -> @`, `pI -> nu*pI -> @`, `uI -> nu*uI -> @`,`R -> nu*R -> @`, `Im -> nu*Im -> @` Natural death rate, not associated with COVID-19.  
 
 ##### Initial state of compartments
-The initial susceptible population is randomly distributed across the nodes in each trial. Most nodes will have a population approximately equal to `.8*trialPop/N`. The distribution is skewed left, so that some nodes will have a much smaller population, and a decent number of nodes will have a population closer to `trialPop/N`. Is this necessary? Probably not, and it could be replaced with constant `trialPop/N` for each node.
+The initial susceptible population can be uniformly or randomly distributed across the nodes in each trial. If random, most nodes will have a population approximately equal to `.8*trialPop/N`. The distribution is skewed left, so that some nodes will have a much smaller population, and a decent number of nodes will have a population closer to `trialPop/N`. Is this necessary? Probably not, and it could be replaced with constant `trialPop/N` for each node.
 ```
-S0 <- matrix(floor(maxNodePop/log(maxNodePop)*log(runif(NnumTrials,min=1,max=maxNodePop))),ncol=numTrials)
-S0 <- matrix(apply(S0,2,function(x) x+round(((trialPop-sum(x))/length(x)),0)))
+if(unifPop) {
+  S0 <- round(rep(trialPop/N,NnumTrials),0)
+} else {
+  S0 <- matrix(floor(maxNodePop/log(maxNodePop)*log(runif(NnumTrials,min=1,max=maxNodePop))),ncol=numTrials)
+  S0 <- matrix(apply(S0,2,function(x) x+round(((trialPop-sum(x))/length(x)),0)))
+}
 ```
 The code allows the user to select which node groups contain initial infectious individuals and the maximum number of nodes within those node groups that can have 1 or more initial infectious individuals. This allows the user to model scenarios where the initial infection is highly clustered or widely spread.
 ```
@@ -144,11 +150,12 @@ The default is to initialize all compartments except `S`, `I`, and `cumI` to 0.
 u0 <- data.frame(
   S = S0,
   E = rep(E0Pop,NnumTrials),
-  I = I0, # random number of initial infectious, allows for 0, capped at maxIPop for each trial
+  I = I0,
+  uI = rep(uI0Pop,NnumTrials),
   R = rep(R0Pop,NnumTrials),
   Im = rep(Im0Pop,NnumTrials),
+  pI = rep(pI0Pop,NnumTrials),
   H = rep(H0Pop,NnumTrials),
-  Is = rep(Is0Pop,NnumTrials),
   cumI = I0,
   M=rep(M0Pop,NnumTrials)
 )
@@ -182,26 +189,26 @@ Various parameters, states, and variables depend on whether prevalence is increa
 A whole .md could be (and will be) written about the post-time-step function (pts_function). In brief, the pts_function tells SimInf how to change continous variables (with the option of other effects) after every time step. The pts_function is written in C, which is nothing if not verbose. The function is stored as a single character and passed to the SimInf routine. To save space, I wrote the pts_function in a separate script and call pts_funScript to generate it. The parameters are passed through from user-defined parameters or paramters already described in this .md.
 ```
 pts_fun <- pts_funScript(
-    phiPhysicalDistancing = (gdata$beta/gdata$infectiousPeriod)/RPhysicalDistancing, # Phi reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
-    phiNoAction = (gdata$beta/gdata$infectiousPeriod)/RNoAction,                     # Phi reflecting no actions
-    maxPrev1 = maxPrev1,                                                             # Maximum prevalence before instituting minor intervention
-    maxPrev2 = maxPrev2,                                                             # Maximum prevalence before instituting major intervention
-    phiFactor1 = (gdata$beta/gdata$infectiousPeriod)/RTarget1,                       # Target for the reduction in R0 under minor intervention
-    phiFactor2 = (gdata$beta/gdata$infectiousPeriod)/RTarget2,                       # Target for the reduction in R0 under major intervention
-    cosAmp = cosAmp,                                                                 # Amplitude of seasonal variation in beta
-    startDay = startofSimDay,                                                        # start of simulation
-    kbDay1 = kbDay1,                                                                 # date of first phase
-    kbDay2 = kbDay2,                                                                 # date of second phase
-    kbDay3 = kbDay3,                                                                 # date of third phase
-    enn = N,                                                                         # number of nodes in a trial
-    numComp = length(compartments),                                                  # number of compartments
-    prevType = ifelse(maxPrev1 < 1,1,0),                                             # prevalence type. 0 = count, 1 = proportion
-    upDelay = upDelay,                                                               # Number of days after prevalence passes threshold until minor/major intervention
-    downDelay = downDelay,                                                           # Number of days after prevalence drops below threshold until intervention lifted
-    phiMoveUp = phiMoveUp,                                                           # Rate at which phi increases when interventions are imposed
-    phiMoveDown = phiMoveDown,                                                       # Rate at which phi decreases when interventions are lifted
-    pdDecay = pdDecay,                                                               # Rate at which phi decreases toward 1 in the absence of interventions. Represents gradual relaxation of physical distancing
-    switchOffPolicies = switchOffPolicies,                                           # Logical variable to switch off policies (used for counterfactuals)
+    phiPhysicalDistancing = (R0I+R0U)/RPhysicalDistancing, # Phi reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
+    phiNoAction = (R0I+R0U)/RNoAction,                     # Phi reflecting no actions
+    maxPrev1 = maxPrev1,                                   # Maximum prevalence before instituting minor intervention
+    maxPrev2 = maxPrev2,                                   # Maximum prevalence before instituting major intervention
+    phiFactor1 = (R0I+R0U)/RTarget1,                       # Target for the reduction in R0 under minor intervention
+    phiFactor2 = (R0I+R0U)/RTarget2,                       # Target for the reduction in R0 under major intervention
+    cosAmp = cosAmp,                                       # Amplitude of seasonal variation in beta
+    startDay = startofSimDay,                              # start of simulation
+    kbDay1 = kbDay1,                                       # date of first phase
+    kbDay2 = kbDay2,                                       # date of second phase
+    kbDay3 = kbDay3,                                       # date of third phase
+    enn = N,                                               # number of nodes in a trial
+    numComp = length(compartments),                        # number of compartments
+    prevType = ifelse(maxPrev1 < 1,1,0),                   # prevalence type. 0 = count, 1 = proportion
+    upDelay = upDelay,                                     # Number of days after prevalence passes threshold until minor/major intervention
+    downDelay = downDelay,                                 # Number of days after prevalence drops below threshold until intervention lifted
+    phiMoveUp = phiMoveUp,                                 # Rate at which phi increases when interventions are imposed
+    phiMoveDown = phiMoveDown,                             # Rate at which phi decreases when interventions are lifted
+    pdDecay = pdDecay,                                     # Rate at which phi decreases toward 1 in the absence of interventions. Represents gradual relaxation of physical distancing
+    switchOffPolicies = switchOffPolicies,                 # Logical variable to switch off policies (used for counterfactuals)
     switchOffDay = as.numeric(as.Date(switchOffDay)) - as.numeric(as.Date("2020-01-01")) - startofSimDay # day policies would be switched off (used for counterfactuals)
   )
   ```
@@ -307,8 +314,8 @@ The code allows for a single mass entry event. The mass entry event can be turne
 eligibleMassEntryNodes <- nodeTrialMat[which(nodeTrialMat$nodeGroup %in% massEntryNodeGroups & nodeTrialMat$trial==1),"node"]$node
     massEntryNodeList <- sort(sample(eligibleMassEntryNodes,min(length(eligibleMassEntryNodes),maxMassEntryNodes)))
     
-# exclude isolated, hospitalized, cumulative, and deceased by length(compartments)-4
-massEntryEventList <- lapply(c(1:(length(compartments)-4)),massEntryEventFunction,...)
+# exclude isolated, hospitalized, cumulative, and deceased by length(compartments)-xCompt
+massEntryEventList <- lapply(c(1:(length(compartments)-xCompt)),massEntryEventFunction,...)
 # See script for complete code
 # Add introduced infections to cumulative total
 massEntryCumI <- massEntryEvents[which(massEntryEvents$select == which(compartments=="I")),]
@@ -342,7 +349,7 @@ The output of `run()` is a model object that contains trajectories of the compar
 trajPlotInfections <- simInfPlottingFunction(
   result = result,                           # model result
   table = "U",                               # which table: U or V
-  compts= c("I_Is_H"),                       # compartments that will be plotted
+  compts= c("I_uI_pI_H"),                    # compartments that will be plotted
   groups = NULL,                             # List of groups to aggregate and plot
   sumGroups = TRUE,                          # Automatically sums over all groups
   uNames = names(u0),                        # list of compartments
