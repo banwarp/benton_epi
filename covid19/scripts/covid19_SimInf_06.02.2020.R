@@ -157,7 +157,7 @@ covidWrapper <- function(
   paraSig = 1,                             # Second shape parameter for beta function for timing of parachute events
   parachuteRate = 1/21,                    # Reciprocal of expected waiting time for a parachute event
   parachuteNum = 1,                        # Number of infectious in each parachute event
-  parachuteNodeGroups = NULL,              # Which nodes groups the parachuters can land in
+  parachuteNodeGroups = NULL,              # Which node groups the parachuters can land in
   inGroupTransferRate = 1/7,               # Reciprocal of expected waiting time for in-transfer event
   inGroupTransferNodeNum = .1,             # Average number/proportion of nodes that transfer at each transfer event
   inGroupTransferMinProp = .1,             # Minimum proportion of node population that transfers in each event
@@ -335,8 +335,7 @@ covidWrapper <- function(
     "E -> hospRateExp*isoRate*exposedPeriod*E -> H + cumI",                       # New hospitalizations from exposed
     "I -> monitoringSuccess*(1-hospRatePost)*initInfectiousPeriod*I -> pI",              # Transition from Infectious to Post-Infectious because of symptom monitoring
     "I -> monitoringSuccess*hospRatePost*initInfectiousPeriod*I -> H",
-    "I -> (1-monitoringSuccess)*(1-nonHospDeathRate)*initInfectiousPeriod*I -> uI",              # Recovery among infectious
-    "I -> (1-monitoringSuccess)*nonHospDeathRate*initInfectiousPeriod*I -> M",                  # Deaths among non-hospitalized COVID patients (still infectious)
+    "I -> (1-monitoringSuccess)*initInfectiousPeriod*I -> uI",              # Transition to unknown-infectious if not identified by symptoms/testing
     "pI -> (1-nonHospDeathRate)*postInfectiousPeriod*pI -> R",          # Recovery among post-infectious
     "pI -> nonHospDeathRate*postInfectiousPeriod*pI -> M",              # Deaths among non-hospitalized COVID patients (post-infectious)
     "uI -> (1-nonHospDeathRate)*unknownInfectiousPeriod*uI -> R",       # Recovery among unknown-infectious
@@ -347,8 +346,8 @@ covidWrapper <- function(
     "S -> nu*S -> @",                                                   # Non-Covid deaths among susceptibles
     "E -> nu*E -> @",                                                   # Non-Covid deaths among exposed
     "I -> nu*I -> @",                                                   # Non-Covid deaths among initial infectious
-    "pI -> nu*I -> @",                                                   # Non-Covid deaths among post infectious
-    "uI -> nu*I -> @",                                                   # Non-Covid deaths among unknown infectious
+    "pI -> nu*pI -> @",                                                   # Non-Covid deaths among post infectious
+    "uI -> nu*uI -> @",                                                   # Non-Covid deaths among unknown infectious
     "R -> nu*R -> @",                                                   # Non-Covid deaths among recovered
     "Im -> nu*Im -> @"                                                  # Non-Covid deaths among immune
   )
