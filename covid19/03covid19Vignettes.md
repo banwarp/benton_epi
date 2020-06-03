@@ -231,7 +231,7 @@ r6 <- covidWrapper(simID="NodeGroups",
 
 #### Vignette 6: All simulation trajectories.
 Thanks to [Jae S Choi](https://github.com/jae0/adapt) for the design of these plots. I liked the way they looked so I developed something similar for my code.
-Suppose that instead of plot the point-in-time median and spread of the simulation trajectories, you want to plot all trajectories. You can use the following code:
+Suppose that instead of ploting the point-in-time median and spread of the simulation trajectories, you want to plot all trajectories. You can use the following code:
 ```
 r7 <- covidWrapper(simID="allTraj",
                    allTraj = TRUE,
@@ -240,4 +240,4 @@ r7 <- covidWrapper(simID="allTraj",
 ###### Output: Plot of active daily infections, all trajectories:
 ![trajPlotIallTraj](images/plotallTrajI.png)
 
-Each trajectory is plotted as a thin black line, with some transperncy. The most common trajectories overlap to shade the highest likelihood areas darker. In order to pick out some example trajectories, the user can select how many random trajectories to superimpose to on the plot, and the point-in-time median is again plotted by default.
+Each trajectory is plotted as a thin black line, with some transperncy. The most common trajectories overlap to shade the highest likelihood areas darker. In order to pick out some example trajectories, the user can select how many random trajectories to superimpose to on the plot, and the point-in-time median is again plotted by default. Showing all the trajectories can be a little overwhelming, but it does make it clear that the point-in-time median and gray ribbon in the other plot conceals a lot of variation.
