@@ -4,11 +4,11 @@ This file contains descriptions of the functions and an example.
 #### Please check my work - I think I have the counting correct, but I would appreciate confirmation/corrections.
 
 ### Scripts included in [syndSurveillance.R](sundSurveillance.R)
-- `syndExact(n,k,x,prev)`
-- `syndSuccess(n,k,prev)`
-- `syndDistribution(n,k,prev,nSamp)`
-- `syndSamples(n,k,prev,nSamp,nTrials)`
-- `syndPower(N,n,k,prev,asymp,sensitivity)`
+- `syndExact(n,k,x,prev,sensitivity)`
+- `syndSuccess(n,k,prev,sensitivity)`
+- `syndDistribution(n,k,prev,nSamp,sensitivity)`
+- `syndSamples(n,k,prev,nSamp,nTrials,sensitivity)`
+- `syndPower(N,n,k,prev,sensitivity,sensitivity)`
 
 ### syndExact
 This is the base function in syndSurveillance. All other functions use it in some way.  
@@ -47,7 +47,8 @@ However, there are degenerate and boundary cases that must be handled. For examp
 syndExact <- function(n,    # population
                           k,    # sample size
                           x,    # number of successes
-                          prev  # prevalence as decimal or count
+                          prev,  # prevalence as decimal or count
+                          sensitivity = 1 # sensitivity of the test/likelihood of infection from an encounter
                           ) {
   if(prev < 1){prev <- round(n*prev,0)}  # converting decimal prevalence to count
   
@@ -67,10 +68,10 @@ syndExact <- function(n,    # population
   }
   # Handling boundary cases
   else if(k == n){
-    if(x == prev) {return(1)}
+    if(x == prev) {return(sensitivity)}
     else{return(0)}
   } else if(prev == n) {
-    if(k == x) {return(1)}
+    if(k == x) {return(sensitivity)}
     else{return(0)}
   } else if(k < x | prev < x) {
     return(0)
@@ -87,22 +88,24 @@ Furthermore, even the interior cases could result in the `log(0)` appearing in t
   else if(x == 0) {
     toplog <- sum(log(c((n-prev-k+1):(n-prev))))-sum(log(c(1:k)))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog))
+    return(exp(toplog-botlog)*sensitivity^x)
   } else if(k == x) {
     toplog <- sum(log(c((prev-x+1):prev)))-
               sum(log(c(1:x)))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog))
+    return(exp(toplog-botlog)*sensitivity^x)
   } else {
     toplog <- sum(log(c((prev-x+1):prev)))-
               sum(log(c(1:x)))+
               sum(log(c((n-prev-(k-x)+1):(n-prev))))-
               sum(log(c(1:(k-x))))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog))
+    return(exp(toplog-botlog)*sensitivity^x)
   }
 }
 ```
+The `sensitivity` parameter allows syndExact to adjust to probability for the sensitivity of the test (if using syndExact for testing), or the likelihood of infection (if using syndExact for transmission probabilities).
+
 
 Here are two examples of comparing the built in `choose(m,n)` and `syndExact`:
 ```
@@ -124,32 +127,34 @@ syndExact(n,k,x,prev)
 ```
 
 ### syndSuccess
-The main goal of syndromic surveillance in a setting like the COVID-19 pandemic is to determine if the disease exists in the sample at all. It is not as important exactly how many cases, just if there is a positive number. `syndSuccess(n,k,prev)` computes the probability of observing at least 1 case given a population `p`, sample size `k`, and prevalence `prev`. It works by calling `syndExact` for all `x` from `1` to `prev` (or `prev*n` if `prev` is decimal).
+The main goal of syndromic surveillance in a setting like the COVID-19 pandemic is to determine if the disease exists in the sample at all. It is not as important exactly how many cases, just if there is a positive number. `syndSuccess(n,k,prev)` computes the probability of observing at least 1 case given a population `p`, sample size `k`, and prevalence `prev`. It works by calling `syndExact` for all `x` from `1` to `prev` (or `prev*n` if `prev` is decimal). `syndSuccess` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
 ```
-syndSuccess <- function(n,   # population
-                        k,   # size of sample
-                        prev # prevalence
-                       ){
+syndSuccess <- function(n, # population
+                        k, # sample size
+                        prev, # prevalence in population
+                        sensitivity=1 # sensitivity of the test/likelihood of infection
+                        ){
   if(prev < 1){prev <- round(n*prev,0)}  # converting decimal prevalence to count
   
   p <- 0  # initializing probability
   # calls syndExact for each case from 1 to total prevalence
   for(x in 1:prev){
-    p <- p + syndExact(n,k,x,prev)
+    p <- p + syndExact(n,k,x,prev,sensitivity)
   }
   return(p)
 }
 ```
 
 ### syndDistribution and syndSamples
-Although syndromic surveillance is not as concerned with a distribution or generating samples, other though experiments do rely on these functions. For example, if you meet 50 random people out of a population of 1,000 every day for 30 days, and the population prevalence is 2 cases, on how many days would you expect to have at least one exposure? This is answered with `syndDistribution(1000,50,2,30)`, which returns the expected value (mean) and the standard deviation. `syndDistribution` calls `syndSuccess` and then uses the generated probability in a binomial distribution with size `nSamp`.
+Although syndromic surveillance is not as concerned with a distribution or generating samples, other though experiments do rely on these functions. For example, if you meet 50 random people out of a population of 1,000 every day for 30 days, and the population prevalence is 2 cases, on how many days would you expect to have at least one exposure? This is answered with `syndDistribution(1000,50,2,30)`, which returns the expected value (mean) and the standard deviation. `syndDistribution` calls `syndSuccess` and then uses the generated probability in a binomial distribution with size `nSamp`. `syndDistribution` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
 ```
 syndDistribution <- function(n,    # population
                                  k,    # size of sample
                                  prev, # prevalence
-                                 nSamp # number of samples
+                                 nSamp, # number of samples
+                                 sensitivity=1 # sensitivity of the test/likelihood of infection
                                  ){
-  p <- syndSuccess(n,k,prev)
+  p <- syndSuccess(n,k,prev,sensitivity)
   sd <- sqrt(nSamp*p*(1-p))
   return(list(mean = nSamp*p,stdev = sd))
 }
@@ -161,24 +166,26 @@ syndSamples <- function(n,      # population
                             k,      # subpopulation size
                             prev,   # prevalence as count
                             nSamp,  # number of samples in trial
-                            nTrials # number of trials
+                            nTrials, # number of trials
+                            sensitivity=1 # sensitivity of the test/likelihood of infection
                             ) {
-  p <- syndSuccess(n,k,prev)
+  p <- syndSuccess(n,k,prev,sensitivity)
   return(rbinom(nTrials,nSamp,p))
 }
 ```
 
 ### syndPower
 Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute the statistical Power of syndromic surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct syndromic surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup under the assumption that the disease is present in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be observed given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
-Furthermore, if we assume that any symptomatic person will be tested immediately, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
-Also, detection of disease depends on the sensitivity of the test, so the Power is multiplied by `sensitivity`:
+Furthermore, detection of disease depends on the sensitivity of the test, so `sensitivity` is passed to `syndExact` and `syndSuccess`:
+Also, if we assume that any symptomatic person will be tested immediately, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
+
 ```
 syndPower <- function(N,              # population of community
                           n,              # population of subgroup
                           k,              # size of sample in subgroup that will be tested
                           prev,           # community prevalence as decimal or count
-                          asymp = 1,      # proportion of cases that are asymptomatic
-                          sensitivity = 1 # sensitivity of test
+                          sensitivity = 1, # sensitivity of test
+                          asymp = 1      # proportion of cases that are asymptomatic
                           ) {
   if(prev < 1) {prev <- round(N*prev,0)}           # converts proportion to count
   prev <- ceiling(prev*asymp)                      # surveillance is only for asymptomatic cases
@@ -187,10 +194,10 @@ syndPower <- function(N,              # population of community
   # for each possible positive number of cases x, compute P(x|prevalence in community)*P(no detection|x cases in subgroup)
   # sum these probabilities to get pwrInverse
   for(x in 1:min(n,prev)){
-    pwrInverse <- pwrInverse + syndExact(N,n,x,prev)*(1-syndSuccess(n,k,x))
+    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity)*(1-syndSuccess(n,k,x,sensitivity))
   }
-  # power is probability of detecting given presence of disease = (1-P(missing | presence))*(sensitivity of the test)
-  pwr <- (1-pwrInverse)*sensitivity                
+  # power is probability of detecting given presence of disease = (1-P(missing | presence))
+  pwr <- (1-pwrInverse)                
   return(pwr)
 }
 ```
@@ -245,4 +252,4 @@ combn(5,3)
 There are still `choose(5,3)` ways to select our sample for testing, and now individuals 1 and 2 are cases.  Now only 1 of the 10 combinations excludes both individuals 1 and 2.
 
 ##### Computing Power
-The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. If we assume the sensitivity of the test is 100%, the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2,asymp=1,sensitivity=1)` = 0.75
+The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. If we assume the sensitivity of the test is 100%, the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2,sensitivity=1,asymp=1)` = 0.75
