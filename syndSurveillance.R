@@ -104,16 +104,20 @@ syndSamples <- function(n,      # population
 }
 
 
-# Computes the statistical Power of syndromic surveillance in a subgroup within a community.
+# Computes something analogous to statistical Power of syndromic surveillance in a subgroup within a community.
 # Suppose you know the prevalence in the community and you want to conduct syndromic surveillance
 # in a subgroup like a school or long term care facility. What is the likelihood that you will detect
-# the disease in the subgroup under the assumption that the disease is present in the subgroup?
+# the disease in the subgroup given the prevalence in the community? Or more importantly, what is the likelihood
+# that you will not miss the presence of the disease?
 # This depends on the likelihood that the disease is in the subgroup, specifically how many cases
 # are in the subgroup, which is determined by syndExact. It also depends on the likelihood that
 # the one or more case will be observed given a certain number of cases within the subgroup. This is
 # determined by syndSuccess for each possible number of cases in the subgroup.
 # The purpose of this function is to give decision makers information about how many people need
 # to be tested for adequate syndromic surveillance given a certain community prevalence.
+# If k=0 people are tested, things get a little funky, since there is still the probability that
+# no cases are in the subgroup n. So syndPower(N,n,0,prev) = P(0 cases in subgroup n | prevalence in N)
+# instead of the Power of detection.
 syndPower <- function(N,              # population of community
                           n,              # population of subgroup
                           k,              # size of sample in subgroup that will be tested
