@@ -12,7 +12,7 @@ This file contains descriptions of the functions and an example.
 
 ### syndExact
 This is the base function in syndSurveillance. All other functions use it in some way.  
-`syndExact(n,k,x,prev)` computes the probability of observing `x` cases of disease, given a population `n`, a sample size `k`, and a population prevalence (count, not proportion) `prev`. `syndExact` uses a combinatorial counting method to calculate exact probabilities. However, because populations and sample sizes can be very large, using the built-in `choose(n,k)` function can lead to `Inf`. Therefore `syndExact` uses a "log and sum" approach to the combinatorial counting instead of the factorial approach normally used in combinatorics.  
+`syndExact(n,k,x,prev,sensitivity)` computes the probability of observing `x` cases of disease, given a population `n`, a sample size `k`, and a population prevalence (count, not proportion) `prev`. `syndExact` uses a combinatorial counting method to calculate exact probabilities. However, because populations and sample sizes can be very large, using the built-in `choose(n,k)` function can lead to `Inf`. Therefore `syndExact` uses a "log and sum" approach to the combinatorial counting instead of the factorial approach normally used in combinatorics.  Furthermore, when `syndExact` is used for testing or for the probability of infection, `sensitivity` can be used to represent the sensitivity of the test or the likelihood of infection based on contact.
 
 ##### Combinatorial method used in `syndExact`
 Given a population `n` and a sample size `k`, there are `choose(n,k)` possible samples. Of these samples, we want just those that include exactly `x` cases of disease. This number depends on the prevalence `prev` in the population. Specifically:  
