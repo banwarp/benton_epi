@@ -27,20 +27,20 @@ p <- choose(prev,x) * choose(n-prev,k-x) / choose(n,k)
 ```
 
 This the basic formula. However, with large `n`, the factorials involved tend toward infinity. To get around this, I take the logs of the combinatorial formula and get:
-* *log(choose(m,n)) = sum_\[from 1 to m \] log(i) - sum_\[from 1 to n\] Log(j) - sum_\[from n+1 to m\] Log(k)* *  
+log(choose(m,n)) = sum_\[i from 1 to m \] log(i) - sum_\[j from 1 to n\] Log(j) - sum_\[k from 1 to (m-n)\] Log(k)
 
 which simplifies to:
 
-* *sum_\[from n+1 to m\] Log(i) - sum_\[from 1 to n\] Log(j)* *  
+sum_\[i from n+1 to m\] Log(i) - sum_\[j from 1 to n\] Log(j)  
 
-Therefore, in the R code the full equation is:
+Therefore, in the R code the full equation, along with sensitivity, is:
 ```
 p <- exp(sum(log(c((prev-x+1):prev)))-
          sum(log(c(1:x)))+
          sum(log(c((n-prev-(k-x)+1):(n-prev))))-
          sum(log(c(1:(k-x))))-
          (sum(log(c(n-k+1):n))-
-         sum(log(c(1:k)))))
+         sum(log(c(1:k))))) * sensitivity^x
 ```
 However, there are degenerate and boundary cases that must be handled. For example, `k > n` is a degenerate case and `k = 0` is a boundary case. Therefore the first half of the function is just for handling those cases:
 ```
@@ -68,10 +68,10 @@ syndExact <- function(n,    # population
   }
   # Handling boundary cases
   else if(k == n){
-    if(x == prev) {return(sensitivity)}
+    if(x == prev) {return(sensitivity^x)}
     else{return(0)}
   } else if(prev == n) {
-    if(k == x) {return(sensitivity)}
+    if(k == x) {return(sensitivity^x)}
     else{return(0)}
   } else if(k < x | prev < x) {
     return(0)
@@ -115,7 +115,7 @@ k <- 10
 x <- 2
 prev <- 4
 choose(prev,x)*choose(n-prev,k-x)/choose(n,k)
-syndExact(n,k,x,prev)
+syndExact(n,k,x,prev,sensitivity = 1)
 
 # Example 2:
 n <- 400000
@@ -123,7 +123,7 @@ k <- 1000
 x <- 10
 prev <- 800
 choose(prev,x)*choose(n-prev,k-x)/choose(n,k)
-syndExact(n,k,x,prev)
+syndExact(n,k,x,prev,sensitivity = 1)
 ```
 
 ### syndSuccess
@@ -146,7 +146,7 @@ syndSuccess <- function(n, # population
 ```
 
 ### syndDistribution and syndSamples
-Although syndromic surveillance is not as concerned with a distribution or generating samples, other though experiments do rely on these functions. For example, if you meet 50 random people out of a population of 1,000 every day for 30 days, and the population prevalence is 2 cases, on how many days would you expect to have at least one exposure? This is answered with `syndDistribution(1000,50,2,30)`, which returns the expected value (mean) and the standard deviation. `syndDistribution` calls `syndSuccess` and then uses the generated probability in a binomial distribution with size `nSamp`. `syndDistribution` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
+Although syndromic surveillance is not as concerned with a distribution or generating samples, other thought experiments do rely on these functions. For example, if you meet 50 random people out of a population of 1,000 every day for 30 days, and the population prevalence is 2 cases, on how many days would you expect to have at least one exposure? This is answered with `syndDistribution(1000,50,2,30)`, which returns the expected value (mean) and the standard deviation. `syndDistribution` calls `syndSuccess` and then uses the generated probability in a binomial distribution with size `nSamp`. `syndDistribution` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
 ```
 syndDistribution <- function(n,    # population
                                  k,    # size of sample
@@ -175,7 +175,7 @@ syndSamples <- function(n,      # population
 ```
 
 ### syndPower
-Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute the statistical Power of syndromic surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct syndromic surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup under the assumption that the disease is present in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be observed given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
+Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute an analogue of statistical Power for syndromic surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct syndromic surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be observed given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
 Furthermore, detection of disease depends on the sensitivity of the test, so `sensitivity` is passed to `syndExact` and `syndSuccess`:
 Also, if we assume that any symptomatic person will be tested immediately, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
 
