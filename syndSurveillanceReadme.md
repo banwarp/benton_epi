@@ -120,7 +120,7 @@ syndExact <- function(n,    # population
   }
 ```
 
-Furthermore, even the interior cases could result in the `log(0)` appearing in the function. `log(0)` appears when the factorial formula for `choose(y,y))` is log-linearized. However, since `choose(y,y) = 1` for any value `y`, `log(choose(y,y))= 0` and therefore the cases that involve `choose(y,y)` are broken out and the corresponding combination is simply removed from the equation:
+Furthermore, even the interior cases could result in the `log(0)` appearing in the function. `log(0)` appears when the factorial formula for `choose(y,y)` is log-linearized. However, since `choose(y,y) = 1` for any value `y`, `log(choose(y,y))= 0` and therefore the cases that generate a `choose(y,y)` term are broken out and the corresponding combination is simply removed from the equation:
 ```
 else if(x == 0) {
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
