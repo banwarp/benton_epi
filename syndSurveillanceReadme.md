@@ -194,18 +194,18 @@ syndExact(n,k,x,prev,sensitivity = 1)
 ```
 
 ### syndSuccess
-The main goal of syndromic surveillance in a setting like the COVID-19 pandemic is to determine if the disease exists in the sample at all. It may not be as important exactly how many cases, just if there is a positive number. `syndSuccess(n,k,prev)` computes the probability of detecting at least 1 case given a population `p`, sample size `k`, and prevalence `prev`. It works by calling `syndExact` for all `x` from `1` to `prev` (or `prev*n` if `prev` is decimal). `syndSuccess` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
+The main goal of syndromic surveillance in a setting like the COVID-19 pandemic is to determine if the disease exists in the sample at all. It may not be as important exactly how many cases, just if there is a positive number. `syndSuccess(n,k,prev)` computes the probability of detecting at least 1 case given a population `n`, sample size `k`, and prevalence `prev`. It works by calling `syndExact` for all `x` from `1` to `min(k,prev)` (or `prev*n` if `prev` is decimal). `syndSuccess` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
 ```
 syndSuccess <- function(n, # population
                         k, # sample size
                         prev, # prevalence in population
                         sensitivity=1 # sensitivity of the test/likelihood of infection
-                        ){
+){
   if(prev < 1){prev <- round(n*prev,0)}  # converting decimal prevalence to count
   
   p <- 0  # initializing probability
-  # calls syndExact for each case from 1 to total prevalence
-  for(x in 1:prev){
+  # calls syndExact for each case from 1 to sample size or total prevalence
+  for(x in 1:min(k,prev)){
     p <- p + syndExact(n,k,x,prev,sensitivity)
   }
   return(p)
@@ -242,7 +242,7 @@ syndSamples <- function(n,      # population
 ```
 
 ### syndPower
-Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute an analogue of statistical Power for syndromic surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct syndromic surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be observed given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
+Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute an analogue of statistical Power for syndromic surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct syndromic surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be detected given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
 Furthermore, detection of disease depends on the sensitivity of the test, so `sensitivity` is passed to `syndExact` and `syndSuccess`:
 Also, if we assume that any symptomatic person will be tested immediately, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
 
@@ -261,7 +261,7 @@ syndPower <- function(N,              # population of community
   # for each possible positive number of cases x, compute P(x|prevalence in community)*P(no detection|x cases in subgroup)
   # sum these probabilities to get pwrInverse
   for(x in 1:min(n,prev)){
-    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity)*(1-syndSuccess(n,k,x,sensitivity))
+    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity=1)*(1-syndSuccess(n,k,x,sensitivity))
   }
   # power is probability of detecting given presence of disease = (1-P(missing | presence))
   pwr <- (1-pwrInverse)                
