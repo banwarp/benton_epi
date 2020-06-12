@@ -128,7 +128,19 @@ syndSamples <- function(n,      # population
   p <- syndSuccess(n,k,prev,sensitivity)
   return(rbinom(nTrials,nSamp,p))
 }
-
+    
+# Based on estimated community prevalence, what is the expected number of cases
+# that will be identified when testing a sample of size k
+syndExpected <- function(n,k,prev,sensitivity) {
+  if(prev < 1) {prev <- round(n*prev,0)}           # converts proportion to count
+  
+  expected <- 0 # initialize expected value
+  for(x in 1:min(k,prev)) {
+    expected <- expected +
+      x * syndExact(n,k,x,prev,sensitivity)
+  }
+  return(expected)
+}
 
 # Computes something analogous to statistical Power of syndromic surveillance in a subgroup within a community.
 # Suppose you know the prevalence in the community and you want to conduct syndromic surveillance
