@@ -5,11 +5,11 @@
 
 # The exact probability of observing/encountering x cases given a population = n, sample size k, and count or decimal prevalence prev
 syndExact <- function(n,    # population
-                          k,    # sample size
-                          x,    # number of successes
-                          prev,  # prevalence as decimal or count
-                          sensitivity = 1 # sensitivity of the test/likelihood of infection from an encounter
-                          ) {
+                      k,    # sample size
+                      x,    # number of successes
+                      prev,  # prevalence as decimal or count
+                      sensitivity = 1 # sensitivity of the test/likelihood of infection from an encounter
+) {
   if(prev < 1){prev <- round(n*prev,0)}  # converting decimal prevalence to count
   
   # Handling degenerate cases
@@ -30,33 +30,61 @@ syndExact <- function(n,    # population
   else if(k == n){
     if(x == prev) {return(sensitivity^x)}
     else{return(0)}
-  } else if(prev == n) {
-    if(k == x) {return(sensitivity^x)}
-    else{return(0)}
-  } else if(k < x | prev < x) {
+  } 
+  else if(k < x | prev < x) {
     return(0)
   } else if(n*k*prev == 0) {
     return(1)
-  } else if(k-x > n-prev) {
-    return(0)
   }
   # need to break up interior cases because there may be factorial(0) in the formula, which returns an error with log
   else if(x == 0) {
-    toplog <- sum(log(c((n-prev-k+1):(n-prev))))-sum(log(c(1:k)))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog)*sensitivity^x)
+    p <- 0
+    # handle j = 0
+    if(k <= n - prev) {
+      toplog <- sum(log((n-prev-k+1):(n-prev)))-
+                sum(log(1:k))
+      p <- p + exp(toplog-botlog)
+    }
+    for(j in 1:min(k,prev)){
+      if(k-j == n-prev | k-j == 0) {
+        toplog <- sum(log((prev-j+1):prev))-
+                  sum(log(1:j))+
+                  log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      } else if(k-j < n-prev) {
+        toplog <- sum(log((prev-j+1):prev))-
+             sum(log(1:j))+
+             sum(log((n-prev-(k-j)+1):(n-prev)))-
+             sum(log(1:(k-j)))+
+             log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      }
+    }
+    return(p)
   } else if(k == x) {
-    toplog <- sum(log(c((prev-x+1):prev)))-
-              sum(log(c(1:x)))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog)*sensitivity^x)
+    toplog <- sum(log(c((prev-x+1):prev)))-sum(log(c(1:x)))+log(sensitivity^x)
+    return(exp(toplog-botlog))
   } else {
-    toplog <- sum(log(c((prev-x+1):prev)))-
-              sum(log(c(1:x)))+
-              sum(log(c((n-prev-(k-x)+1):(n-prev))))-
-              sum(log(c(1:(k-x))))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog)*sensitivity^x)
+    p <- 0
+    for(j in x:min(k,prev)) {
+      if(k-j == n-prev | k-j == 0) {
+        toplog <- sum(log((prev-j+1):prev))-
+                  sum(log(1:j))+
+                  log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      } else if(k-j < n-prev) {
+        toplog <- sum(log((prev-j+1):prev))-
+                  sum(log(1:j))+
+                  sum(log((n-prev-(k-j)+1):(n-prev)))-
+                  sum(log(1:(k-j)))+
+                  log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      }
+    }
+    return(p)
   }
 }
 
@@ -65,12 +93,12 @@ syndSuccess <- function(n, # population
                         k, # sample size
                         prev, # prevalence in population
                         sensitivity=1 # sensitivity of the test/likelihood of infection
-                        ){
+){
   if(prev < 1){prev <- round(n*prev,0)}  # converting decimal prevalence to count
   
   p <- 0  # initializing probability
-  # calls syndExact for each case from 1 to total prevalence
-  for(x in 1:prev){
+  # calls syndExact for each case from 1 to sample size or total prevalence
+  for(x in 1:min(k,prev)){
     p <- p + syndExact(n,k,x,prev,sensitivity)
   }
   return(p)
@@ -81,11 +109,11 @@ syndSuccess <- function(n, # population
 # with population = n, sample size = k, and prevalence = prev
 # The distribution is binomial with parameters nSamp and probability calculated by syndSuccess
 syndDistribution <- function(n,    # population
-                                 k,    # size of sample
-                                 prev, # prevalence
-                                 nSamp, # number of samples
-                                 sensitivity=1 # sensitivity of the test/likelihood of infection
-                                 ){
+                             k,    # size of sample
+                             prev, # prevalence
+                             nSamp, # number of samples
+                             sensitivity=1 # sensitivity of the test/likelihood of infection
+){
   p <- syndSuccess(n,k,prev,sensitivity)
   sd <- sqrt(nSamp*p*(1-p))
   return(list(mean = nSamp*p,stdev = sd))
@@ -93,12 +121,12 @@ syndDistribution <- function(n,    # population
 
 # Generates random samples drawn from syndDistribution.
 syndSamples <- function(n,      # population
-                            k,      # subpopulation size
-                            prev,   # prevalence as count
-                            nSamp,  # number of samples in trial
-                            nTrials, # number of trials
-                            sensitivity=1 # sensitivity of the test/likelihood of infection
-                            ) {
+                        k,      # subpopulation size
+                        prev,   # prevalence as count
+                        nSamp,  # number of samples in trial
+                        nTrials, # number of trials
+                        sensitivity=1 # sensitivity of the test/likelihood of infection
+) {
   p <- syndSuccess(n,k,prev,sensitivity)
   return(rbinom(nTrials,nSamp,p))
 }
@@ -119,12 +147,12 @@ syndSamples <- function(n,      # population
 # no cases are in the subgroup n. So syndPower(N,n,0,prev) = P(0 cases in subgroup n | prevalence in N)
 # instead of the Power of detection.
 syndPower <- function(N,              # population of community
-                          n,              # population of subgroup
-                          k,              # size of sample in subgroup that will be tested
-                          prev,           # community prevalence as decimal or count
-                          sensitivity = 1, # sensitivity of test
-                          asymp = 1      # proportion of cases that are asymptomatic
-                          ) {
+                      n,              # population of subgroup
+                      k,              # size of sample in subgroup that will be tested
+                      prev,           # community prevalence as decimal or count
+                      sensitivity = 1, # sensitivity of test
+                      asymp = 1      # proportion of cases that are asymptomatic
+) {
   if(prev < 1) {prev <- round(N*prev,0)}           # converts proportion to count
   prev <- ceiling(prev*asymp)                      # surveillance is only for asymptomatic cases
   pwrInverse <- 0                                  # initializing pwrInverse = P(no detection | presence of disease)
@@ -132,7 +160,7 @@ syndPower <- function(N,              # population of community
   # for each possible positive number of cases x, compute P(x|prevalence in community)*P(no detection|x cases in subgroup)
   # sum these probabilities to get pwrInverse
   for(x in 1:min(n,prev)){
-    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity)*(1-syndSuccess(n,k,x,sensitivity))
+    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity = 1)*(1-syndSuccess(n,k,x,sensitivity))
   }
   # power is probability of detecting given presence of disease = (1-P(missing | presence))
   pwr <- (1-pwrInverse)                
