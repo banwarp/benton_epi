@@ -4,7 +4,7 @@
 # This is a bit slower for large n and k, but it can admit much larger n and k then choose(n,k).
 
 # The exact probability of detecting or being exposed to x cases given
-# a population = n, sample size k, and count or decimal prevalence prev, with test sensitivity/transmissibility = sensitivity.
+# a population = n, sample size k, and count or decimal prevalence prev, with test sensitivity/transmissibilty = sensitivity.
 syndExact <- function(n,    # population
                       k,    # sample size
                       x,    # number of successes
@@ -45,21 +45,21 @@ syndExact <- function(n,    # population
     # handle j = 0
     if(k <= n - prev) {
       toplog <- sum(log((n-prev-k+1):(n-prev)))-
-                sum(log(1:k))
+        sum(log(1:k))
       p <- p + exp(toplog-botlog)
     }
     for(j in 1:min(k,prev)){
       if(k-j == n-prev | k-j == 0) {
         toplog <- sum(log((prev-j+1):prev))-
-                  sum(log(1:j))+
-                  log(dbinom(x,j,sensitivity))
+          sum(log(1:j))+
+          log(dbinom(x,j,sensitivity))
         p <- p + exp(toplog-botlog)
       } else if(k-j < n-prev) {
         toplog <- sum(log((prev-j+1):prev))-
-             sum(log(1:j))+
-             sum(log((n-prev-(k-j)+1):(n-prev)))-
-             sum(log(1:(k-j)))+
-             log(dbinom(x,j,sensitivity))
+          sum(log(1:j))+
+          sum(log((n-prev-(k-j)+1):(n-prev)))-
+          sum(log(1:(k-j)))+
+          log(dbinom(x,j,sensitivity))
         p <- p + exp(toplog-botlog)
       }
     }
@@ -74,15 +74,15 @@ syndExact <- function(n,    # population
     for(j in x:min(k,prev)) {
       if(k-j == n-prev | k-j == 0) {
         toplog <- sum(log((prev-j+1):prev))-
-                  sum(log(1:j))+
-                  log(dbinom(x,j,sensitivity))
+          sum(log(1:j))+
+          log(dbinom(x,j,sensitivity))
         p <- p + exp(toplog-botlog)
       } else if(k-j < n-prev) {
         toplog <- sum(log((prev-j+1):prev))-
-                  sum(log(1:j))+
-                  sum(log((n-prev-(k-j)+1):(n-prev)))-
-                  sum(log(1:(k-j)))+
-                  log(dbinom(x,j,sensitivity))
+          sum(log(1:j))+
+          sum(log((n-prev-(k-j)+1):(n-prev)))-
+          sum(log(1:(k-j)))+
+          log(dbinom(x,j,sensitivity))
         p <- p + exp(toplog-botlog)
       }
     }
