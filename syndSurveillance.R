@@ -3,7 +3,7 @@
 # Note: This script does not use the built-in choose(n,k) but instead computes n choose k from the sum/difference of logs.
 # This is a bit slower for large n and k, but it can admit much larger n and k then choose(n,k).
 
-# The exact probability of observing/encountering x cases given a population = n, sample size k, and count or decimal prevalence prev
+# The exact probability of detecting or being exposed to x cases given a population = n, sample size k, and count or decimal prevalence prev
 syndExact <- function(n,    # population
                       k,    # sample size
                       x,    # number of successes
