@@ -205,6 +205,9 @@ syndSuccess <- function(n, # population
   }
   return(p)
 }
+
+syndSuccess(1000,500,.005,.95)
+[1] 0.9604426
 ```
 
 ### syndDistribution and syndSamples
@@ -220,6 +223,13 @@ syndDistribution <- function(n,    # population
   sd <- sqrt(nSamp*p*(1-p))
   return(list(mean = nSamp*p,stdev = sd))
 }
+
+syndDistribution(10000,500,.005,50,.95)
+$mean
+[1] 45.63788
+
+$stdev
+[1] 1.995384
 ```
 `syndSamples` takes this one step further and samples `syndDistribution` to generate a random variable from the distribution.
 ```
@@ -234,6 +244,29 @@ syndSamples <- function(n,      # population
   p <- syndSuccess(n,k,prev,sensitivity)
   return(rbinom(nTrials,nSamp,p))
 }
+
+syndSamples(10000,500,.005,50,10,.95)
+ [1] 47 44 47 41 47 44 47 45 48 45
+```
+
+### syndExpected
+When considering a surveillance testing regime, one goal is to determine the prevalence in the community, but the other is to actually find cases. It can be helpful to have an estimate of how many cases surveillance can be expected to find based on an estimated community prevalence. This is what `syndExpected` does.
+```
+# Based on estimated community prevalence, what is the expected number of cases
+# that will be identified when testing a sample of size k
+syndExpected <- function(n,k,prev,sensitivity) {
+  if(prev < 1) {prev <- round(n*prev,0)}           # converts proportion to count
+  
+  expected <- 0 # initialize expected value
+  for(x in 1:min(k,prev)) {
+    expected <- expected +
+      x * syndExact(n,k,x,prev,sensitivity)
+  }
+  return(expected)
+}
+
+syndExpected(10000,500,.005,.95)
+[1] 2.375
 ```
 
 ### syndPower
