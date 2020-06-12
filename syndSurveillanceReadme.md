@@ -27,10 +27,6 @@ and the probability of exactly `x` cases is given by:
 ```
 p <- choose(prev,x) * choose(n-prev,k-x) / choose(n,k)
 ```
-Including the sensitivity of the test/probability of transmission yields:
-```
-p <- choose(prev,x)*sensitivity^x * choose(n-prev,k-x) / choose(n,k)
-```
 This the basic formula. However, with large `n`, the factorials involved tend toward infinity. To get around this, I take the logs of the combinatorial formula and get:
 log(choose(m,n)) = sum_\[i from 1 to m \] log(i) - sum_\[j from 1 to n\] Log(j) - sum_\[k from 1 to (m-n)\] Log(k)
 
