@@ -34,7 +34,8 @@ syndExact <- function(n,    # population
   } 
   else if(k < x | prev < x) {
     return(0)
-  } else if(n*k*prev == 0) {
+  }
+  else if(n*k*prev == 0) {
     return(1)
   }
   # need to break up interior cases because there may be factorial(0) in the formula, which returns an error with log
