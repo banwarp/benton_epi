@@ -12,9 +12,11 @@ This file contains descriptions of the functions and an example.
 
 ### syndExact
 This is the base function in syndSurveillance. All other functions use it in some way.  
-`syndExact(n,k,x,prev,sensitivity)` computes the probability of observing `x` cases of disease, given a population `n`, a sample size `k`, and a population prevalence (count, not proportion) `prev`. `syndExact` uses a combinatorial counting method to calculate exact probabilities. However, because populations and sample sizes can be very large, using the built-in `choose(n,k)` function can lead to `Inf`. Therefore `syndExact` uses a "log and sum" approach to the combinatorial counting instead of the factorial approach normally used in combinatorics.  Furthermore, when `syndExact` is used for testing or for the probability of infection, `sensitivity` can be used to represent the sensitivity of the test or the likelihood of infection based on contact.
+`syndExact(n,k,x,prev,sensitivity)` computes the probability of detecting `x` cases of disease, given a population `n`, a sample size `k`, and a population prevalence (count, not proportion) `prev`. `syndExact` uses a combinatorial counting method to calculate exact probabilities. However, because populations and sample sizes can be very large, using the built-in `choose(m,n)` function can lead to `Inf`. Therefore `syndExact` uses a "log and sum" approach to the combinatorial counting instead of the factorial approach normally used in combinatorics.  Furthermore, when `syndExact` is used for testing or for the probability of infection, `sensitivity` can be used to represent the sensitivity of the test or the likelihood of infection based on contact.
 
 ##### Combinatorial method used in `syndExact`
+First we treat the case where `sensitivity = 1`.  
+
 Given a population `n` and a sample size `k`, there are `choose(n,k)` possible samples. Of these samples, we want just those that include exactly `x` cases of disease. This number depends on the prevalence `prev` in the population. Specifically:  
 
 There are `choose(prev,x)` ways to select exactly `x` cases from the total cases in the population. These fill out the first `x` spots in the sample of size `k`. Then there are `choose(n-prev,k-x)` ways to select the remaining `k-x` spots from among the non-infected in the population. Therefore, the number of samples of size `k` with exactly `x` cases is given by:
@@ -29,8 +31,6 @@ Including the sensitivity of the test/probability of transmission yields:
 ```
 p <- choose(prev,x)*sensitivity^x * choose(n-prev,k-x) / choose(n,k)
 ```
-`sensitivity^x` can be factored out, which is useful when the log-linearization is applied.  
-
 This the basic formula. However, with large `n`, the factorials involved tend toward infinity. To get around this, I take the logs of the combinatorial formula and get:
 log(choose(m,n)) = sum_\[i from 1 to m \] log(i) - sum_\[j from 1 to n\] Log(j) - sum_\[k from 1 to (m-n)\] Log(k)
 
@@ -38,23 +38,62 @@ which simplifies to:
 
 sum_\[i from n+1 to m\] Log(i) - sum_\[j from 1 to n\] Log(j)  
 
-Therefore, in the R code the full equation, along with sensitivity, is:
+Therefore, in the R code the full equation, if `sensitivity=1`, is:
 ```
 p <- exp(sum(log(c((prev-x+1):prev)))-
          sum(log(c(1:x)))+
          sum(log(c((n-prev-(k-x)+1):(n-prev))))-
          sum(log(c(1:(k-x))))-
          (sum(log(c(n-k+1):n))-
-         sum(log(c(1:k))))) * sensitivity^x
+         sum(log(c(1:k)))))
 ```
-However, there are degenerate and boundary cases that must be handled. For example, `k > n` is a degenerate case and `k = 0` is a boundary case. Therefore the first half of the function is just for handling those cases:
+
+##### Incorporating sensitivity <= 1
+Allowing `sensitivity` to vary below 1 throws a major wrinkle in the computation. Theoretically, there is no longer the requirement that the exact number of cases is selected. Now additional cases can be selected, since there is a non-zero probability that some of the selected cases will not be detected (or that some of the encounters will not lead to exposures).  
+
+For example, let `n = 8, k = 5, x = 2, prev = 3, sensitivity = .8`. Instead of just computing `choose(3,2)*choose(5,3)/choose(8,5)`, we need to add to it the case where the sample of size `k` contains `x=3` infections: `choose(3,3)*choose(5,2)/choose(8,5)`. Furthermore, we need to discount these two summands by the probability that the included infections are detected. This is a basic binomial probability:  
+
+If the sample contains `x = 2` infections, the probability that both infections are detected is `choose(2,2)*(.8^2)*(1-.8)^0`, or in R code `dbinom(2,2,.8)`.  
+
+If the sample contains `x=3` infections, the probability that two of the three infections are detected is `choose(3,2)*(.8^2)*(1-.8)^1 = dbinom(2,3,.8)`.
+
+Putting this all together, for this example we get:
+```
+syndExact(n=8, k=5, x=2, prev=3, sensitivity=.8) <-
+choose(3,2)*choose(5,3)*dbinom(2,2,.8)/choose(8,5) +
+choose(3,3)*choose(5,2)*dbinom(2,3,.8)/choose(8,5) =
+0.4114286
+```
+The general formula for `sensitivity <= 1` is therefore:
+```
+syndExact(n,k,x,prev,sensitivity) <-
+sum_[j = x to min(k,prev)] choose(prev,j)*choose(n-prev,k-j)*dbinom(x,j,sensitivity)/choose(n,k)
+```
+
+Converting the combinatorial formula into logs gives:
+```
+syndExact(n,k,x,prev,sensitivity) <-
+for(j in x:min(k,prev) {
+## recursively sum over j
+              exp(sum(log((prev-j+1):prev))-
+                  sum(log(1:j))+
+                  sum(log((n-prev-(k-j)+1):(n-prev)))-
+                  sum(log(1:(k-j)))+
+                  log(dbinom(x,j,sensitivity))-
+                  (sum(log(c(n-k+1):n))
+                  sum(log(c(1:k))))
+                  }
+```
+This is not a simple formula, and it gets more complicated, because many sets of parameters can generate logs of non-positive values.  
+
+These are degenerate and boundary cases that must be handled. For example, `k > n` is a degenerate case and `k = 0` is a boundary case. Therefore the first half of the function is just for handling those cases:
 ```
 syndExact <- function(n,    # population
-                          k,    # sample size
-                          x,    # number of successes
-                          prev,  # prevalence as decimal or count
-                          sensitivity = 1 # sensitivity of the test/likelihood of infection from an encounter
-                          ) {
+                      k,    # sample size
+                      x,    # number of successes
+                      prev,  # prevalence as decimal or count
+                      sensitivity = 1 # sensitivity of the test/likelihood of infection from an encounter
+) {
   if(prev < 1){prev <- round(n*prev,0)}  # converting decimal prevalence to count
   
   # Handling degenerate cases
@@ -82,35 +121,62 @@ syndExact <- function(n,    # population
     return(0)
   } else if(n*k*prev == 0) {
     return(1)
-  } else if(k-x > n-prev) {
-    return(0)
   }
 ```
 
-Furthermore, even the interior cases could result in the `log(0)` appearing in the function, so those cases are broken out as well:
+Furthermore, even the interior cases could result in the `log(0)` appearing in the function. `log(0)` appears when the factorial formula for `choose(y,y))` is log-linearized. However, since `choose(y,y) = 1` for any value `y`, `log(choose(y,y))= 0` and therefore the cases that involve `choose(y,y)` are broken out and the corresponding combination is simply removed from the equation:
 ```
-# need to break up interior cases because there may be factorial(0) in the formula, which returns an error with log
-  else if(x == 0) {
-    toplog <- sum(log(c((n-prev-k+1):(n-prev))))-sum(log(c(1:k)))
+else if(x == 0) {
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog)*sensitivity^x)
+    p <- 0
+    # handle j = 0
+    if(k <= n - prev) {
+      toplog <- sum(log((n-prev-k+1):(n-prev)))-
+                sum(log(1:k))
+      p <- p + exp(toplog-botlog)
+    }
+    for(j in 1:min(k,prev)){
+      if(k-j == n-prev | k-j == 0) {
+        toplog <- sum(log((prev-j+1):prev))-
+                  sum(log(1:j))+
+                  log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      } else if(k-j < n-prev) {
+        toplog <- sum(log((prev-j+1):prev))-
+             sum(log(1:j))+
+             sum(log((n-prev-(k-j)+1):(n-prev)))-
+             sum(log(1:(k-j)))+
+             log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      }
+    }
+    return(p)
   } else if(k == x) {
-    toplog <- sum(log(c((prev-x+1):prev)))-
-              sum(log(c(1:x)))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog)*sensitivity^x)
+    toplog <- sum(log(c((prev-x+1):prev)))-sum(log(c(1:x)))+log(sensitivity^x)
+    return(exp(toplog-botlog))
   } else {
-    toplog <- sum(log(c((prev-x+1):prev)))-
-              sum(log(c(1:x)))+
-              sum(log(c((n-prev-(k-x)+1):(n-prev))))-
-              sum(log(c(1:(k-x))))
     botlog <- sum(log(c(n-k+1):n))-sum(log(c(1:k)))
-    return(exp(toplog-botlog)*sensitivity^x)
+    p <- 0
+    for(j in x:min(k,prev)) {
+      if(k-j == n-prev | k-j == 0) {
+        toplog <- sum(log((prev-j+1):prev))-
+                  sum(log(1:j))+
+                  log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      } else if(k-j < n-prev) {
+        toplog <- sum(log((prev-j+1):prev))-
+                  sum(log(1:j))+
+                  sum(log((n-prev-(k-j)+1):(n-prev)))-
+                  sum(log(1:(k-j)))+
+                  log(dbinom(x,j,sensitivity))
+        p <- p + exp(toplog-botlog)
+      }
+    }
+    return(p)
   }
 }
 ```
-The `sensitivity` parameter allows syndExact to adjust to probability for the sensitivity of the test (if using syndExact for testing), or the likelihood of infection (if using syndExact for transmission probabilities).
-
 
 Here are two examples of comparing the built in `choose(m,n)` and `syndExact`:
 ```
@@ -132,7 +198,7 @@ syndExact(n,k,x,prev,sensitivity = 1)
 ```
 
 ### syndSuccess
-The main goal of syndromic surveillance in a setting like the COVID-19 pandemic is to determine if the disease exists in the sample at all. It is not as important exactly how many cases, just if there is a positive number. `syndSuccess(n,k,prev)` computes the probability of observing at least 1 case given a population `p`, sample size `k`, and prevalence `prev`. It works by calling `syndExact` for all `x` from `1` to `prev` (or `prev*n` if `prev` is decimal). `syndSuccess` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
+The main goal of syndromic surveillance in a setting like the COVID-19 pandemic is to determine if the disease exists in the sample at all. It may not be as important exactly how many cases, just if there is a positive number. `syndSuccess(n,k,prev)` computes the probability of detecting at least 1 case given a population `p`, sample size `k`, and prevalence `prev`. It works by calling `syndExact` for all `x` from `1` to `prev` (or `prev*n` if `prev` is decimal). `syndSuccess` passes the sensitivity of the test/likelihood of transmission to `syndExact`.
 ```
 syndSuccess <- function(n, # population
                         k, # sample size
