@@ -247,13 +247,13 @@ Furthermore, detection of disease depends on the sensitivity of the test, so `se
 Also, if we assume that any symptomatic person will be tested immediately, then we really only care about syndromic surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
 
 ```
-syndPower <- function(N,              # population of community
-                          n,              # population of subgroup
-                          k,              # size of sample in subgroup that will be tested
-                          prev,           # community prevalence as decimal or count
-                          sensitivity = 1, # sensitivity of test
-                          asymp = 1      # proportion of cases that are asymptomatic
-                          ) {
+syndPower <- function(N,               # population of community
+                      n,               # population of subgroup
+                      k,               # size of sample in subgroup that will be tested
+                      prev,            # community prevalence as decimal or count
+                      sensitivity = 1, # sensitivity of test, defaults to 1
+                      asymp = 1        # proportion of cases that are asymptomatic, defaults to 1
+                      ) {
   if(prev < 1) {prev <- round(N*prev,0)}           # converts proportion to count
   prev <- ceiling(prev*asymp)                      # surveillance is only for asymptomatic cases
   pwrInverse <- 0                                  # initializing pwrInverse = P(no detection | presence of disease)
@@ -263,7 +263,7 @@ syndPower <- function(N,              # population of community
   for(x in 1:min(n,prev)){
     pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity=1)*(1-syndSuccess(n,k,x,sensitivity))
   }
-  # power is probability of detecting given presence of disease = (1-P(missing | presence))
+  # power is probability of detecting given presence of disease = (1-P(no detection | presence))
   pwr <- (1-pwrInverse)                
   return(pwr)
 }
