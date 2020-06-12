@@ -298,7 +298,7 @@ syndPower <- function(N,               # population of community
 ```
 
 #### Example of using `syndPower`
-Suppose that the community population is `N=8`, the subgroup population is `n=5`, you will sample `k=3` people, and the community prevalence of asymptomatic cases is `prev=2`.  
+Suppose that the community population is `N=8`, the subgroup population is `n=5`, you will sample `k=3` people, and the community prevalence of asymptomatic cases is `prev=2`. For simplicity, we assume that `sensitivity = 1`.
 - There are `choose(N,n) = choose(8,5)` possible subgroups.
 ```
 combn(8,5)
@@ -347,4 +347,4 @@ combn(5,3)
 There are still `choose(5,3)` ways to select our sample for testing, and now individuals 1 and 2 are cases.  Now only 1 of the 10 combinations excludes both individuals 1 and 2.
 
 ##### Computing Power
-The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. If we assume the sensitivity of the test is 100%, the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2,sensitivity=1,asymp=1)` = 0.75
+The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. Therefore the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2,sensitivity=1,asymp=1) = 0.75`.
