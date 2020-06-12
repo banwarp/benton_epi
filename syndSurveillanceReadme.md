@@ -82,7 +82,7 @@ for(j in x:min(k,prev) {
 ```
 This is not a simple formula, and it gets more complicated, because many sets of parameters can generate logs of non-positive values.  
 
-These are degenerate and boundary cases that must be handled. For example, `k > n` is a degenerate case and `k = 0` is a boundary case. Therefore the first half of the function is just for handling those cases:
+These are degenerate and boundary cases that must be handled. For example, `k > n` is a degenerate case and `k = 0` is a boundary case. Therefore the first part of the function is just for handling those cases:
 ```
 syndExact <- function(n,    # population
                       k,    # sample size
@@ -110,12 +110,11 @@ syndExact <- function(n,    # population
   else if(k == n){
     if(x == prev) {return(sensitivity^x)}
     else{return(0)}
-  } else if(prev == n) {
-    if(k == x) {return(sensitivity^x)}
-    else{return(0)}
-  } else if(k < x | prev < x) {
+  }
+  else if(k < x | prev < x) {
     return(0)
-  } else if(n*k*prev == 0) {
+  }
+  else if(n*k*prev == 0) {
     return(1)
   }
 ```
