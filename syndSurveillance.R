@@ -28,10 +28,6 @@ syndExact <- function(n,    # population
     return(NULL)
   }
   # Handling boundary cases
-  else if(k == n){
-    if(x == prev) {return(sensitivity^x)}
-    else{return(0)}
-  } 
   else if(k < x | prev < x) {
     return(0)
   }
