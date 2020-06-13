@@ -57,9 +57,11 @@ permutations(n=2,r=2,v=c(0,1),repeats.allowed=TRUE)
 [3,]    1    0
 [4,]    1    1
 ```
-where 0 means not detected and 1 means detected. The probability that both infections are detected is `choose(2,2)*(.8^2)*(1-.8)^0`, or in R code `dbinom(2,2,.8)`.   Therefore the full probability is `choose(3,2)*choose(5,3)/choose(8,5)*dbinom(2,2,.8)`.
+where 0 is not detected and 1 is detected. The probability that both infections are detected is `choose(2,2)*(.8^2)*(1-.8)^0`, or in R code `dbinom(2,2,.8)`.   Therefore the full probability is `choose(3,2)*choose(5,3)/choose(8,5)*dbinom(2,2,.8)`.
 
-We need to add to this value the case where the sample of size `k` contains `x=3` infections: `choose(3,3)*choose(5,2)/choose(8,5)`.   The possible detections are:
+We need to add probability that the sample of size `k` contains `x=3` infections and two are identified. The probability of selecting `x=3` is `choose(3,3)*choose(5,2)/choose(8,5)`.   
+
+The possible detections are:
 ```
 permutations(n=2,r=3,v=c(0,1),repeats.allowed=TRUE)
      [,1] [,2] [,3]
@@ -72,7 +74,7 @@ permutations(n=2,r=3,v=c(0,1),repeats.allowed=TRUE)
 [7,]    1    1    0
 [8,]    1    1    1
 ```
-The probability that two of the three infections are detected is `choose(3,2)*(.8^2)*(1-.8)^1 = dbinom(2,3,.8)`.   
+The probability that two of the three infections are detected `choose(3,2)*(.8^2)*(1-.8)^1 = dbinom(2,3,.8)`.   
 
 Putting this all together, for this example we get:
 ```
