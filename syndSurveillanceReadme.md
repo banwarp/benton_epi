@@ -50,8 +50,29 @@ Allowing `sensitivity` to vary below 1 throws a major wrinkle in the computation
 For example, let `n = 8, k = 5, x = 2, prev = 3, sensitivity = .8`. Instead of just computing `choose(3,2)*choose(5,3)/choose(8,5)`, we need to add to it the case where the sample of size `k` contains `x=3` infections: `choose(3,3)*choose(5,2)/choose(8,5)`. Furthermore, we need to discount these two summands by the probability that the included infections are detected. This is a basic binomial probability:  
 
 If the sample contains `x = 2` infections, the probability that both infections are detected is `choose(2,2)*(.8^2)*(1-.8)^0`, or in R code `dbinom(2,2,.8)`.  
+```
+require(gtools)
+permutations(n=2,r=2,v=c(0,1),repeats.allowed=TRUE)
+     [,1] [,2]
+[1,]    0    0
+[2,]    0    1
+[3,]    1    0
+[4,]    1    1
+```
+If the sample contains `x=3` infections, the probability that two of the three infections are detected is `choose(3,2)*(.8^2)*(1-.8)^1 = dbinom(2,3,.8)`
 
-If the sample contains `x=3` infections, the probability that two of the three infections are detected is `choose(3,2)*(.8^2)*(1-.8)^1 = dbinom(2,3,.8)`.
+```
+permutations(n=2,r=3,v=c(0,1),repeats.allowed=TRUE)
+     [,1] [,2] [,3]
+[1,]    0    0    0
+[2,]    0    0    1
+[3,]    0    1    0
+[4,]    0    1    1
+[5,]    1    0    0
+[6,]    1    0    1
+[7,]    1    1    0
+[8,]    1    1    1
+```
 
 Putting this all together, for this example we get:
 ```
