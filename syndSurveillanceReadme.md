@@ -47,9 +47,7 @@ p <- exp(sum(log(c((prev-x+1):prev)))-
 ##### Incorporating sensitivity <= 1
 Allowing `sensitivity` to vary below 1 throws a major wrinkle in the computation. Theoretically, there is no longer the requirement that the exact number of cases is selected. Now additional cases can be selected, since there is a non-zero probability that some of the selected cases will not be detected (or that some of the encounters will not lead to exposures).  
 
-For example, let `n = 8, k = 5, x = 2, prev = 3, sensitivity = .8`. Instead of just computing `choose(3,2)*choose(5,3)/choose(8,5)`, we need to add to it the case where the sample of size `k` contains `x=3` infections: `choose(3,3)*choose(5,2)/choose(8,5)`. Furthermore, we need to discount these two summands by the probability that the included infections are detected. This is a basic binomial probability:  
-
-If the sample contains `x = 2` infections, the probability that both infections are detected is `choose(2,2)*(.8^2)*(1-.8)^0`, or in R code `dbinom(2,2,.8)`.  
+For example, let `n = 8, k = 5, x = 2, prev = 3, sensitivity = .8`. One possibility is that 2 infections are selected. There are `choose(3,2)*choose(5,3)/choose(8,5)` ways to do this. Then, we need to consider the probability that both of those infections will be detected. The possibilities are:
 ```
 require(gtools)
 permutations(n=2,r=2,v=c(0,1),repeats.allowed=TRUE)
@@ -59,8 +57,9 @@ permutations(n=2,r=2,v=c(0,1),repeats.allowed=TRUE)
 [3,]    1    0
 [4,]    1    1
 ```
-If the sample contains `x=3` infections, the probability that two of the three infections are detected is `choose(3,2)*(.8^2)*(1-.8)^1 = dbinom(2,3,.8)`
+where 0 means not detected and 1 means detected. The probability that both infections are detected is `choose(2,2)*(.8^2)*(1-.8)^0`, or in R code `dbinom(2,2,.8)`.   Therefore the full probability is `choose(3,2)*choose(5,3)/choose(8,5)*dbinom(2,2,.8)`.
 
+We need to add to this value the case where the sample of size `k` contains `x=3` infections: `choose(3,3)*choose(5,2)/choose(8,5)`.   The possible detections are:
 ```
 permutations(n=2,r=3,v=c(0,1),repeats.allowed=TRUE)
      [,1] [,2] [,3]
@@ -73,6 +72,7 @@ permutations(n=2,r=3,v=c(0,1),repeats.allowed=TRUE)
 [7,]    1    1    0
 [8,]    1    1    1
 ```
+The probability that two of the three infections are detected is `choose(3,2)*(.8^2)*(1-.8)^1 = dbinom(2,3,.8)`.   
 
 Putting this all together, for this example we get:
 ```
