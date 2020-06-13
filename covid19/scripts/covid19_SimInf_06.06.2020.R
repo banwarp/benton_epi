@@ -1,4 +1,4 @@
-# covid19_SimInf_06.02.2020.R
+# covid19_SimInf_06.06.2020.R
 
 # copyright Peter Banwarth Benton County Health Department 2020
 
@@ -100,7 +100,7 @@ covidWrapper <- function(
   N = 500,                                 # Number of population nodes
   nodeGroupList = NULL,                    # List of group IDs for node groups. Default is 1 group of nodes.
   unifPop = FALSE,                         # Logical: Uniformly distribut trial population among nodes or randomly assign according to distribution
-  I0Pop = round(.0023*65000,0),            # Initial number of infectious
+  I0Pop = round(.0015*65000,0),            # Initial number of infectious
   maxINodeProp = 1/10,                     # Maximum proportion of nodes that intially have one or more infectious
   I0nodeGroups = NULL,                     # Node groups where initial infectious are distributed
   E0Pop = 0,                               # Initial number of exposed
@@ -198,7 +198,7 @@ covidWrapper <- function(
   massEntryNodeGroups = NULL,              # Which node groups the individuals enter
   mSProp = .9,                             # Proportion of individuals who are susceptible
   mEProp = .0001,                          # Proportion of individuals who are exposed
-  mIProp = .0015,                          # Proportion of individuals who are infectious; R, Im, and M are calculated
+  mIProp = .001,                           # Proportion of individuals who are infectious; R, Im, and M are calculated
   
   ### plot parameters
   plotCompList = "I",                      # List of compartments that will be plotted
@@ -213,7 +213,8 @@ covidWrapper <- function(
   titleString = "Generic Title",           # Title of plot
   xString = "Date",                        # Title of x-axis
   yString = "Frequency",                   # Title of y-axis
-  lString = "Median"                       # Title of legend
+  lString = "Median",                      # Title of legend
+  cString = NULL                           # Plot caption
   ) {
   
   ######## Begin function #######
@@ -229,6 +230,7 @@ covidWrapper <- function(
   library(dplyr)
   library(Matrix)
   library(zoo)
+  library(viridis)
   
   # if(!is.null(folderPath)) {setwd(folderPath)}
   
@@ -272,6 +274,9 @@ covidWrapper <- function(
   # additional plotting parameters
   fileName <- paste0("data",simID,".txt")
   plotName <- paste0("plot",simID)
+  if(is.null(cString)) {
+    cString <- plotName
+  }
   
   # Trial and node parameters
   # numTrials <- min(100,numTrials) # capping number of trials at 100
@@ -695,7 +700,8 @@ covidWrapper <- function(
     titleString = paste0("Active infections in ",titleString),        # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Number of infections",          # plot parameter: Title of y axis
-    lString = lString                         # plot parameter: Title of legend
+    lString = lString,                         # plot parameter: Title of legend
+    cString = cString                          # plot parameter: Plot caption
   )
   
   trajPlotPhi <- simInfPlottingFunction(
@@ -720,7 +726,8 @@ covidWrapper <- function(
     titleString = paste0("Interventions in ",titleString),   # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Intensity of intervention",          # plot parameter: Title of y axis
-    lString = "Intervention metric"                    # plot parameter: Title of legend
+    lString = "Intervention metric",                         # plot parameter: Title of legend
+    cString = cString                          # plot parameter: Plot caption
   )
 
   if(hospRateExp > 0 | hospRatePost > 0){
@@ -746,7 +753,8 @@ covidWrapper <- function(
       titleString = paste0("Hospitalizations, 7-day average, ",titleString),          # plot parameter: Title of plot
       xString = "Date",                          # plot parameter: Title of x axis
       yString = "Number of hospital beds",          # plot parameter: Title of y axis
-      lString = lString                         # plot parameter: Title of legend
+      lString = lString,                         # plot parameter: Title of legend
+      cString = cString                          # plot parameter: Plot caption
     )
   }
 
@@ -772,7 +780,8 @@ covidWrapper <- function(
     titleString = paste0("Daily new infections in ",titleString),        # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Number of infections",          # plot parameter: Title of y axis
-    lString = lString                          # plot parameter: Title of legend
+    lString = lString,                         # plot parameter: Title of legend
+    cString = cString                          # plot parameter: Plot caption
   )
 
   if(hospDeathRate+nonHospDeathRate > 0){
@@ -798,7 +807,8 @@ covidWrapper <- function(
       titleString = paste0("Cumulative deaths in ",titleString),        # plot parameter: Title of plot
       xString = "Date",                          # plot parameter: Title of x axis
       yString = "Cumulative deaths",             # plot parameter: Title of y axis
-      lString = lString                          # plot parameter: Title of legend
+      lString = lString,                         # plot parameter: Title of legend
+      cString = cString                          # plot parameter: Plot caption
     )
   }
   
