@@ -42,7 +42,8 @@ simInfPlottingFunction <- function(
                                    titleString = NULL,        # plot parameter: Title of plot
                                    xString = NULL,            # plot parameter: Title of x axis
                                    yString = NULL,            # plot parameter: Title of y axis
-                                   lString = "Median"    # plot parameter: Title of legend
+                                   lString = "Median",        # plot parameter: Title of legend
+                                   cString = ""               # plot parameter: Plot caption
                                    ) {
   
   # turns two-sided confidence interval into one-sided
@@ -184,7 +185,7 @@ simInfPlottingFunction <- function(
   }
   
   p <- p +
-    labs(title = titleString, x = xString, y = yString, color=lString)+
+    labs(title = titleString, x = xString, y = yString, color=lString, caption = cString)+
     scale_x_date(date_labels="%b %d", date_breaks=dateBreaks)+
     theme(title=element_text(size=20),
           axis.text=element_text(size=14),
