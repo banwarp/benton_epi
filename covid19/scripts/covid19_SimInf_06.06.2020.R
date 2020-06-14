@@ -1,4 +1,4 @@
-# covid19_SimInf_06.06.2020.R
+# covid19_SimInf_06.02.2020.R
 
 # copyright Peter Banwarth Benton County Health Department 2020
 
@@ -144,8 +144,8 @@ covidWrapper <- function(
   RNoAction = NULL,                        # Ongoing baseline Rt if no actions at are all taken
   RTarget1 = 1.5,                          # Target for the reduction in R under minor intervention
   RTarget2 = .9,                           # Target for the reduction in R under major intervention
-  maxPrev1 = .001,                         # Maximum prevalence before instituting minor intervention
-  maxPrev2 = .002,                         # Maximum prevalence before instituting major intervention
+  maxPrev1 = .0005,                         # Maximum prevalence before instituting minor intervention
+  maxPrev2 = .001,                         # Maximum prevalence before instituting major intervention
   upDelay = 10,                            # Number of days after prevalence passes threshold until minor/major intervention
   downDelay = 28,                          # Number of days after prevalence drops below threshold until intervention lifted
   phiMoveUp = .25,                         # Rate at which phi increases when interventions are imposed
