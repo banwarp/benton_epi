@@ -53,6 +53,7 @@ In order to make sure that the script runs within a reasonable amount of time, a
 ```
 numTrials <- min(100,numTrials) # capping number of trials at 100
 N <- min(1000,N) # capping number of nodes per trial at 1000
+if(is.null(nodeGroupList)) {nodeGroupList <- rep(1,N)} # default is one nodeGroup
 ```
 Additional parameters are generated from `trialPop`, `N`, and `nodeGroupList`.
 ```
@@ -113,7 +114,7 @@ Transitions beginning or ending with `@` represent entry/exit from/to the empty 
 4. `E -> (1-isoRate)*exposedPeriod*E -> I + cumI` Transition from Exposed to Infectious. Includes `isoRate` to represent Exposed individuals being isolated before they become infectious. `cumI` tracts the total number of infected individuals.
 5. `E -> (1-hospRateExp)*isoRate*exposedPeriod*E -> pI + cumI` Transition from Exposed to post-infectious. Includes `hospRate` to represent that some post-infectious individuals are hospitalized during their isolation.
 6. `E -> hospRateExp*isoRate*exposedPeriod*E -> H + cumI` Transition from Exposed to Hospitalized. Note that we assume Hospitalized individuals have zero transmissibility. This can be changed in the code.
-7  `I -> monitoringSuccess*(1-hospRatePost)*initInfectiousPeriod*I -> pI` Transition from infectious to post-infectious (non-hospitalized). This represents individuals identified through symptoms or testing after being infectious for a short period.
+7.  `I -> monitoringSuccess*(1-hospRatePost)*initInfectiousPeriod*I -> pI` Transition from infectious to post-infectious (non-hospitalized). This represents individuals identified through symptoms or testing after being infectious for a short period.
 8. `I -> monitoringSuccess*hospRatePost*initInfectiousPeriod*I -> H` Transition from infectious to post-infectious (hospitalized).
 9. `I -> (1-monitoringSuccess)*initInfectiousPeriod*I -> uI` Transition from infectious to unknown infectious. This represents individuals who are never identified as infectious and continue to circulate in the community. It is assumed that none of these individuals are hospitalized or die.
 10. `pI -> (1-nonHospDeathRate)*postInfectiousPeriod*pI -> R` Recovery among post-infectious
@@ -186,7 +187,7 @@ Various parameters, states, and variables depend on whether prevalence is increa
 `pdCounter` is a timer variable for the decay of physical distancing. The model assumes that if prevalence is low (below the minor threshold), people will eventually stop physically distancing. `pdCounter` is used to track the decay at each time step.
 
 ##### Post-time-step function
-A whole .md could be (and will be) written about the post-time-step function (pts_function). In brief, the pts_function tells SimInf how to change continous variables (with the option of other effects) after every time step. The pts_function is written in C, which is nothing if not verbose. The function is stored as a single character and passed to the SimInf routine. To save space, I wrote the pts_function in a separate script and call pts_funScript to generate it. The parameters are passed through from user-defined parameters or paramters already described in this .md.
+A whole .md could be (and will be) written about the post-time-step function (pts_function). In brief, the pts_function tells SimInf how to change continous variables (with the option of other effects) after every time step. The pts_function is written in C, which can be verbose. The function is stored as a single character and passed to the SimInf routine. To save space, I wrote the pts_function in a separate script and call pts_funScript to generate it. The parameters are passed through from user-defined parameters or paramters already described in this .md.
 ```
 pts_fun <- pts_funScript(
     phiPhysicalDistancing = (R0I+R0U)/RPhysicalDistancing, # Phi reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
