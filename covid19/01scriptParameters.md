@@ -32,14 +32,14 @@ The conceptual schematic of the SimInf model that I use has three stages: Buildi
 - Evolution of continous variables across the timespan.
 - With the result, you can plot trajectories for the different compartments and/or the evolutino of the continuous variables.
 
-### covid19_SimInf_5.16.2020.R (or updated date) parameters
+### covid19_SimInf_06.06.2020.R (or updated date) parameters
 The covid19_SimInf_DATE.R script pre- and post-processes data and sets parameters to use in the SimInf model. The script has a number of pre-processing steps and associated parameters, which are discussed below. Parameters are organized in two ways - thematically with the model and logistically with the code. For example, a parameter may fit thematically with "disease dynamics" and logistically within the post-time-step function.  In this vignette, the parameters are organized thematically.
 #### Simulation parameters
 The script relies on subroutines that need to be accessed. Set the folder where they are stored using the `folderpath` argument. This folderpath is also where the exported graphs will be saved. The `simID` argument is the heading for the different graphs.  
 
 The arguments `simDate` and `maxT` set the date parameters - when the simulation starts and how long it runs (in days).  
 
-The argument `numTrials` sets the number of trials in the simulation. The script limits the number of trials to a maximum of 100. This limit can be changed in the code itself.
+The argument `numTrials` sets the number of trials in the simulation. The script limits the number of trials to a maximum of 100 in order to keep runtime in check. This limit can be changed in the code itself.
 #### Population parameters
 The model assumes a homogenous, partially-mixed, mostly closed population. Homogenous because every individual has the same disease dynamics (chance of infection/dying, length of infectious period, etc.). Partially-mixed because the total population is divided into nodes. The disease evolves independently in different nodes, with occasional transfers between nodes to expose other nodes to disease. Mostly closed because no individuals leave the population except through death, and no individuals enter the population except for the occasional parachuting of infectious individuals or planned entry events.  
 
@@ -106,7 +106,7 @@ Different policy interventions (stay-at-home orders, limited business operations
 
 `pdDecay` is the number of days it takes for individual physical distancing to decay once prevalence is below the minor threshold. This represents people returning to normal interactions after they no longer feel the more obvious effects of policy interventions.  
 
-In Oregon, the plans for reopening involve three phases. `kbDay1`, `kbDay2`, and `kbDay3` are the dates each phase is instituted.  
+In Oregon, the plans for reopening involve three phases. `kbDay1`, `kbDay2`, and `kbDay3` are the dates each phase is instituted. `kbPhase` is the initial phase of reopening at the start of the simulation.  
 
 It may be helpful to compare the disease trajectories with or without the ability to use policy interventions. `switchOffPolicies` and `switchOffDay` control whether minor/major policies will be switched off permanently and when.
 #### Event parameters
@@ -114,11 +114,13 @@ The covid script uses events to model different population dynamics.
 - People are always entering a population. Some of those people may bring an infection with them. I call these individuals "parachuters". For simplicity, this model does not include people leaving the population. You can add to the code itself if desired.
 - People tend to see the same people every day, but they occasionally move between nodes. These people may be in any of a number of compartments. These movements are captured with transfer events.
 - There is a non-zero probability than an infectious person will be a super-spreader, who does not fit the normal R0 for generating new infections.
-- There may be certain populations that undergo mass changes, like students returning to a college town, or military divisions shipping out. Because this model was built for a college community, a mass entry event is included. You can add to the code itself to represent a mass exit event.
+- There may be certain populations that undergo mass changes, like students returning to a college town, or military divisions shipping out. Because this model was built for a college community, a mass entry event is included. You can add to the code itself to represent a mass exit event.  
+Each of these event types are generated according to parameters set by the user; but the event types can be overridden by the user.
 
 ##### Parachute events
-I use a beta distribution for the parachuted infections. The default is uniform, but it can be changed with `paraMu` and `paraSig`.  
+I use a beta distribution for the parachuted infections. The default is uniform, but it can be changed with `paraMu` and `paraSig`. The built-in df generator is overridden if `!is.null(paraEventsDF)`   
 ```
+paraEventsDF = NULL,                     # pre-built parachuter events data frame if the events will be preset before the script is run
 paraMu = 1,                              # First shape parameter for beta function for timing of parachute events
 paraSig = 1,                             # Second shape parameter for beta function for timing of parachute events
 parachuteRate = 1/21,                    # Reciprocal of expected waiting time for a parachute event
@@ -127,8 +129,9 @@ parachuteNodeGroups = NULL,              # Which node groups the parachuters can
 ```  
 
 #### Transfer events
-People are more likely to transfer inside their node group compared to outside their node group. Change the following parameters to adjust the transfer dynamics.
+People are more likely to transfer inside their node group compared to outside their node group. Change the following parameters to adjust the transfer dynamics. `transferEventsDF` is the preset. The various transfer parameters can be specified to each node group if desired, otherwise they are the same for each node group.
 ```
+transferEventsDF = NULL,                 # pre-built transfer events data frame if the events will be preset before the script is run
 inGroupTransferRate = 1/7               # Reciprocal of expected waiting time for in-transfer event
 inGroupTransferNodeNum = .1             # Average number/proportion of nodes that transfer at each transfer event
 inGroupTransferMinProp = .1             # Minimum proportion of node population that transfers in each event
@@ -142,6 +145,7 @@ outGroupTransferMaxProp = .15           # Maximum proportion of node population 
 #### Super spreader events
 There may be zero, one, or more super spreader events at any given time step. The following parameters adjust the super spreader events. They are all lists to allow for multiple events.
 ```
+superEventsDF = NULL,                    # pre-built super spreader events data frame if the events will be preset before the script is run
 superInfections = c()          # Number of infections caused by the super spreader
 superNodes = c()             # Number of nodes that the super spreader contacts
 superNodeGroups = NULL       # Which node groups the super spreader contacts. Must use list() syntax for multiple events.
@@ -152,6 +156,7 @@ superSpread = c()            # Symmetric spread in days of super spreader infect
 #### Mass entry events
 The following parameters adjust the mass entry events.
 ```
+massEntryEventsDF = NULL,                # pre-built mass entry events data frame if the events will be preset before the script is run
 massEntryReturnDate = "2020-09-21",      # Date of mass Entry
 massEntryReturnSpread = 3,               # Symmetric spread of days to spread out mass entry
 massEntryPop = 25000,                    # Mass entry population
@@ -176,7 +181,8 @@ dateBreaks = "1 month",                  # Plot parameter, x-axis displays month
 titleString = "Generic Title",           # Title of plot
 xString = "Date",                        # Title of x-axis
 yString = "Frequency",                   # Title of y-axis
-lString = "Median"                       # Title of legend
+lString = "Median",                      # Title of legend
+cString = NULL                           # Plot caption
 ```
 
 There is an option to separate nodes into different node groups. Then a subset of node groups can be plotted, and these can either sum nodes across all selected node groups, or to plot the different node group sums to compare different node groups.  
