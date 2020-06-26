@@ -1,4 +1,10 @@
-This folder contains scripts for the SimInf implementation of COVID-19 modeling.
+These folders contains scripts for the SimInf implementation of COVID-19 modeling.
+
+As of 06/26/2020, there are four sets of SimInf scripts:
+1. Policy scripts - the original implementation of the SimInf that includes policy interventions to reduce R0 in response to prevalence, and includes parachuting infections, super-spreader events, and the option for a mass-entry event.
+2. High-low scripts - a modified version of the basic scripts that allows for infectious individuals to be high-spreaders or low-spreaders
+3. Age group scripts - a modified version of the high-low scripts that uses four age groups: 0-17, 18-29, 30-64, and 65+. Each age group can have a different R0 and different levels of complexity of COVID-19 illness (i.e. hospitalization and fatality rates).
+4. School scripts - a reworked version of the original implementation for modeling disease dynamics in schools. This version does not have parachuting infections or mass-entry. Instead of policy responses, this version uses different quarantine schemes to control spread of disease: Individual isolation, classroom quarantine, grade quarantine, or school closure.
 
 SimInf is a powerful R package that implements disease dynamics in C using a stochastic approach. It runs very quickly and has the ability to incorporate user-defined transitions. The disease dynamics are built on standard SIR, SEIR, and similar models.
 
