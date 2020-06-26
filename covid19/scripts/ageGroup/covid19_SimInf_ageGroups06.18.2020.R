@@ -1,6 +1,5 @@
 # covid19_SimInf_ageGroups06.16.2020.R
 
-##################### NEED FIX I_i and N_i in pts_function  #######################
 ##################### NEED TO TEST THIS SCRIPT #######################
 ##################### NEED TO TEST THIS SCRIPT #######################
 ##################### NEED TO TEST THIS SCRIPT #######################
