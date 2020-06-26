@@ -1,21 +1,5 @@
 # covid19_SimInf_hilow06.16.2020.R
 
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### need to fix I_i and N_i in pts_function ######################
-###################### Fortunately they are not even used ###########################
-
-
 # copyright Peter Banwarth Benton County Health Department 2020
 
 # Using package SimInf to model stochastic disease spread
