@@ -230,7 +230,7 @@ r6 <- covidWrapper(simID="NodeGroups",
 ![trajPlotINodeGroups](images/plotNodeGroupsI.png)  
 
 #### Vignette 6: All simulation trajectories.
-Thanks to [Jae S Choi](https://github.com/jae0/adapt) for the design of these plots. I liked the way they looked so I developed something similar for my code.
+Thanks to [Jae S Choi](https://github.com/jae0/adapt) for inspiring the design of these plots. I liked the way his looked so I developed something similar for my code.
 Suppose that instead of ploting the point-in-time median and spread of the simulation trajectories, you want to plot all trajectories. You can use the following code:
 ```
 r7 <- covidWrapper(simID="allTraj",
