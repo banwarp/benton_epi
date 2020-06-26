@@ -1,4 +1,4 @@
-## COVID-19 Vignettes
+## COVID-19 Vignettes - Policy Script
 #### Introduction
 This set of R scripts was developed for local modeling of the COVID-19 disease in Benton County, Oregon, and other small geographies. The scripts use a modified SEIR model with partially-mixed, but otherwise homogeneous population nodes. This markdown document presents a set of vignettes and explains the output.
 
