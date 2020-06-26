@@ -83,9 +83,9 @@ The larger that `phi` is, the lower the infection rate. `phi` is updated in the 
 
 `observedPrev` stores the prevalence from the previous time step. This is used when deciding how to change `phi`. For example, if the previous prevalence was below threshold 01, and the current prevalence is above the threshold, initialize `prevUp01 = 0`.  
 
-`previousState` stores the state of policy intervention from the previous time step. It is used to smooth transitions from one state to another. For example, it is possible that the prevalence temporarily rises above threshold 01, but then falls back below the threshold. Using `previousState = 0` prevents superfluous re-initializations and movements in the other variables.  
+`previousState` stores the state of policy intervention from the previous time step. It is used to smooth transitions from one state to another. For example, it is possible that the prevalence temporarily rises above threshold 01, but then falls back below the threshold. Using `previousState = 0` prevents superfluous re-initializations and movements in the other variables until prevalence stabilizes across a threshold.  
 
-`pdCounter` is a counter for the decay in physical distancing. The model allows for the assumption that in the absence of policy interventions, people's adherence to good physical distancing decays over a period of time as they "forget" about COVID-19. `pdCounter` controls how long it takes for adherence to physical distancing to decay to a user-defined baseline.  
+`pdCounter` is a counter for the decay in physical distancing. The model allows for the assumption that in the absence of policy interventions, people's adherence to good physical distancing decays over a period of time as they "forget" about COVID-19. `pdCounter` is used with `pdDecay` to determine how long it takes for adherence to physical distancing to decay to a user-defined baseline.  
 
 #### Defining arguments for pts_function
 The arguments for `pts_function` are user-defined in the main script. They are used as constant parameters when building `pts_fun`. Some parameters affect `phi`, others affect the policy interventions, and others are used for calculating prevalence:
