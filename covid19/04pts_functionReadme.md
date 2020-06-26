@@ -1,4 +1,4 @@
-## COVID-19 Vignettes - Post Time Step Function Readme
+## Post Time Step Function Readme
 #### Introduction
 This set of R scripts was developed for local modeling of the COVID-19 disease in Benton County, Oregon, and other small geographies. The scripts use a modified SEIR model with partially-mixed, but otherwise homogeneous population nodes. This markdown document describes the Post Time Step Function used in the policyScripts (and also the AgeGroup and Hilow scripts) as of 06/26/2020.
 
@@ -32,7 +32,7 @@ The conceptual schematic of the SimInf model that I use has three stages: Buildi
 - Evolution of continous variables across the timespan.
 - With the result, you can plot trajectories for the different compartments and/or the evolution of the continuous variables.
 
-#### Post Time Step Function
+### Post Time Step Function
 The post time step function runs after each time step and updates the continuous variables stored in the data frame `v`. These continuous variables, which are initialized in `v0`, are used in the compartment transitions along with `gdata` and `ldata`, but unlike `gdata` and `ldata`, they can vary across time, either exogeneously to the disease conditions (such as a seasonality factor) or in response to disease conditions (such as a policy intervention). In addition to having a direct impact on transitions, `v` stores variables that are used in the post time step function, while changing them as needed, and for counters/delay trackers that change over time. The post time step function is written and implemented in C.  
 
 The main purpose of the post time step function is to calculate the observed prevalence across all nodes in a trial, then use that observed prevalence to decide whether to impose or lift a policy intervention that acts by reducing the effective R0 in the transitions. This represents, for example, an imperfectly mixed county (i.e. multiple nodes), imposing a county-wide policy even if the infections are concentrated in portion of the county.
