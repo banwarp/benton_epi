@@ -12,7 +12,7 @@ The COVID-19 scripts in this repository pre- and post-process data to adapt the 
 
 At this point, the scripts are not packaged, because I have not done that before and I am not sure the best way to do it. The scripts are in their raw form and you are welcome to download and adapt them to your purposes.
 
-I recommend that you begin by reviewing the Policy Scripts folder, as this has the most comprehensive set of readmes for the scripts.
+I recommend that you begin by reviewing the Policy Scripts folder, as this has the most comprehensive set of readmes for the scripts. If you review these readmes thoroughly, I think the other scripts (hilow, ageGroup, and school) will be clear enough from the commented code.
 
 Briefly:
 The model is a modified SEIR. Some proportion of Recovered lose their Immunity and return to Susceptible. Some proportion of Exposed are identified through contact tracing and are Isolated. Some proportion of Infectious are Hospitalized. Some proportion of Hospitalized (optional: also Infectious) die of COVID-19. I call this model SEIR-(S,Is,Im,H,M).
