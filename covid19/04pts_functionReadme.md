@@ -39,17 +39,30 @@ The post time step function runs after each time step and updates the continuous
 The continuous variables are initialized in `v0`:
 ```
 v0 = data.frame(
-  phi = rep(phi0,NnumTrials),                              # initial beta reduction factor (larger phi = more reduction)
-  prevUp01 = rep(upDelay+1,NnumTrials),                    # initialized variable for capturing delay in response when prevalence increases
-  prevUp12 = rep(upDelay+1,NnumTrials),                    # variable for capturing delay in response when prevalence increases
-  prevDown21 = rep(downDelay+1,NnumTrials),                # variable for capturing delay in response when prevalence decreases
-  prevDown10 = rep(downDelay+1,NnumTrials),                # variable for capturing delay in response when prevalence decreases
-  kbPhase = rep(kbPhase,NnumTrials),                       # 0 means current physical distancing, 1-3 is phase of lifting.
-  policy = rep(1,NnumTrials),                              # logical: 1 means policies can take effect; 0 means they don't
-  season = rep(1,NnumTrials),                              # seasonality factor for beta
-  observedPrev = rep(0,NnumTrials),                        # prevalence tracker - observed from pI. Does not include hI, lI, uhI or ulI by definition.
-  previousState = rep(2,NnumTrials),                       # previous state: 0 = baseline, 1 = low intervention, 2 = high intervention, used for low intervention logic
-  pdCounter = rep(0,NnumTrials),                           # counter for pdDecay
-  highSpreadProp = rep(highSpreadProp,NnumTrials)          # Average proportion of infectious who are high spreaders
+  phi = rep(phi0,NnumTrials),                # initial beta reduction factor (larger phi = more reduction)
+  prevUp01 = rep(upDelay+1,NnumTrials),      # initialized variable for capturing delay in response when prevalence increases
+  prevUp12 = rep(upDelay+1,NnumTrials),      # variable for capturing delay in response when prevalence increases
+  prevDown21 = rep(downDelay+1,NnumTrials),  # variable for capturing delay in response when prevalence decreases
+  prevDown10 = rep(downDelay+1,NnumTrials),  # variable for capturing delay in response when prevalence decreases
+  kbPhase = rep(kbPhase,NnumTrials),         # 0 means current physical distancing, 1-3 is phase of lifting.
+  policy = rep(1,NnumTrials),                # logical: 1 means policies can take effect; 0 means they don't
+  season = rep(1,NnumTrials),                # seasonality factor for beta
+  observedPrev = rep(0,NnumTrials),          # prevalence tracker - observed from pI. Does not include I or uI by definition.
+  previousState = rep(2,NnumTrials),         # previous state: 0 = baseline, 1 = low intervention, 2 = high intervention, used for low intervention logic
+  pdCounter = rep(0,NnumTrials)              # counter for pdDecay
 )
 ```
+
+#### Explanation of each continuous variable
+`phi` is the key variable that influences the rate of infection. Here is the transition from Susceptible to Exposed:
+```
+# Explanation of exposure rate:
+# "S -> (betaI*(1/phi)*I+                                             # Exposures: Exposure rate among initial infectious
+#        betaP*pI+                                                    # Exposure rate among post infectious; does not depend on phi
+#        betaU*(1/phi)*uI)*                                           # Exposure rate among unknown infectious
+#        season*betaRandomizer*                                       # Seasonal effect and randomizer
+#        S/(S+E+I+uI+pI+R+Im)-> E",                                   # Mixing effect
+```
+The larger that `phi` is, the lower the infection rate. `phi` is updated in the post time step function based on the observed prevalence of COVID-19. For example, suppose the prevalence increases above a certain threshold. A user-defined delay is observed, simulating the lag time between an uptick in prevalence and awareness of that uptick. After the delay is completed, `phi` converges to its new value at an exponential rate. `phi` remains there until prevalence changes again, at which point another delay is observed, and the `phi` converges to its new value.
+
+`prevUp01, prevUp12, prevDown21,prevDown10` are delay trac
