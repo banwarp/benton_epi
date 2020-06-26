@@ -65,4 +65,4 @@ v0 = data.frame(
 ```
 The larger that `phi` is, the lower the infection rate. `phi` is updated in the post time step function based on the observed prevalence of COVID-19. For example, suppose the prevalence increases above a certain threshold. A user-defined delay is observed, simulating the lag time between an uptick in prevalence and awareness of that uptick. After the delay is completed, `phi` converges to its new value at an exponential rate. `phi` remains there until prevalence changes again, at which point another delay is observed, and the `phi` converges to its new value.
 
-`prevUp01, prevUp12, prevDown21,prevDown10` are delay trac
+`prevUp01, prevUp12, prevDown21, prevDown10` are the delay trackers used when changing `phi`. `prevUp01` is set to 0 whenever the prevalence increases from its lowest level (level 0) up to the middle level (level 1). Then, each time step increases `prevUp01` until `prevUp01 = upDelay`, at which point `phi` begins to change. `prevUp12, prevDown21, prevDown10' are similar.
