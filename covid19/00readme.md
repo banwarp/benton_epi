@@ -21,18 +21,6 @@ When the model runs, the script used the real-time prevalence to automatically i
 Each simulation produces a user-defined number of trials to generate a confidence or credibility spread.
 The SimInf package produces trajectories of the different compartments (e.g. Infectious or Recovered) and of the continuous variables (e.g. the intensity of the policy intervention). The script can plot these different trajectories with their credibility spreads.
 
-To use the scripts:
-
-0. Review [01scriptParameters.md](01scriptParameters.md), [02scriptNotes.md](02scriptNotes.md), and [03covid19Vignettes.md](03covid19Vignettes.md) for details on the scripts.  
-1. Download the scripts to your machine, then open covid19_SimInf_5.16.2020.R and review the script.
-2. Change any folder settings as needed in the script: search for "setwd(".
-3. Open covidExampleScript_5.16.2020.R for an example of how to produce projections for all Oregon counties under three scenarios.
-4. Select your parameters. There are 70+ adjustable parameters in the function. (Not counting the preset parameters in the rest of the code, which can be changed as you tinker). The parameters are explained in the comments. Refer to [01scriptParameters.md](01scriptParameters.md) for more detailed descriptions.
-5. Unless you are modeling a community with a single mass entry event (e.g. university students returning on/around a certain date), you probably don't want to include the massEntry. Simply set maxMassEntryNodes = 0 and this event will not be created.
-6. You can include zero, one, or more super-spreader events. The parameters for the super spreader events are lists to accommodate more than one event.
-7. You have the option to group the nodes to represent segmented populations where movement is higher within node groups compared to across node groups.
-8. Run the script. The script automatically produces plots of daily active infections (I), intervention measures (phi), daily new infections (newI), daily hospital bed use (H), and cumulative deaths (M), and saves them to a folder. You can also use the code for these plots to plot other compartments or continuous variables. Read through simInfPlottingFunction5.14.2020.R for details. The function itself returns the modeled result, from which you can extract trajectories and other data and make other plots.
-
 You are welcome to leave comments/questions on github or email me at peter.banwarth@co.benton.or.us.
 
 Citation:
