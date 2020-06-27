@@ -559,7 +559,7 @@ else {
 This whole chunk of code is wrapped in a policy test:
 ```
 if(policy == 1) {
-This whole chunk of chode
+"This whole chunk of code"
 } else {
         v_new[0] = phi * (1-phiMoveDown) + phiBaseline * phiMoveDown;
         v_new[4] = prevDown10 + 1;
