@@ -491,9 +491,9 @@ Block 2 tests if the previous prevalence was above the major threshold.
                 v_new[1] = prevUp01 + 1; // Increase step toward moderate intervention
               }
             }
-'''
+```
 Block 3 tests if the previous prevalence was in the moderate intervention range, then tests if the prevalence is trending up. If true, it continues the `upDelay` counter or changes `phi` from baseline to `phiTarget1`.
-'''
+```
             else {
               // Logical: already doing major intervention and completed downDelay
               if(prevDown21 > downDelay) {
@@ -514,7 +514,7 @@ Block 3 tests if the previous prevalence was in the moderate intervention range,
 Block 4, in which previous prevalence was in the moderate range, tests if the prevalence is trending down. If true, it continues the `downDelay` counter or changes `phi` from the highest level to `phiTarget1`. This block also resets the `pdCounter` to prepare for `pdDecay` if prevalence drops further.
 
 ##### Major intervention
-The code for a major intervention is the complement of the code for the baseline. The only real difference is if prevalence drops from the baseline range to the major range, there is no need to wait for the moderate delay in addition to the major delay before changing `phi`.
+The code for a major intervention is the complement of the code for the baseline. The only real difference is if prevalence jumps from the baseline range to the major range, there is no need to wait for the moderate delay in addition to the major delay before changing `phi`.
 ```
 else {
           // past state A: baseline
