@@ -442,10 +442,10 @@ Block 2 tests if the previous prevalence was above the moderate threshold. If tr
           }
         }
 ```
-Block 3 tests if the previous prevalence was already below the moderate threshold. Then there are three possibilities: 1. There was no intervention in the past state, there was a moderate intervention in the past state, or there was a major intervention in the past state. These possibilities are handled similarly to Block 2.
+Block 3 tests if the previous prevalence was already below the moderate threshold. Then there are three possibilities: There was no intervention in the past state, there was a moderate intervention in the past state, or there was a major intervention in the past state. These possibilities are handled similarly to Block 2.
 
 ##### Moderate intervention
-(Note, earlier versions of code called this "minor" intervention - that terminology is deprecated but may still exist in the comments.
+(Note, earlier versions of code called this "minor" intervention - that terminology is deprecated but may still exist in the comments.)
 The conditions for a moderate intervention are similar, but more extensive because prevalence could be increasing or decreasing into the moderate range. Otherwise the decision trees are similar.
 ```
 else if(prev <= maxPrev2) {
@@ -511,10 +511,10 @@ Block 3 tests if the previous prevalence was in the moderate intervention range,
           v_new[10] = 0; // Reset pdCounter
         }        
 ```
-Block 4, in which previous prevalence was in the moderate range, tests if the prevalence is trending down. If true, it continues the `downDelay` counter or changes `phi` from the highest level to `phiTarget1`.
+Block 4, in which previous prevalence was in the moderate range, tests if the prevalence is trending down. If true, it continues the `downDelay` counter or changes `phi` from the highest level to `phiTarget1`. This block also resets the `pdCounter` to prepare for `pdDecay` if prevalence drops further.
 
 ##### Major intervention
-The code for a major intervention is the complement of the code for the baseline.
+The code for a major intervention is the complement of the code for the baseline. The only real difference is if prevalence drops from the baseline range to the major range, there is no need to wait for the moderate delay in addition to the major delay before changing `phi`.
 ```
 else {
           // past state A: baseline
