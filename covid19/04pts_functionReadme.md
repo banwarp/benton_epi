@@ -37,6 +37,12 @@ The post time step function runs after each time step and updates the continuous
 
 The main purpose of the post time step function is to calculate the observed prevalence across all nodes in a trial, then use that observed prevalence to decide whether to impose or lift a policy intervention that acts by reducing the effective R0 in the transitions. This represents, for example, an imperfectly mixed county (i.e. multiple nodes), imposing a county-wide policy even if the infections are concentrated in portion of the county.
 
+### Levels of policy intervention in Post Time Step Function
+There are three levels of policy intervention in the post time step function:
+1. No intervention (baseline). The effective reproduction number is unchanged from baseline.
+2. Moderate intervention. The effective reproduction number is decreased moderate amount.
+3. Major intervention. The effective reproduction number is decreased a major amount.
+
 #### The components of the Post Time Step Function
 - `v` is the data frame that stores continuous variables
 - pts_function arguments are user-defined constant parameters used to building the post time step function
@@ -325,3 +331,239 @@ Then the trial observed prevalence is computed, depending on if prevalence shoul
     }
 ```
 
+#### Updating phi
+`phi` is updated in order to change the effective R0. The first snippet decays `phi` according to `pdDecay`:
+
+```
+/* temporary variables storing phi targets */
+    double phiBaseline = phiBase;
+    double phiTarget1 = phiFactor1;
+    double phiTarget2 = phiFactor2;
+    
+    if(pdDecay > 0 && kbPhase == 3) {
+      // If prevalence has been below maxPrev1 for long enough, start pdDecay
+      if(prev <= maxPrev1) {
+        // if downDelay has been completed
+        if(prevDown10 > downDelay)
+          v_new[10] = pdCounter_0 + 1; // Increases pdCounter by 1
+          if(v_new[10] < pdDecay) {
+            // decrease phiBaseline toward 1
+            pdB = log(-v_new[10] + (pdDecay + 1)) /  log(pdDecay + 1);
+          } else {
+            // maintain phiBaseline at phiNoAction
+            pdB = 0;
+          }
+          phiBaseline = pdB * phiBaseline + (1-pdB) * phiNoAction;
+      }
+    } else {pdCounter = 0;}
+```
+
+The second snippet overrides the policy interventions (specifically lifting them) if the phase of reopening is more restrictive then the lifted intervention. The override just replaces the relevant less restrictive `phiTarget` with a more restrictive `phiFactor`. Then the rest of the code runs with the more restrictive `phiFactor`.
+```
+// overrides lifting policy interventions in phases, also overrides pdDecay
+    if(kbPhase_0 == 0) {
+      phiBaseline = phiFactor2;
+      phiTarget1 = phiFactor2;
+    }
+    else if(kbPhase_0 == 1) {
+      phiBaseline = (phiFactor1+phiFactor2) / 2;
+      phiTarget1 = (phiFactor1+phiFactor2) / 2;
+    }
+    else if(kbPhase_0 == 2) {
+      phiBaseline = phiFactor1;
+    }
+```
+
+The third section of code is long and complex. It uses a number of conditions to determine if and how to change `phi`. The conditions include:
+- is current prevalence above or below `maxPrev1` or `maxPrev2`.
+- was past prevalence above/below a different threshold (indicating that the state has changed over the past time step).
+- is an intervention currently in place, and is it the intervention that matches the current prevalence state.
+- have the delay(s) before changing `phi` been completed.
+Whenever `phi` changes, it does so according to exponential convergence. This method was chosen largely because it obviates the need for a timer on the changing of `phi`, i.e., `phi` will converge toward its target, quickly get very close, but never reach or pass the target, unlike linear convergence. This is represented in the code by (for example) `v_new[0] = phi * (1-phiMoveUp) + phiTarget2 * phiMoveUp;`, where `phiMoveUp` is the parameter that determines the convergence rate.
+
+Each level of policy intervention (no intervention, moderate, and major) has its own section of code where the relevant conditions are tested. The code is reproduced here in blocks to make it simpler to describe what each block does.
+
+##### No intervention
+```
+/* ***** baseline phi - no intervention ***** */
+        if(prev <= maxPrev1) {
+          // past state A: major intervention
+          if(prev_0 > maxPrev2) {
+            v_new[0] = phi * (1 - phiMoveUp) + phiTarget2 * phiMoveUp; // Maintain major intervention
+            v_new[3] = 1; // Start prevDown21 delay
+            v_new[4] = 0; // Wait before starting delay of prevDown10
+            // reset upDelays
+            v_new[1] = 0;
+            v_new[2] = 0;
+          }
+```
+Block 1 tests if the prevalence is below the moderate threshold, i.e. if there is no need for any interventions. If the prevalence is below the threshold, then the next test is if the previous state was above the major threshold. If this is true, it represents a sharp drop in prevalence. The previous state was under a major intervention, so the delay before lifting the major intervention is started. Meanwhile, `phi` is maintained at the major level. Only once the major intervention is lifted will the countdown to lifting moderate intervention begin.
+```
+          // past state B: minor intervention
+          else if(prev_0 > maxPrev2) {
+            // Logical: already doing minor intervention
+            if(prevDown21 > downDelay) {
+              v_new[0] = phi * (1-phiMoveDown) + phiTarget1 * phiMoveDown; // Transitioning toward no intervention
+              v_new[4] = 1; // start prevDown10 delay
+            }
+            // still doing major intervention
+            else {
+              v_new[0] = phi * (1-phiMoveUp) + phiTarget2 * phiMoveUp; // Maintaining major intervention
+              v_new[3] = prevDown21 + 1;  // Increase step toward completing major intervention
+              v_new[4] = 0; // Wait to start delay of prevDown10
+            }
+            // reset upDelays
+            v_new[1] = 0;
+            v_new[2] = 0;
+          }
+```
+Block 2 tests if the previous prevalence was above the moderate threshold. If true, it then tests whether the previous state was under a moderate intervention or a major intervention (the latter could be true if the countdown to lifting the major intervention is not yet complete). If the previous state was under a moderate intervention, the code starts the countdown to lifting the moderate intervention, but maintains the moderate intervention at this time step. If the previous state was under a major intervention, then the countdown to lifting the major intervention continues and `phi` is maintained at the major level.
+```
+          // past state C: baseline
+          else {
+            // Logical: already doing minor intervention and completed downDelay
+            if(prevDown10 > downDelay) {
+              v_new[0] = phi * (1-phiMoveDown) + phiBaseline * phiMoveDown; // Transition toward no interventions
+              v_new[9] = 0; // Setting previous state to baseline
+            }
+            // doing minor intervention but downDelay not complete
+            else if(prevDown21 > downDelay) {
+              v_new[0] = phi * (1-phiMoveDown) + phiTarget1 * phiMoveDown; // Transition toward minor intervention
+              v_new[4] = prevDown10 + 1; // Increase step toward completing low downDelay
+            }
+            // still doing major intervention
+            else {
+              v_new[0] = phi * (1-phiMoveUp) + phiTarget2 * phiMoveUp; // Maintain major intervention
+              v_new[3] = prevDown21 + 1; // Increase step toward completing high downDelay
+              v_new[4] = 0; // Wait to start delay of prevDown10
+            }
+          }
+        }
+```
+Block 3 tests if the previous prevalence was already below the moderate threshold. Then there are three possibilities: 1. There was no intervention in the past state, there was a moderate intervention in the past state, or there was a major intervention in the past state. These possibilities are handled similarly to Block 2.
+
+##### Moderate intervention
+(Note, earlier versions of code called this "minor" intervention - that terminology is deprecated but may still exist in the comments.
+The conditions for a moderate intervention are similar, but more extensive because prevalence could be increasing or decreasing into the moderate range. Otherwise the decision trees are similar.
+```
+else if(prev <= maxPrev2) {
+          // past state A: baseline
+          if(prev_0 <= maxPrev1) {
+            if(prevState_0 == 0) {
+              v_new[0] = phi * (1-phiMoveUp) + phiBaseline * phiMoveUp; // Maintaining no intervention
+              v_new[1] = 1; // starting delay to moderate intervention
+              // resetting prevUp12
+              v_new[2] = 0;
+            }
+            // // temporary wobble below moderate threshold while in moderate intervention
+            else if(prevState_0 == 1) {
+              v_new[0] = phi * (1-phiMoveDown) + phiTarget1 * phiMoveDown; // Maintaining moderate intervention
+            }
+            // temporary wobble below low threshold while in process of decreasing from major intervention
+            else if(prevState_0 == 2) {
+              v_new[0] = phi * (1-phiMoveDown) + phiTarget2 * phiMoveDown; // Maintaining major intervention
+              v_new[3] = prevDown21 + 1; // Increase step toward completing high downDelay
+            }
+          }
+```
+Block 1 tests if the prevalence is between the moderate and major thresholds, then tests if the previous prevalence was below the moderate threshold. The main difference in the decision tree allows for a temporary wobble below the moderate threshold, which could have reset counters and led to other complications.
+```
+          // past state B: major intervention
+          else if(prev_0 > maxPrev2) {
+              v_new[0] = phi * (1-phiMoveDown) + phiTarget2 * phiMoveDown; // Maintain major intervention
+              v_new[3] = 1; // Start delay toward completing major intervention
+              v_new[4] = 0; // reset downDelay10
+          }
+```
+Block 2 tests if the previous prevalence was above the major threshold.
+```
+          // past state C: moderate intervention
+          else {
+            // Moving up from baseline
+            if(prevState_0 == 0) {
+              if(prevUp01 > upDelay) {
+                v_new[0] = phi * (1-phiMoveUp) + phiTarget1 * phiMoveUp; // Transition toward moderate intervention
+                v_new[9] = 1; // Setting previous state to moderate intervention
+              } else {
+                v_new[0] = phi * (1-phiMoveUp) + phiBaseline * phiMoveUp; // Maintain no intervention
+                v_new[1] = prevUp01 + 1; // Increase step toward moderate intervention
+              }
+            }
+'''
+Block 3 tests if the previous prevalence was in the moderate intervention range, then tests if the prevalence is trending up. If true, it continues the `upDelay` counter or changes `phi` from baseline to `phiTarget1`.
+'''
+            else {
+              // Logical: already doing major intervention and completed downDelay
+              if(prevDown21 > downDelay) {
+                v_new[0] = phi * (1-phiMoveDown) + phiTarget1 * phiMoveDown; // Transition toward moderate intervention
+                v_new[9] = 1; // Setting previous state to moderate intervention
+              } else {
+                v_new[0] = phi * (1-phiMoveUp) + phiTarget2 * phiMoveUp; // Maintain major intervention
+                v_new[3] = prevDown21 + 1; // Increase step toward completing high downDelay
+              }
+              // resetting prevUps
+              v_new[1] = 0;
+              v_new[2] = 0;
+            }
+          }
+          v_new[10] = 0; // Reset pdCounter
+        }        
+```
+Block 4, in which previous prevalence was in the moderate range, tests if the prevalence is trending down. If true, it continues the `downDelay` counter or changes `phi` from the highest level to `phiTarget1`.
+
+##### Major intervention
+The code for a major intervention is the complement of the code for the baseline.
+```
+else {
+          // past state A: baseline
+          if(prev_0 <= maxPrev1) {
+            v_new[0] = phi * (1-phiMoveUp) + phiBaseline * phiMoveUp; // Maintaining no intervention
+            v_new[2] = 1; // Starting delay for major intervention (note: skips moderate intervention)
+            // Reset downDelays
+            v_new[3] = 0;
+            v_new[4] = 0;
+          }
+          // past state B: moderate intervention
+          else if(prev_0 <= maxPrev2) {
+            if(prevUp01 > upDelay) {
+              v_new[0] = phi * (1-phiMoveUp) + phiTarget1 * phiMoveUp; // Maintaining moderate intervention
+              v_new[1] = prevUp01 + 1;
+            } else {
+              v_new[0] = phi * (1-phiMoveUp) + phiBaseline * phiMoveUp; // Maintaining no intervention
+            }
+            v_new[2] = 1; // Starting delay for major intervention (note: may skip part of moderate intervention)
+            // resetting down delays
+            v_new[3] = 0;
+            v_new[4] = 0;
+          }
+          // past state C: major intervention
+          else {
+            if(prevUp12 > upDelay) {
+              v_new[0] = phi * (1-phiMoveUp) + phiTarget2 * phiMoveUp; // Transitioning toward major intervention
+              v_new[9] = 2; // Setting previous state to major intervention 
+            } else {
+              v_new[2] = prevUp12 + 1; // Increasing step toward start of major intervention
+              if(prevUp01 > upDelay) {
+                v_new[0] = phi * (1-phiMoveUp) + phiTarget1 * phiMoveUp; // Already doing moderate intervention
+              } else {
+                v_new[0] = phi * (1-phiMoveUp) + phiBaseline * phiMoveUp; // Still in state of no intervention
+                v_new[1] = prevUp01 + 1;
+              }
+            }
+          }
+          v_new[10] = 0; // Reset pdCounter
+        }
+```
+This whole chunk of code is wrapped in a policy test:
+```
+if(policy == 1) {
+This whole chunk of chode
+} else {
+        v_new[0] = phi * (1-phiMoveDown) + phiBaseline * phiMoveDown;
+        v_new[4] = prevDown10 + 1;
+      }
+```
+If policy == 0, then `phi` is just converged toward the baseline regardless of the prevalence.
+
+### And that's it
+After `phi` is updated, the post time step function is complete, and the time step increments.
