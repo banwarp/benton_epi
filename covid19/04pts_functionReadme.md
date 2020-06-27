@@ -378,7 +378,9 @@ The third section of code is long and complex. It uses a number of conditions to
 - is current prevalence above or below `maxPrev1` or `maxPrev2`.
 - was past prevalence above/below a different threshold (indicating that the state has changed over the past time step).
 - is an intervention currently in place, and is it the intervention that matches the current prevalence state.
-- have the delay(s) before changing `phi` been completed.
+- have the delay(s) before changing `phi` been completed.  
+
+##### Convergence of phi to a new target
 Whenever `phi` changes, it does so according to exponential convergence. This method was chosen largely because it obviates the need for a timer on the changing of `phi`, i.e., `phi` will converge toward its target, quickly get very close, but never reach or pass the target, unlike linear convergence. This is represented in the code by (for example) `v_new[0] = phi * (1-phiMoveUp) + phiTarget2 * phiMoveUp;`, where `phiMoveUp` is the parameter that determines the convergence rate.
 
 Each level of policy intervention (no intervention, moderate, and major) has its own section of code where the relevant conditions are tested. The code is reproduced here in blocks to make it simpler to describe what each block does.
