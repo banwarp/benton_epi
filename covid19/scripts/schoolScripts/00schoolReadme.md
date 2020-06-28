@@ -4,7 +4,7 @@ The school scripts are different enough from the other three sets of scripts tha
 The other readmes should be reviewed before reading through this readme, and the scripts themselves are commented in detail.
 
 ### Description of model
-Instead of a large, generally homogenous population where different nodes may be poorly defined, a school has a relatively small population (<400 for an elementary school, up to 2000 for a high school), in which the nodes can be very defined (e.g. by classroom or by grade), and in which there are at least two distinct types of individual, students and teachers that share a classroom, and teachers that rotate between classrooms. The school scripts can model different types of school structures, for example:
+Instead of a large, generally homogenous population where different nodes may be poorly defined, a school has a relatively small population (<400 for an elementary school, up to 2000 for a high school), in which the nodes can be very defined (e.g. by classroom or by grade), and in which there are at least two distinct types of individual: students and teachers that share a classroom, and teachers that rotate between classrooms. The school scripts can model different types of school structures, for example:
 - An elementary school where music, art, and PE teachers rotate between classrooms that otherwise don't mix.
 - A middle school with little mixing across grades, but where students in the same grade that don't share a homeroom may encounter each other in electives.
 - A high school with nearly homogeneous mixing within a grade and significant mixing across grades, where teachers encounter multiple different groups of students throughout the day.  
@@ -66,7 +66,7 @@ paste0("Ss ->",
 ```
 
 ##### Individual isolation
-Under individual isolation, any individual who is identified (through symptom monitoring or testing, for example) is shifted to an Isolation compartment. For example, if the proportion of presymptomatic people who are identified is `preDetectSuccess`, then at each time step, the transition would be: `"preSymps -> preDetectSuccess*preSympPeriod*preSymps -> Isos"`  
+Under individual isolation, any individual who is identified (through symptom monitoring or testing, for example) is shifted to an Isolation compartment. For example, if the proportion of symptomatic people who are identified is `sympDetectSuccess`, then at each time step, the transitions would include: `"Symps -> sympDetectSuccess*symptomaticPeriod*Symps -> Isos"` and `"Symps -> (1-sympDetectSuccess)*symptomaticPeriod*Symps -> postSymps"`.  
 The infection transtion does not include `Isos` or `Isot` terms to represent that these individuals are isolated.
 
 #### Continuous variables
@@ -152,23 +152,23 @@ In addition to tracking the time step (in school, after school, weekend, break),
 
 First the function counts the number of preSymptomatic, symptomatic, postSymptomatic, and asymptomatic individuals (combining stationary and transitory). The code generates a uniform random variable between 0 and 1. The detection will be successful if the random variable is above that day's threshold.  
 
-The threshold is computed by the complement of the product of the probability of not detecting any infections in each of the four compartments. I.e. 1-(P(no detection of preSymptomatic)*P(no detection of symptomatic)*P(no detection of postsymptomatic)*P(no detection of asymptomatic)*TimeFactor.  
+The threshold is computed by the complement of the product of the probability of not detecting any infections in each of the four compartments. I.e. 1-(P(no detection of preSymptomatic)*P(no detection of symptomatic)*P(no detection of postsymptomatic)*P(no detection of asymptomatic))*TimeFactor.  
 
 The Time Factor is included to allow for the probability of detection to depend not just on the number of infections, but also on how long there have been any infections in the classroom. This could reflect, for example, the gradual onset of symptoms or more careful monitoring if students seem fatigued. Time factor defaults to having no effect.
 
-If the random variable is below the probability of detection, then the classroom is put into quarantine (remote learning) for the user-defined number of days. This changes `outOfSchool` to reflect that students/teachers are not mixing in a classroom.
+If the random variable is below the probability of detection, then the classroom is put into quarantine (remote learning) for the user-defined number of days. This changes `outOfSchool` to reflect that students/teachers are not mixing in a classroom.  
 
 ##### Grade quarantine and school closure post time step functions
-These functions are similar to the classroom quarantine, but additional code is included so that a detected infection in one classroom sends not just the node into quarantine, but (for grades) all nodes in the node group or (for school) all nodes in the trial.
+These functions are similar to the classroom quarantine, but additional code is included so that a detected infection in one classroom sends not just the node into quarantine, but (for grades) all nodes in the node group or (for school) all nodes in the trial. Due to my lack of understanding of the complexities of the post-time step function, it takes an additional time step to propogate the quarantine from the classroom where the infection was detected to the grade/school, and again when quarantine is lifted. This is not ideal, but since the time step is only 1 hour, the error is negligible.
 
 #### Transfer events
-The SimInf package is very good at modeling population movements/contacts between classrooms in a school. To represent contacts between stationary populations, I randomly swap stationary individuals from one node to another. In real life, these individuals would not actuall swap classroom, but it is a good approximation for lower levels of mixing. To represent transitory individuals, I rotate transitory individuals in an orbit of nodes. I defined three types of transfers (in-group, out-group, and cross-group) for both types of populations (stationary and transitory). The transfers events data frame is built in a subroutine `transferFunction` in eventFunctions_school_06.2020.R.
+The SimInf package is very good at modeling population movements/contacts between classrooms in a school. To represent contacts between stationary populations, I randomly swap stationary individuals from one node to another. In real life, these individuals would not actually swap classrooms, but it is a good approximation for lower levels of mixing. To represent transitory individuals, I rotate transitory individuals in an orbit of nodes. I defined three types of transfers (in-group, out-group, and cross-group) for both types of populations (stationary and transitory). The transfers events data frame is built in a subroutine `transferFunction` in eventFunctions_school_06.2020.R.
 
 ##### Transfers for stationary populations
 Stationary populations can swap nodes within a group, to other groups, or across all groups. The process is largely the same. After defining the transfer rate, the code randomly selects nodes. The code selects a proportion of the population in each node, then randomly selects the destination within a node group (in-group), in any node group other than the node's group (out-group), or across all groups (cross-group). To balance populations, the same proportion is transfered from the destination node to the origination node.
 
 ##### Transfers for transitory populations
-Transitory populations can orbit nodes within a group, to other groups (which is not likely, but included for completeness), or across all groups. For example, an elementary school music teacher would orbit across all node groups (grades), while a high school calculus teacher may orbit among just the seniors node group. After defining the transfer rate, the code generates the complete list of relevant nodes. The destination is always the next node in the group (in-group), in the set of other groups (out-group), or in the trial (cross-group). The proportion of individuals who transfer is user-defined. There is no balancing of populations for transitory transfers.
+Transitory populations can orbit nodes within a group, to other groups (which is not likely, but included for completeness), or across all groups. For example, an elementary school music teacher would orbit across all node groups (grades), while a high school calculus teacher may orbit among just the senior's node group. After defining the transfer rate, the code generates the complete list of relevant nodes. The destination is always the next node in the group (in-group), in the set of other groups (out-group), or in the trial (cross-group). The proportion of individuals who transfer is user-defined. There is no balancing of populations for transitory transfers.
 
 #### Running the model and plotting the results
 The model is built and run the same way. I made some minor updates to the plotting script, specifically making the median trend an option instead of a default and allowing the user to define the name of the data, since with eight infectious compartments the name "preSymps_preSympt_Symps_Sympt_postSymps_postSympt_aSymps_aSympt" is both unwieldy and confusing.
