@@ -44,7 +44,7 @@ weekDays = unlist(list(rep(list(c(0,1)),18),rep(list(c(2,3)),18)),recursive=FALS
 breakDays = list(c("2020-11-23","2020-11-27"),    # List of school break days, each element has a start date and end date, can be Date or Numeric
 ```
 
-Note: It is possible to have MT and alternating Fridays by using `breakDays` to define the alternating Fridays.
+Note: It is possible to have alternating weeks by using `breakDays`. For example, you could define every other week to be a break week, or every other Friday in combination with Monday and Tuesday or Wednesday and Thursday.  
 
 #### Compartments
 The compartments in the model are as follows:
