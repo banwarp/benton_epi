@@ -28,7 +28,7 @@ breakDays = list(),                      # List of school break days, each eleme
 ```
 `dayTimes` defines the school day in the 24 hour clock. The default is 8am to 4pm. `weekDays` defines the school week in days, starting with Monday = 0. The default is Monday-Friday. `breakDays` defines the dates of school breaks in Dates or Numeric. The default is no breaks.  
 
-The code allows the user to simulate different schedules, like half-day school with half of the student body attending in the morning and half in the afternoon, or alternating days, with half of the students coming Monday, Tuesday, and half coming Wednesday, Thursday. (However, right now the code doesn't allow for MT and alternating F). These staggered schedules each have the own start/stop times or weekday/weekend days. The default is to assume the the whole school is on 8am-4pm; Monday-Friday, with no breaks. If there are no staggered schedules, the user can define just one set of parameters for `dayTimes`, `weekDays`, and `breakDays`. If there are staggered schedules, the code needs the schedule for each node. Here is are two alternate examples:  
+The code allows the user to simulate different schedules, like half-day school with half of the student body attending in the morning and half in the afternoon, or alternating days, with half of the students coming Monday, Tuesday, and half coming Wednesday, Thursday. These staggered schedules each have the own start/stop times or weekday/weekend days. The default is to assume the the whole school is on 8am-4pm; Monday-Friday, with no breaks. If there are no staggered schedules, the user can define just one set of parameters for `dayTimes`, `weekDays`, and `breakDays`. If there are staggered schedules, the code needs the schedule for each node. Here is are two alternate examples:  
 
 Suppose there are 18 classrooms in the school:
 - If half the students come in the morning each day, and half come in the afternoon, and everyone gets Thanksgiving Week off, there would be 36 nodes, and the parameters would be:
@@ -43,6 +43,8 @@ dayTimes = list(c(8,16)),                         # List of times between which 
 weekDays = unlist(list(rep(list(c(0,1)),18),rep(list(c(2,3)),18)),recursive=FALSE)     # List of days for the weekend
 breakDays = list(c("2020-11-23","2020-11-27"),    # List of school break days, each element has a start date and end date, can be Date or Numeric
 ```
+
+Note: It is possible to have MT and alternating Fridays by using `breakDays` to define the alternating Fridays.
 
 #### Compartments
 The compartments in the model are as follows:
