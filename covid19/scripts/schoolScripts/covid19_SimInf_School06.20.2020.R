@@ -73,10 +73,13 @@ covidSimulator <- function(
   ### continuous initialized parameters (v0)
   symptomaticProp = .65,                   # Average proportion of infectious who are symptomatic
   symptomaticVariance = 0,                 # Uniform variance of symptomatic proportion
-  schoolDay = 1,                           # Indicator for school day: 1 = school day, 0 = evening
-  schoolWeek = 1,                          # Indicator for school week: 1 = week, 0 = weekend
-  schoolTerm = 1,                          # Indicator for school term: 1 = school term, 0 = break
+  schoolDay = 1,                           # Indicator for school day: 1 = school day, 0 = evening, list for each node or single entry
+  schoolWeek = 1,                          # Indicator for school week: 1 = week, 0 = weekend, list for each node or single entry
+  schoolTerm = 1,                          # Indicator for school term: 1 = school term, 0 = break, list for each node or single entry
   noQuarantine = 1,                        # Indicator for classroom level quarantine: 1 = no quarantine, 0 = quarantine
+  dayTimes = list(c(8,16)),                # List of times between which school is in session for the given node
+  weekDays = list(c(0,4)),                 # List of days for the weekend
+  breakDays = list(),                      # List of school break days, each element has a start date and end date, can be Date or Numeric
   
   ### pts_fun parameters
   quarantineType = "individual",           # Is quarantine implemented: individual, classroom, grade, or school
@@ -91,7 +94,6 @@ covidSimulator <- function(
   detectSuccessTimeSig = 0,                # Second parameter for function to increase probability of observing as time goes on; can be linear, sigmoid, or uniform
   detectSuccessLowerBound = 1,             # Lower bound of probability of detection
   detectSuccessUpperBound = 1,             # Upper bound of probability of detection
-  breakDays = list(),                      # List of school break days, each element has a start date and end date, can be Date or Numeric
   noSchoolFactor = .2,                     # Factor to reduce beta when outside of school
   nightFactor = .05,                       # Transmission rate at night; incorporates afternoon also
   quarantineFactor = .1,                   # Factor to reduce beta when quarantine
@@ -163,16 +165,16 @@ covidSimulator <- function(
   source("transitionsScriptSchool_06.25.2020.R")
   source("eventFunctionsSchool_06.20.2020.R")
   source("simInfPlottingFunction_06.20.2020.R")
-  source("pts_funScript_school_06.25.2020.R")
+  source("pts_funScript_school_06.30.2020.R")
   if(is.null(folderPath)) {setwd("../")}
 
-  # # saving parameters
-  # if(is.null(folderPath)) {setwd("./parameters")}
-  # sink(paste0("parms",simID,".txt"))
-  # print("All parameters:")
-  # print(mget(names(formals())))
-  # sink()
-  # if(is.null(folderPath)) {setwd("../")}
+  # saving parameters
+  if(is.null(folderPath)) {setwd("./parameters")}
+  sink(paste0("parms",simID,".txt"))
+  print("All parameters:")
+  print(mget(names(formals())))
+  sink()
+  if(is.null(folderPath)) {setwd("../")}
 
   ####### Setting additional parameters #######
   
@@ -257,6 +259,40 @@ covidSimulator <- function(
     firstTrialNode = sort(rep.int(0:(numTrials-1)*N,N),method="quick"),
     betaRandomizer = rep(runif(numTrials,min=1-R0Spread,max=1+R0Spread),each=N)
   )
+  
+  # rep dayTimes, weekDays, and breakDays if needed and split into different lists
+  if(length(dayTimes) == 0) {dayTimes <- list(c(-1,-1))}
+  if(length(weekDays) == 0) {weekDays <- list(c(-1,-1))}
+  if(length(breakDays) == 0) {breakDays <- list(c(-1,-1))}
+  
+  maxDayTimes <- max(unlist(lapply(dayTimes,length)))
+  maxWeekDays <- max(unlist(lapply(weekDays,length)))
+  maxBreakDays <- max(unlist(lapply(breakDays,length)))
+  
+  if(length(dayTimes) == 1) {dayTimes <- rep(dayTimes,N)}
+  if(length(weekDays) == 1) {weekDays <- rep(weekDays,N)}
+  if(length(breakDays) == 1) {breakDays <- rep(breakDays,N)}
+  
+  dayTimeDF <- data.frame(matrix(data=-1,nrow=N,ncol=maxDayTimes))
+  for(i in 1:length(dayTimes)) {
+     dayTimeDF[i,c(1:length(dayTimes[[i]]))] <- dayTimes[[i]]
+  }
+  names(dayTimeDF) <- paste0("dt",1:maxDayTimes)
+  
+  weekDayDF <- data.frame(matrix(data=-1,nrow=N,ncol=maxWeekDays))
+  for(i in 1:length(weekDays)) {
+    weekDayDF[i,c(1:length(weekDays[[i]]))] <- weekDays[[i]]
+  }
+  names(weekDayDF) <- paste0("wd",1:maxWeekDays)
+  
+  breakDayDF <- data.frame(matrix(data=-1,nrow=N,ncol=maxBreakDays))
+  for(i in 1:length(breakDays)) {
+    breakDayDF[i,c(1:length(breakDays[[i]]))] <- breakDays[[i]]
+  }
+  names(breakDayDF) <- paste0("bd",1:maxBreakDays)
+  
+  ldata <- cbind(ldata,dayTimeDF,weekDayDF,breakDayDF)
+  
  
   # Transitions
   ##### Individual quarantine
@@ -334,21 +370,15 @@ covidSimulator <- function(
     quarTimer = rep(0,NnumTrials),                           # Timer for length of quarantine
     quarCounter = rep(0,NnumTrials),                         # Counter for number of quarantine events
     preDetectSuccess = rep(preDetectSuccess,NnumTrials),     # Probability of detecting a pre-symptomatic individual
+    preDetectFailure = rep(1-preDetectSuccess,NnumTrials),   # Probability of failing to detect a pre-symptomatic individual
     sympDetectSuccess = rep(sympDetectSuccess,NnumTrials),   # Probability of detecting a symptomatic individual
+    sympDetectFailure = rep(1-sympDetectSuccess,NnumTrials), # Probability of failing to detect a symptomatic individual
     postDetectSuccess = rep(postDetectSuccess,NnumTrials),   # Probability of detecting a post-symptomatic individual
-    asympDetectSuccess = rep(asympDetectSuccess,NnumTrials)  # Probability of detecting an asymptomatic individual
+    postDetectFailure = rep(1-postDetectSuccess,NnumTrials), # Probability of failing to detect a post-symptomatic individual
+    asympDetectSuccess = rep(asympDetectSuccess,NnumTrials),  # Probability of detecting an asymptomatic individual
+    asympDetectFailure = rep(1-asympDetectSuccess,NnumTrials) # Probability of failing to detect an asymptomatic individual
   )
-  
-  # change breakDays to numeric, if there are no breaks, creates a safety breakDays for the C code
-  if(length(breakDays) > 0) {
-    if(is.character(breakDays[[1]]))
-    {
-      breakDays <- lapply(breakDays, function(x) as.numeric(as.Date(x)) - as.numeric(as.Date("2020-01-01")) - startofSimDay)
-    }
-  } else {
-    breakDays <- list(c(maxT+1,maxT+1))
-  }
-  
+
   # building pts_fun
   if(quarantineType == "individual") {
     pts_fun <- pts_funScriptIndividualQ(
@@ -364,7 +394,9 @@ covidSimulator <- function(
       postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
       asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
       detVar = detectionProbabilityVar,       # Proportionate variable decrease in probability
-      bDays = breakDays,                      # List of school breaks, each element has start and end date
+      dTimes = maxDayTimes,                   # number of school day time start/stops
+      wDays = maxWeekDays,                    # number of school week start/stops
+      bDays = maxBreakDays,                   # number of school break start/stops
       noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
       night = nightFactor                     # proportionate reduction in beta at night
     )
@@ -386,7 +418,9 @@ covidSimulator <- function(
       dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
       dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
       qDays = quarantineDays,                 # Length in days of quarantine
-      bDays = breakDays,                      # List of school breaks, each element has start and end date
+      dTimes = maxDayTimes,                   # number of school day time start/stops
+      wDays = maxWeekDays,                    # number of school week start/stops
+      bDays = maxBreakDays,                   # number of school break start/stops
       noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
       night = nightFactor,                    # proportionate reduction in beta at night
       quarFactor = quarantineFactor           # proportionate reduction in beta due to quarantine
@@ -409,7 +443,9 @@ covidSimulator <- function(
       dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
       dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
       qDays = quarantineDays,                 # Length in days of quarantine
-      bDays = breakDays,                      # List of school breaks, each element has start and end date
+      dTimes = maxDayTimes,                   # number of school day time start/stops
+      wDays = maxWeekDays,                    # number of school week start/stops
+      bDays = maxBreakDays,                   # number of school break start/stops
       noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
       night = nightFactor,                    # proportionate reduction in beta at night
       quarFactor = quarantineFactor           # proportionate reduction in beta due to quarantine
@@ -432,7 +468,9 @@ covidSimulator <- function(
       dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
       dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
       qDays = quarantineDays,                 # Length in days of quarantine
-      bDays = breakDays,                      # List of school breaks, each element has start and end date
+      dTimes = maxDayTimes,                   # number of school day time start/stops
+      wDays = maxWeekDays,                    # number of school week start/stops
+      bDays = maxBreakDays,                   # number of school break start/stops
       noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
       night = nightFactor,                    # proportionate reduction in beta at night
       quarFactor = quarantineFactor           # proportionate reduction in beta due to quarantine
@@ -639,11 +677,12 @@ covidSimulator <- function(
   
   if(is.null(folderPath)) {setwd("./trajectories")}
   
-  # drawing plot of infectious +  isolated to get total infected
+  # drawing plot of active infectious
   trajPlotInfections <- simInfPlottingFunction(
     result = result,                           # model result
     table = "U",                               # which table: U or V
     compts= c("preSymps_preSympt_Symps_Sympt_postSymps_postSympt_aSymps_aSympt"),           # compartments that will be summed and plotted
+    newI = FALSE,              # Logical to plot new infections
     groups = plotGroups,                       # List of groups to aggregate and plot
     sumGroups = sumGroups,                     # Automatically sums over all groups
     uNames = names(u0),                        # list of compartments
@@ -659,7 +698,7 @@ covidSimulator <- function(
     enn = N,                                   # number of nodes per trial
     nT = numTrials,                            # number of trials in simulation
     startDate = startofSimDay,                 # start date of simulation
-    byHour = FALSE,                            # time span is by hours
+    byHour = TRUE,                            # time span is by hours
     dateBreaks = dateBreaks,          # plot parameter: Date axis format
     dataTitle = dataTitle,                    # Title of data
     titleString = paste0("Active infections in ",titleString),        # plot parameter: Title of plot
@@ -669,7 +708,70 @@ covidSimulator <- function(
     cString = cString                          # plot parameter: Plot caption
   )
   
+  # drawing plot of cumulative infectious
+  trajPlotCumI <- simInfPlottingFunction(
+    result = result,                           # model result
+    table = "U",                               # which table: U or V
+    compts= c("cumIs_cumIt"),           # compartments that will be summed and plotted
+    newI = FALSE,              # Logical to plot new infections
+    groups = plotGroups,                       # List of groups to aggregate and plot
+    sumGroups = sumGroups,                     # Automatically sums over all groups
+    uNames = names(u0),                        # list of compartments
+    vNames = NULL,                             # list of variables
+    rollM = rollM,                             # number of days for rolling mean
+    allTraj = allTraj,                         # Logical for plotting all simulation trajectories or just median and spread
+    plotRandomTrajs = plotRandomTrajs,         # If allTraj = true, can plot random trajectories, select the number desired
+    percentile = percentile,                   # percentile for central (or other) tendency
+    includeMedian = TRUE,                      # Whether to include the median
+    confIntv = confIntv,                       # confidence interval for plotting spread
+    nTM = nodeTrialMat,                        # node-Trial matrix
+    tS = tspan,                                # length of simulation
+    enn = N,                                   # number of nodes per trial
+    nT = numTrials,                            # number of trials in simulation
+    startDate = startofSimDay,                 # start date of simulation
+    byHour = TRUE,                            # time span is by hours
+    dateBreaks = dateBreaks,          # plot parameter: Date axis format
+    dataTitle = "Cumulative infections",                    # Title of data
+    titleString = paste0("Active infections in ",titleString),        # plot parameter: Title of plot
+    xString = "Date",                          # plot parameter: Title of x axis
+    yString = "Number of infections",          # plot parameter: Title of y axis
+    lString = lString,                         # plot parameter: Title of legend
+    cString = cString                          # plot parameter: Plot caption
+  )
+  
+  trajPlotNewI <- simInfPlottingFunction(
+    result = result,                           # model result
+    table = "U",                               # which table: U or V
+    compts= c("cumIs_cumIt"),           # compartments that will be summed and plotted
+    newI = TRUE,              # Logical to plot new infections
+    groups = plotGroups,                       # List of groups to aggregate and plot
+    sumGroups = sumGroups,                     # Automatically sums over all groups
+    uNames = names(u0),                        # list of compartments
+    vNames = NULL,                             # list of variables
+    rollM = rollM,                             # number of days for rolling mean
+    allTraj = allTraj,                         # Logical for plotting all simulation trajectories or just median and spread
+    plotRandomTrajs = plotRandomTrajs,         # If allTraj = true, can plot random trajectories, select the number desired
+    percentile = percentile,                   # percentile for central (or other) tendency
+    includeMedian = TRUE,                      # Whether to include the median
+    confIntv = confIntv,                       # confidence interval for plotting spread
+    nTM = nodeTrialMat,                        # node-Trial matrix
+    tS = tspan,                                # length of simulation
+    enn = N,                                   # number of nodes per trial
+    nT = numTrials,                            # number of trials in simulation
+    startDate = startofSimDay,                 # start date of simulation
+    byHour = TRUE,                            # time span is by hours
+    dateBreaks = dateBreaks,          # plot parameter: Date axis format
+    dataTitle = "Cumulative infections",                    # Title of data
+    titleString = paste0("Active infections in ",titleString),        # plot parameter: Title of plot
+    xString = "Date",                          # plot parameter: Title of x axis
+    yString = "Number of infections",          # plot parameter: Title of y axis
+    lString = lString,                         # plot parameter: Title of legend
+    cString = cString                          # plot parameter: Plot caption
+  )
+  
   ggsave(paste0(plotName,"I.png"),trajPlotInfections,width=9,height=5,units="in")
+  ggsave(paste0(plotName,"cumI.png"),trajPlotCumI,width=9,height=5,units="in")
+  ggsave(paste0(plotName,"newI.png"),trajPlotNewI,width=9,height=5,units="in")
   
   return(result)
 }
