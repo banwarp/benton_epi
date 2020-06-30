@@ -2,6 +2,7 @@
 
 # changes from simInfPlottingFunction5.30.2020.R
 # Option for user to choose title for data, e.g. "Infections" instead of "I"
+# Changed newI logic to accommodate multiple cumI compartments
 
 # changes from simInfPlottingFunction5.19.2020.R
 # Added option to plot all trajectories and highlight some random trajectories
@@ -27,6 +28,7 @@ simInfPlottingFunction <- function(
                                    result,                    # trajectory of the result
                                    table = "U",               # which table to get data from
                                    compts = "I",              # compartments/variables that will be plotted
+                                   newI = FALSE,              # Logical to plot new infections
                                    groups = NULL,             # List of groups to aggregate and plot
                                    sumGroups = TRUE,          # Automatically sums over all groups
                                    uNames = names(u0),        # list of compartments
@@ -55,6 +57,8 @@ simInfPlottingFunction <- function(
   # turns two-sided confidence interval into one-sided
   confIntv <- .5+confIntv/2
   
+  plotRandomTrajs <- min(plotRandomTrajs,nT)
+  
   if(is.null(dataTitle)) { dataTitle <- compts}
   
   # if groups are being plotted separately, only plot median and spread, not all trajectories
@@ -65,21 +69,24 @@ simInfPlottingFunction <- function(
   
   # if table is U or V
   if(table == "U") {
-    if(compts == "newI") {
-      uIndex <- which(uNames == "cumI")
+    if(newI) {
+      comptList <- unlist(strsplit(compts,"_"))
+      uIndex <- which(uNames %in% comptList)
       uIndices <- data.table(outer((0:(enn*nT-1))*length(uNames),uIndex,FUN = "+"))
-      names(uIndices) <- "cumI"
+      names(uIndices) <- comptList
       dt <- data.table(apply(uIndices,2,function(x) result@U[x,]))
-      dt[,trial:=rep.int(nTM$trial,max(tS))][,nodeGroup:=rep.int(nTM$nodeGroup,max(tS))][,time:=sort(rep.int(tS,enn*nT),method="quick")]
+      dt[,compts:=rowSums(.SD)][,(comptList):=NULL][,trial:=rep.int(nTM$trial,max(tS))][,nodeGroup:=rep.int(nTM$nodeGroup,max(tS))][,time:=sort(rep.int(tS,enn*nT),method="quick")]
       if(!is.null(groups)) {dt <- dt[nodeGroup %in% groups]}
       if(sumGroups) {
         traj <- dt[,lapply(.SD,sum),by=.(time,trial)]
-        traj[,newI:=c(0,diff(cumI)), by = trial]
+        traj[,newI:=c(0,diff(compts)), by = trial]
       } else {
         traj <- dt[,lapply(.SD,sum),by=.(time,trial,nodeGroup)]
-        traj[,newI:=c(0,diff(cumI)), by = .(trial,nodeGroup)]
+        traj[,newI:=c(0,diff(compts)), by = .(trial,nodeGroup)]
       }
-      traj[,cumI:=NULL]
+      traj[,compts:=NULL]
+      setcolorder(traj,c("time","trial","newI","nodeGroup"))
+      compts <- "newI"
     } else if(grepl("_",compts)){
       comptList <- unlist(strsplit(compts,"_"))
       uIndex <- which(uNames %in% comptList)
