@@ -71,14 +71,14 @@ transitionsIndividualIsolation <- function() {
            " -> preSymps + cumIs"
     ),                                                               # Infection: 
     "preSymps -> preDetectSuccess*preSympPeriod*preSymps -> Isos",        # Identification and Isolation of presymptomatic
-    "preSymps -> (1-preDetectSuccess)*symptomaticProp*preSympPeriod*preSymps -> Symps",        # Development of symptomatic disease among exposed: stationary
-    "preSymps -> (1-symptomaticProp)*preSympPeriod*preSymps -> aSymps",     # Development of asymptomatic disease among exposed: stationary
+    "preSymps -> preDetectFailure*symptomaticProp*preSympPeriod*preSymps -> Symps",        # Development of symptomatic disease among exposed: stationary
+    "preSymps -> preDetectFailure*(1-symptomaticProp)*preSympPeriod*preSymps -> aSymps",     # Development of asymptomatic disease among exposed: stationary
     "Symps -> sympDetectSuccess*symptomaticPeriod*Symps -> Isos",                             # Identification and Isolation of symptomatic
-    "Symps -> (1-sympDetectSuccess)*symptomaticPeriod*Symps -> postSymps",                             # Transition from symptomatic disease to recovered 
+    "Symps -> sympDetectFailure*symptomaticPeriod*Symps -> postSymps",                             # Transition from symptomatic disease to recovered 
     "postSymps -> postDetectSuccess*postSympPeriod*postSymps -> Isos",                # Identification and Isolation of postsymptomatic
-    "postSymps -> (1-postDetectSuccess)*postSympPeriod*postSymps -> Rs",                # Transition from post symptomatic to recovered
+    "postSymps -> postDetectFailure*postSympPeriod*postSymps -> Rs",                # Transition from post symptomatic to recovered
     "aSymps -> asympDetectSuccess*aSympPeriod*aSymps -> Isos",                            # Identification and Isolation of asymptomatic
-    "aSymps -> (1-asympDetectSuccess)*aSympPeriod*aSymps -> Rs",                            # Transition from asymptomatic disease to recovered: 
+    "aSymps -> asympDetectFailure*aSympPeriod*aSymps -> Rs",                            # Transition from asymptomatic disease to recovered: 
     "Isos -> isoPeriod*Isos -> Rs",                                # Transition from isolated to recovered
     "Rs -> (1-reSuscepRate)*tempImmPeriod*Rs -> Ims",                # Development of immunity: 
     
@@ -98,14 +98,14 @@ transitionsIndividualIsolation <- function() {
            " -> preSympt + cumIt"
     ),                                                               # Infection: 
     "preSympt -> preDetectSuccess*preSympPeriod*preSympt -> Isot",        # Identification and Isolation of presymptomatic
-    "preSympt -> (1-preDetectSuccess)*symptomaticProp*preSympPeriod*preSympt -> Sympt",        # Development of symptomatic disease among exposed: stationary
-    "preSympt -> (1-symptomaticProp)*preSympPeriod*preSympt -> aSympt",     # Development of asymptomatic disease among exposed: stationary
+    "preSympt -> preDetectFailure*symptomaticProp*preSympPeriod*preSympt -> Sympt",        # Development of symptomatic disease among exposed: stationary
+    "preSympt -> preDetectFailure*(1-symptomaticProp)*preSympPeriod*preSympt -> aSympt",     # Development of asymptomatic disease among exposed: stationary
     "Sympt -> sympDetectSuccess*symptomaticPeriod*Sympt -> Isot",                             # Identification and Isolation of symptomatic
-    "Sympt -> (1-sympDetectSuccess)*symptomaticPeriod*Sympt -> postSympt",                             # Transition from symptomatic disease to recovered 
+    "Sympt -> sympDetectFailure*symptomaticPeriod*Sympt -> postSympt",                             # Transition from symptomatic disease to recovered 
     "postSympt -> postDetectSuccess*postSympPeriod*postSympt -> Isot",                # Identification and Isolation of postsymptomatic
-    "postSympt -> (1-postDetectSuccess)*postSympPeriod*postSympt -> Rt",                # Transition from post symptomatic to recovered
+    "postSympt -> postDetectFailure*postSympPeriod*postSympt -> Rt",                # Transition from post symptomatic to recovered
     "aSympt -> asympDetectSuccess*aSympPeriod*aSympt -> Isot",                            # Identification and Isolation of asymptomatic
-    "aSympt -> (1-asympDetectSuccess)*aSympPeriod*aSympt -> Rt",                            # Transition from asymptomatic disease to recovered: 
+    "aSympt -> asympDetectFailure*aSympPeriod*aSympt -> Rt",                            # Transition from asymptomatic disease to recovered: 
     "Isot -> isoPeriod*Isot -> Rt",                                # Transition from isolated to recovered
     "Rt -> (1-reSuscepRate)*tempImmPeriod*Rt -> Imt"                # Development of immunity: 
   )
