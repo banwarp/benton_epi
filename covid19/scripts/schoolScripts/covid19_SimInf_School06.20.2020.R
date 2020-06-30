@@ -261,9 +261,15 @@ covidSimulator <- function(
   )
   
   # rep dayTimes, weekDays, and breakDays if needed and split into different lists
+  
   if(length(dayTimes) == 0) {dayTimes <- list(c(-1,-1))}
   if(length(weekDays) == 0) {weekDays <- list(c(-1,-1))}
   if(length(breakDays) == 0) {breakDays <- list(c(-1,-1))}
+  
+  # if breakDays are dates
+  if(is.character(unlist(breakDays))) {
+    breakDays <- lapply(breakDays,function(x) lapply(x, function(y) as.numeric(as.Date(y)) - as.numeric(as.Date("2020-01-01"))))
+  }
   
   maxDayTimes <- max(unlist(lapply(dayTimes,length)))
   maxWeekDays <- max(unlist(lapply(weekDays,length)))
