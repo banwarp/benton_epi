@@ -1,4 +1,7 @@
-# pts_funScript_schoolIndividualQ_06.25.2020.R
+# pts_funScript_schoolIndividualQ_06.30.2020.R
+
+# changes from pts_funScript06.25.2020.R
+# added functionality for multiple school times, days, breaks
 
 # changes from pts_funScript06.16.2020.R
 # Removed phi and associated code
@@ -47,12 +50,14 @@ pts_funScriptIndividualQ <- function(
   cosA = cosAmp,                          # Amplitude of seasonal variation in beta
   sympProp0 = symptomaticProp,            # Baseline high spreader proportion that gets re-randomized each time step
   sympVar = symptomaticVariance,          # Uniform variance of high spreader proportion
-  preDet = preDetectSuccess,             # Probability of detecting a pre-symptomatic individual
-  sympDet = sympDetectSuccess,           # Probability of detecting a symptomatic individual
-  postDet = postDetectSuccess,             # Probability of detecting a post-symptomatic individual
-  asympDet = asympDetectSuccess,         # Probability of detecting an asymptomatic individual
-  detVar = detectionProbabilityVar,     # Proportionate variable decrease in probability
-  bDays = breakDays,                       # List of school breaks, each element has start and end date
+  preDet = preDetectSuccess,              # Probability of detecting a pre-symptomatic individual
+  sympDet = sympDetectSuccess,            # Probability of detecting a symptomatic individual
+  postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
+  asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
+  detVar = detectionProbabilityVar,       # Proportionate variable decrease in probability
+  dTimes = maxDayTimes,                   # number of school day time start/stops
+  wDays = maxWeekDays,                    # number of school week start/stops
+  bDays = maxBreakDays,                   # number of school break start/stops
   noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
   night = nightFactor                     # proportionate reduction in beta at night
 ) {
@@ -92,17 +97,16 @@ pts_funScriptIndividualQ <- function(
     "; /* Probability of detecting an asymptomatic infection */
     const double detVar = ",
     detVar,
-    "; /* # Proportionate variable decrease in probability */",    
-    paste0("double bDays[",
-           length(bDays)*2,
-           "] = {",
-           paste(as.character(unlist(bDays)), collapse=", "),
-           "};"),
-    
-    "
-    const double numBreaks = ",
-    length(bDays),
-    "; /* Number of breaks in school year */
+    "; /* Proportionate variable decrease in probability */
+    const int dTimes = ",
+    dTimes,
+    "; /* number of school day time start/stops */
+    const int wDays = ",
+    wDays,
+    "; /* number of school week start/stops */
+    const int bDays = ",
+    bDays,
+    "; /* number of school break start/stops */
     const double noSchool = ",
     noSchool,
     "; /* Factor to reduce beta when outside of school */
@@ -118,6 +122,7 @@ pts_funScriptIndividualQ <- function(
     
     const int dayint = day - 1;
     
+    // continuous variables
     double outOfSchool = v[0];    // out-of-school factor
     double season = v[1];         // seasonality factor
     double sympProp = v[2];       // proportion of infections that are symptomatic
@@ -129,32 +134,81 @@ pts_funScriptIndividualQ <- function(
     // Starting to update variables
     
     // Update seasonal effect: one cosine wave over course of year, peak on Feb 1, trough on Aug 1
-    season = cosAmp * cos(pi * (day - 32 + startDay) / 180) + 1;
+    season = cosAmp * cos(pi * (day - 32 + startDay) / 182.5) + 1;
     
     // Generate random variable for proportion of new infectious who are symptomatic
     double rvSymp;
     rvSymp = (double)rand() / RAND_MAX;
     sympProp = sympProp0 + (rvSymp - .5) * 2 * sympVar;
-          
+    
+    // Attempting to detect infections
+    // Always test at 8am, for simplicity
+    // Positive detection moves individual to isolation right away, hence dividing by _Period
+    // Failure to detect does not move individual at higher rate, hence not dividing by _Period
+    if(tint % 24 == 8) {
+      rvDet = (double)rand() / RAND_MAX;
+      v_new[10] = preDet * (1 + (rvDet - 1) * detVar) / gdata[4];
+      v_new[11] = preDet * (1 + (rvDet - 1) * detVar);
+      
+      rvDet = (double)rand() / RAND_MAX;
+      v_new[12] = sympDet * (1 + (rvDet - 1) * detVar) / gdata[5];
+      v_new[13] = sympDet * (1 + (rvDet - 1) * detVar);
+      
+      rvDet = (double)rand() / RAND_MAX;
+      v_new[14] = postDet * (1 + (rvDet - 1) * detVar) / gdata[6];
+      v_new[15] = postDet * (1 + (rvDet - 1) * detVar);
+      
+      rvDet = (double)rand() / RAND_MAX;
+      v_new[16] = asympDet * (1 + (rvDet - 1) * detVar) / gdata[7];
+      v_new[17] = asympDet * (1 + (rvDet - 1) * detVar);
+    } else {
+      v_new[10] = 0;
+      v_new[11] = 1;
+      v_new[12] = 0;
+      v_new[13] = 1;
+      v_new[14] = 0;
+      v_new[15] = 1;
+      v_new[16] = 0;
+      v_new[17] = 1;
+    }
+    
     // School in session or not
-    if(tint % 24 < 8 || tint % 24 >= 16) {
-      schoolDay = 0;
-    } else {
-      schoolDay = 1;
+    
+    int j; // counter for dayTimes, weekDays, and breakDays
+    
+    // school day
+    // Safety so the first school time isn't overwritten by the test for the second time, etc.
+    double outSchool = 0;
+    for(j = 0; j < dTimes / 2; j++) {
+      if(tint % 24 < ldata[4 + 2 * j] || tint % 24 >= ldata[4 + 2 * j + 1]) {
+        schoolDay = 0;
+        outSchool = 1;
+      } else {
+        if(outSchool == 0) {
+          schoolDay = 1;
+        }
+      }
     }
     
-    if(dayint % 7 > 4) {
-      schoolWeek = 0;
-    } else {
-      schoolWeek = 1;
+    // week day
+    // Safety so the first school day isn't overwritten by the test for the second day, etc.
+    double weekend = 0;
+    for(j = 0; j < wDays / 2; j++){
+      if(dayint % 7 < ldata[4 + dTimes + 2 * j] || dayint % 7  > ldata[4 + dTimes + 2 * j + 1]) {
+        schoolWeek = 0;
+        weekend = 1;
+      } else {
+      if(weekend == 0) {
+          schoolWeek = 1;
+        }
+      }
     }
     
+    // school break
     // Safety so the first school break isn't overwritten by the test for the second break, etc.
     double onBreak = 0;
-    int j;
-    
-    for (j = 0; j < numBreaks; j++) {
-      if(day >= bDays[2 * j] && day < bDays[2 * j + 1]) {
+    for (j = 0; j < bDays / 2; j++) {
+      if(day >= ldata[4 + dTimes + wDays + 2 * j] && day < ldata[4 + dTimes + wDays + 2 * j + 1]) {
         schoolTerm = 0;
         onBreak = 1;
       } else {
@@ -181,18 +235,6 @@ pts_funScriptIndividualQ <- function(
     v_new[3] = schoolDay;
     v_new[4] = schoolWeek;
     v_new[5] = schoolTerm;
-    
-    rvDet = (double)rand() / RAND_MAX;
-    v_new[10] = preDet * (1 + (rvDet - 1) * detVar);
-    
-    rvDet = (double)rand() / RAND_MAX;
-    v_new[11] = sympDet * (1 + (rvDet - 1) * detVar);
-    
-    rvDet = (double)rand() / RAND_MAX;
-    v_new[12] = postDet * (1 + (rvDet - 1) * detVar);
-    
-    rvDet = (double)rand() / RAND_MAX;
-    v_new[13] = asympDet * (1 + (rvDet - 1) * detVar);
     
     return 0;"
   )
@@ -224,7 +266,9 @@ pts_funScriptClassQ <- function(
   dsTimeLB = detectSuccessLowerBound,    # Lower bound on probability of detecting as time increases
   dsTimeUB = dsTimeUpperBound,            # Upper bound on probability of detecting as time increases
   qDays = quarantineDays,                 # Length in days of quarantine/isolation
-  bDays = breakDays,                       # List of school breaks, each element has start and end date
+  dTimes = maxDayTimes,                   # number of school day time start/stops
+  wDays = maxWeekDays,                    # number of school week start/stops
+  bDays = maxBreakDays,                   # number of school break start/stops
   noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
   night = nightFactor,                     # proportionate reduction in beta at night
   quarFactor = quarantineFactor           # proportionate reduction in beta due to quarantine
@@ -278,17 +322,15 @@ pts_funScriptClassQ <- function(
     const double qDays = ",
     qDays,
     "; /* Number of days in quarantine */
-    ",
-    paste0("double bDays[",
-           length(bDays)*2,
-           "] = {",
-           paste(as.character(unlist(bDays)), collapse=", "),
-           "};"),
-    
-    "
-    const double numBreaks = ",
-    length(bDays),
-    "; /* Number of breaks in school year */
+    const int dTimes = ",
+    dTimes,
+    "; /* number of school day time start/stops */
+    const int wDays = ",
+    wDays,
+    "; /* number of school week start/stops */
+    const int bDays = ",
+    bDays,
+    "; /* number of school break start/stops */    
     const double noSchool = ",
     noSchool,
     "; /* Factor to reduce beta when outside of school */
@@ -321,7 +363,7 @@ pts_funScriptClassQ <- function(
     // Starting to update variables
     
     // Update seasonal effect: one cosine wave over course of year, peak on Feb 1, trough on Aug 1
-    season = cosAmp * cos(pi * (day - 32 + startDay) / 180) + 1;
+    season = cosAmp * cos(pi * (day - 32 + startDay) / 182.5) + 1;
     
     // Generate random variable for proportion of new infectious who are symptomatic
     double rvSymp;
@@ -371,24 +413,43 @@ pts_funScriptClassQ <- function(
       }
     }
     
-    if(tint % 24 < 8 || tint % 24 >= 16) {
-      schoolDay = 0;
-    } else {
-      schoolDay = 1;
+    // School in session or not
+    
+    int j; // counter for dayTimes, weekDays, and breakDays
+    
+    // school day
+    // Safety so the first school time isn't overwritten by the test for the second time, etc.
+    double outSchool = 0;
+    for(j = 0; j < dTimes / 2; j++) {
+      if(tint % 24 < ldata[4 + 2 * j] || tint % 24 >= ldata[4 + 2 * j + 1]) {
+        schoolDay = 0;
+        outSchool = 1;
+      } else {
+        if(outSchool == 0) {
+          schoolDay = 1;
+        }
+      }
     }
     
-    if(dayint % 7 > 4) {
-      schoolWeek = 0;
-    } else {
-      schoolWeek = 1;
+    // week day
+    // Safety so the first school day isn't overwritten by the test for the second day, etc.
+    double weekend = 0;
+    for(j = 0; j < wDays / 2; j++){
+      if(dayint % 7 < ldata[4 + dTimes + 2 * j] || dayint % 7  > ldata[4 + dTimes + 2 * j + 1]) {
+        schoolWeek = 0;
+        weekend = 1;
+      } else {
+      if(weekend == 0) {
+          schoolWeek = 1;
+        }
+      }
     }
     
+    // school break
     // Safety so the first school break isn't overwritten by the test for the second break, etc.
     double onBreak = 0;
-    int j;
-    
-    for (j = 0; j < numBreaks; j++) {
-      if(day >= bDays[2 * j] && day < bDays[2 * j + 1]) {
+    for (j = 0; j < bDays / 2; j++) {
+      if(day >= ldata[4 + dTimes + wDays + 2 * j] && day < ldata[4 + dTimes + wDays + 2 * j + 1]) {
         schoolTerm = 0;
         onBreak = 1;
       } else {
@@ -454,7 +515,9 @@ pts_funScriptGradeQ <- function(
   dsTimeLB = detectSuccessLowerBound,    # Lower bound on probability of detecting as time increases
   dsTimeUB = dsTimeUpperBound,            # Upper bound on probability of detecting as time increases
   qDays = quarantineDays,                 # Length in days of quarantine/isolation
-  bDays = breakDays,                       # List of school breaks, each element has start and end date
+  dTimes = maxDayTimes,                   # number of school day time start/stops
+  wDays = maxWeekDays,                    # number of school week start/stops
+  bDays = maxBreakDays,                   # number of school break start/stops
   noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
   night = nightFactor,                     # proportionate reduction in beta at night
   quarFactor = quarantineFactor           # proportionate reduction in beta due to quarantine
@@ -508,17 +571,15 @@ pts_funScriptGradeQ <- function(
     const double qDays = ",
     qDays,
     "; /* Number of days in quarantine */
-    ",
-    paste0("double bDays[",
-           length(bDays)*2,
-           "] = {",
-           paste(as.character(unlist(bDays)), collapse=", "),
-           "};"),
-    
-    "
-    const double numBreaks = ",
-    length(bDays),
-    "; /* Number of breaks in school year */
+    const int dTimes = ",
+    dTimes,
+    "; /* number of school day time start/stops */
+    const int wDays = ",
+    wDays,
+    "; /* number of school week start/stops */
+    const int bDays = ",
+    bDays,
+    "; /* number of school break start/stops */
     const double noSchool = ",
     noSchool,
     "; /* Factor to reduce beta when outside of school */
@@ -559,7 +620,7 @@ pts_funScriptGradeQ <- function(
     // Starting to update variables
     
     // Update seasonal effect: one cosine wave over course of year, peak on Feb 1, trough on Aug 1
-    season = cosAmp * cos(pi * (day - 32 + startDay) / 180) + 1;
+    season = cosAmp * cos(pi * (day - 32 + startDay) / 182.5) + 1;
     
     // Generate random variable for proportion of new infectious who are symptomatic
     double rvSymp;
@@ -567,27 +628,43 @@ pts_funScriptGradeQ <- function(
     sympProp = sympProp0 + (rvSymp - .5) * 2 * sympVar;
     
     
-    // during the school day
-    if(tint % 24 < 8 || tint % 24 >= 16) {
-      schoolDay = 0;
-    } else {
-      schoolDay = 1;
+    // School in session or not
+    
+    int j; // counter for dayTimes, weekDays, and breakDays
+    
+    // school day
+    // Safety so the first school time isn't overwritten by the test for the second time, etc.
+    double outSchool = 0;
+    for(j = 0; j < dTimes / 2; j++) {
+      if(tint % 24 < ldata[4 + 2 * j] || tint % 24 >= ldata[4 + 2 * j + 1]) {
+        schoolDay = 0;
+        outSchool = 1;
+      } else {
+        if(outSchool == 0) {
+          schoolDay = 1;
+        }
+      }
     }
     
-    // during the school week
-    if(dayint % 7 > 4) {
-      schoolWeek = 0;
-    } else {
-      schoolWeek = 1;
+    // week day
+    // Safety so the first school day isn't overwritten by the test for the second day, etc.
+    double weekend = 0;
+    for(j = 0; j < wDays / 2; j++){
+      if(dayint % 7 < ldata[4 + dTimes + 2 * j] || dayint % 7  > ldata[4 + dTimes + 2 * j + 1]) {
+        schoolWeek = 0;
+        weekend = 1;
+      } else {
+      if(weekend == 0) {
+          schoolWeek = 1;
+        }
+      }
     }
     
-    // during the school term
+    // school break
     // Safety so the first school break isn't overwritten by the test for the second break, etc.
     double onBreak = 0;
-    int j;
-    
-    for (j = 0; j < numBreaks; j++) {
-      if(day >= bDays[2 * j] && day < bDays[2 * j + 1]) {
+    for (j = 0; j < bDays / 2; j++) {
+      if(day >= ldata[4 + dTimes + wDays + 2 * j] && day < ldata[4 + dTimes + wDays + 2 * j + 1]) {
         schoolTerm = 0;
         onBreak = 1;
       } else {
@@ -713,7 +790,9 @@ pts_funScriptSchoolQ <- function(
   dsTimeLB = detectSuccessLowerBound,    # Lower bound on probability of detecting as time increases
   dsTimeUB = dsTimeUpperBound,            # Upper bound on probability of detecting as time increases
   qDays = quarantineDays,                 # Length in days of quarantine/isolation
-  bDays = breakDays,                       # List of school breaks, each element has start and end date
+  dTimes = maxDayTimes,                   # number of school day time start/stops
+  wDays = maxWeekDays,                    # number of school week start/stops
+  bDays = maxBreakDays,                   # number of school break start/stops
   noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
   night = nightFactor,                     # proportionate reduction in beta at night
   quarFactor = quarantineFactor           # proportionate reduction in beta due to quarantine
@@ -767,17 +846,15 @@ pts_funScriptSchoolQ <- function(
     const double qDays = ",
     qDays,
     "; /* Number of days in quarantine */
-    ",
-    paste0("double bDays[",
-           length(bDays)*2,
-           "] = {",
-           paste(as.character(unlist(bDays)), collapse=", "),
-           "};"),
-    
-    "
-    const double numBreaks = ",
-    length(bDays),
-    "; /* Number of breaks in school year */
+    const int dTimes = ",
+    dTimes,
+    "; /* number of school day time start/stops */
+    const int wDays = ",
+    wDays,
+    "; /* number of school week start/stops */
+    const int bDays = ",
+    bDays,
+    "; /* number of school break start/stops */
     const double noSchool = ",
     noSchool,
     "; /* Factor to reduce beta when outside of school */
@@ -816,7 +893,7 @@ pts_funScriptSchoolQ <- function(
     // Starting to update variables
     
     // Update seasonal effect: one cosine wave over course of year, peak on Feb 1, trough on Aug 1
-    season = cosAmp * cos(pi * (day - 32 + startDay) / 180) + 1;
+    season = cosAmp * cos(pi * (day - 32 + startDay) / 182.5) + 1;
     
     // Generate random variable for proportion of new infectious who are symptomatic
     double rvSymp;
@@ -824,27 +901,43 @@ pts_funScriptSchoolQ <- function(
     sympProp = sympProp0 + (rvSymp - .5) * 2 * sympVar;
     
     
-    // during the school day
-    if(tint % 24 < 8 || tint % 24 >= 16) {
-      schoolDay = 0;
-    } else {
-      schoolDay = 1;
+    // School in session or not
+    
+    int j; // counter for dayTimes, weekDays, and breakDays
+    
+    // school day
+    // Safety so the first school time isn't overwritten by the test for the second time, etc.
+    double outSchool = 0;
+    for(j = 0; j < dTimes / 2; j++) {
+      if(tint % 24 < ldata[4 + 2 * j] || tint % 24 >= ldata[4 + 2 * j + 1]) {
+        schoolDay = 0;
+        outSchool = 1;
+      } else {
+        if(outSchool == 0) {
+          schoolDay = 1;
+        }
+      }
     }
     
-    // during the school week
-    if(dayint % 7 > 4) {
-      schoolWeek = 0;
-    } else {
-      schoolWeek = 1;
+    // week day
+    // Safety so the first school day isn't overwritten by the test for the second day, etc.
+    double weekend = 0;
+    for(j = 0; j < wDays / 2; j++){
+      if(dayint % 7 < ldata[4 + dTimes + 2 * j] || dayint % 7  > ldata[4 + dTimes + 2 * j + 1]) {
+        schoolWeek = 0;
+        weekend = 1;
+      } else {
+      if(weekend == 0) {
+          schoolWeek = 1;
+        }
+      }
     }
     
-    // during the school term
+    // school break
     // Safety so the first school break isn't overwritten by the test for the second break, etc.
     double onBreak = 0;
-    int j;
-    
-    for (j = 0; j < numBreaks; j++) {
-      if(day >= bDays[2 * j] && day < bDays[2 * j + 1]) {
+    for (j = 0; j < bDays / 2; j++) {
+      if(day >= ldata[4 + dTimes + wDays + 2 * j] && day < ldata[4 + dTimes + wDays + 2 * j + 1]) {
         schoolTerm = 0;
         onBreak = 1;
       } else {
