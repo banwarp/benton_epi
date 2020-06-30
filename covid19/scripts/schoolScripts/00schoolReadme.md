@@ -11,13 +11,38 @@ Instead of a large, generally homogenous population where different nodes may be
 
 In addition to different school structures, I wanted to update the model to reflect a better understanding of symptomatic versus asymptomatic cases. In the school model, all individuals who are infected start out in the preSymptomatic compartment, then some proportion move to the Symptomatic compartment, and the rest move to the asymptomatic compartment. The symptomatic individuals move to the postsymptomatic compartment after a period of time. Each of these four compartments can have different R0s.  
 
-I also wanted to represent different approaches to controlling spread of the coronavirus. For example, an elementary school that is practicing strict cohorting would put each classroom in its own node and each grade in its own node group. The mixing between nodes in a node group could be low, and the mixing across nodegroups could be zero.  
+I also wanted to represent different approaches to controlling spread of the coronavirus. For example, an elementary school that is practicing strict cohorting would put each classroom in its own node and each grade in its own node group. The mixing between nodes in a node group could be low, and the mixing across nodegroups could be zero. Furthermore, schools could run half-days, alternating days, or other staggered schedules to reduce onsite populations.
 
-There are also different approaches if a case of the coronavirus is identified in the school. The school could choose to isolate just the positive individual, quarantine the classroom (which is to say, send everyone in the classroom home and do remote learning for that classroom for a number of days), quarantine the grade, or close the school. The user selects which approach to model.
+There are also different approaches if a case of the coronavirus is identified in the school. The school could choose to isolate just the positive individual, quarantine the classroom (which is to say, send everyone in the classroom home and do remote learning for that classroom for a number of days), quarantine the grade, or close the school. The user can select which approach to model.
 
-Finally, I wanted to recognize that school days, weekends, and breaks all affect disease dynamics, and transitory individuals may change nodes multiple times a day. Therefore the time step for this model is every hour, and the effective R0 changes after school, on weekends, on breaks, and during quarantine.  
+Finally, I wanted to recognize that school days, weekends, and breaks all affect disease dynamics, and transitory individuals may change nodes multiple times a day. Therefore the time step for this model is every hour, and the effective R0 changes after school, on weekends, on breaks, and during quarantine. Also, there can be different start/stop times or different weekdays/weekends for half-day or alternating-day schedules.  
 
 To simplify modeling, I removed parachuting infections and mass-entry. I assume that there are not mass-entry of new individuals into the relatively closed school population, and parachuted infections are replaced by user-defined infection events. The user could define a random set of infection events if desired to model parachuting.
+
+#### Staggered schedules
+The model incorporates the daily and weekly school schedule, and allows for different kinds of schedules. Here are the key parameters for setting up the school schedule:
+```
+dayTimes = list(c(8,16)),                # List of times between which school is in session for the given node
+weekDays = list(c(0,4)),                 # List of days for the weekend
+breakDays = list(),                      # List of school break days, each element has a start date and end date, can be Date or Numeric
+```
+`dayTimes` defines the school day in the 24 hour clock. The default is 8am to 4pm. `weekDays` defines the school week in days, starting with Monday = 0. The default is Monday-Friday. `breakDays` defines the dates of school breaks in Dates or Numeric. The default is no breaks.  
+
+The code allows the user to simulate different schedules, like half-day school with half of the student body attending in the morning and half in the afternoon, or alternating days, with half of the students coming Monday, Tuesday, and half coming Wednesday, Thursday. (However, right now the code doesn't allow for MT and alternating F). These staggered schedules each have the own start/stop times or weekday/weekend days. The default is to assume the the whole school is on 8am-4pm; Monday-Friday, with no breaks. If there are no staggered schedules, the user can define just one set of parameters for `dayTimes`, `weekDays`, and `breakDays`. If there are staggered schedules, the code needs the schedule for each node. Here is are two alternate examples:  
+
+Suppose there are 18 classrooms in the school:
+- If half the students come in the morning each day, and half come in the afternoon, and everyone gets Thanksgiving Week off, there would be 36 nodes, and the parameters would be:
+```
+dayTimes =  unlist(list(rep(list(c(8,12)),18),rep(list(c(12,16)),18)),recursive=FALSE) # List of times between which school is in session for the given node
+weekDays = list(c(0,4)),                          # List of days for the weekend
+breakDays = list(c("2020-11-23","2020-11-27"),    # List of school break days, each element has a start date and end date, can be Date or Numeric
+```
+- If instead half the students come on Monday and Tuesday, and the other half come on Wednesday and Thursday, and everyone gets Thanskgiving Week off, the parameter would be:
+```
+dayTimes = list(c(8,16)),                         # List of times between which school is in session for the given node
+weekDays = unlist(list(rep(list(c(0,1)),18),rep(list(c(2,3)),18)),recursive=FALSE)     # List of days for the weekend
+breakDays = list(c("2020-11-23","2020-11-27"),    # List of school break days, each element has a start date and end date, can be Date or Numeric
+```
 
 #### Compartments
 The compartments in the model are as follows:
@@ -66,7 +91,7 @@ paste0("Ss ->",
 ```
 
 ##### Individual isolation
-Under individual isolation, any individual who is identified (through symptom monitoring or testing, for example) is shifted to an Isolation compartment. For example, if the proportion of symptomatic people who are identified is `sympDetectSuccess`, then at each time step, the transitions would include: `"Symps -> sympDetectSuccess*symptomaticPeriod*Symps -> Isos"` and `"Symps -> (1-sympDetectSuccess)*symptomaticPeriod*Symps -> postSymps"`.  
+Under individual isolation, any individual who is identified (through symptom monitoring or testing, for example) is shifted to an Isolation compartment. For example, if the proportion of symptomatic people who are identified is `sympDetectSuccess`, then at each time step, the transitions would include: `"Symps -> sympDetectSuccess*symptomaticPeriod*Symps -> Isos"` and `"Symps -> sympDetectFailure*symptomaticPeriod*Symps -> postSymps"`.  
 The infection transtion does not include `Isos` or `Isot` terms to represent that these individuals are isolated.
 
 #### Continuous variables
@@ -85,16 +110,22 @@ As in the other scripts, the continuous variables are used to affect transitions
     quarTimer = rep(0,NnumTrials),                           # Timer for length of quarantine
     quarCounter = rep(0,NnumTrials),                         # Counter for number of quarantine events
     preDetectSuccess = rep(preDetectSuccess,NnumTrials),     # Probability of detecting a pre-symptomatic individual
+    preDetectFailure = rep(1-preDetectSuccess,NnumTrials),   # Probability of failing to detect a pre-symptomatic individual
     sympDetectSuccess = rep(sympDetectSuccess,NnumTrials),   # Probability of detecting a symptomatic individual
+    sympDetectFailure = rep(1-sympDetectSuccess,NnumTrials), # Probability of failing to detect a symptomatic individual
     postDetectSuccess = rep(postDetectSuccess,NnumTrials),   # Probability of detecting a post-symptomatic individual
-    asympDetectSuccess = rep(asympDetectSuccess,NnumTrials)  # Probability of detecting an asymptomatic individual
+    postDetectFailure = rep(1-postDetectSuccess,NnumTrials), # Probability of failing to detect a post-symptomatic individual
+    asympDetectSuccess = rep(asympDetectSuccess,NnumTrials),  # Probability of detecting an asymptomatic individual
+    asympDetectFailure = rep(1-asympDetectSuccess,NnumTrials) # Probability of failing to detect an asymptomatic individual
   )
 ```
 There are two main differences between the school scripts and the other scripts, both of which are reflected in `v0`.  
 
 First, since the time step is hourly and school is only in session about eight hours a day, five days a week, minus breaks like Winter Break, `schoolDay, schoolWeek, schoolTerm` track these different conditions and change the effective R0 accordingly.  
 
-Second, the school script does not use policy interventions to reduce R0 when prevalence grows. Instead, schools monitor for symptoms and then react by isolating the individual or quarantining the classroom, grade, or school.  `preDetectSuccess, sympDetectSuccess, postDetectSuccess, asympDetectSuccess` determine the success of symptom monitoring, and `noQuarantine, infectionTimer, quarTimer, quarCounter` are used for the quarantine process.
+Second, the school script does not use policy interventions to reduce R0 when prevalence grows. Instead, schools monitor for symptoms and then react by isolating the individual or quarantining the classroom, grade, or school.  `noQuarantine, infectionTimer, quarTimer, quarCounter` are used for the quarantine process.  
+
+`preDetectSuccess, sympDetectSuccess, postDetectSuccess, asympDetectSuccess` determine the success of symptom monitoring and `preDetectFailure, sympDetectFailure, postDetectFailure, asympDetectFailure` determine the failure of symptom monitoring. Theoretically, the success and failure probabilities sum to 1; however, the effect on the compartments of detection versus failure to detect are different: under the individual isolation model, successful detection of an infection results in an immediate removal to the isolation compartment (mathematically, it cancels out the reciprocal of the infectious period), but failure to detect does not immediately move the individual to the next compartment (mathematically, it retains the reciprocal of the infectious period). Therefore it is necessary to have two different parameters for the two different transitions. Note that `preDetectFailure`, etc., are only used in the individual isolation model.  
 
 #### Post time step function
 There are four post time step functions to choose from, Individual isolation, and classroom, grade, or school quarantine.
@@ -102,7 +133,7 @@ There are four post time step functions to choose from, Individual isolation, an
 ##### Individual isolation post time step function.
 Here are the arguments for `pts_funScriptIndividualQ`:
 ```
-pts_fun <- pts_funScriptIndividualQ(
+ pts_fun <- pts_funScriptIndividualQ(
       startDay = startofSimDay,               # start of simulation
       enn = N,                                # number of nodes in a trial
       numComp = length(compartments),         # number of compartments
@@ -115,12 +146,14 @@ pts_fun <- pts_funScriptIndividualQ(
       postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
       asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
       detVar = detectionProbabilityVar,       # Proportionate variable decrease in probability
-      bDays = breakDays,                      # List of school breaks, each element has start and end date
+      dTimes = maxDayTimes,                   # number of school day time start/stops, for staggered schedules
+      wDays = maxWeekDays,                    # number of school week start/stops, for staggered schedules
+      bDays = maxBreakDays,                   # number of school break start/stops, for staggered schedules
       noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
       night = nightFactor                     # proportionate reduction in beta at night
     )
 ```
-The post time step function for individual isolation mostly just tracks if the time step is in school or if it is after school, on the weekend, or on a break. It also randomizes the probability of detecting symptoms at each time step, within bounds.
+Every morning at 8am, the post time step function randomly identifies some proportion of infections, within bounds dictated by `preDet (etc.), detVar`. The detected infections will be moved to the isolation compartment at the next time step, while the unidentified infections will undergo normal transitions until the next day at 8am. The post time step function for individual isolation als tracks if the time step is in school or if it is after school, on the weekend, or on a break, for each of the staggered schedules.  
 
 ##### Quarantine post time step function (classroom quarantine).
 Here are the argumnets for `pts_funScriptClassQ`:
@@ -142,13 +175,15 @@ pts_fun <- pts_funScriptClassQ(
       dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
       dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
       qDays = quarantineDays,                 # Length in days of quarantine
-      bDays = breakDays,                      # List of school breaks, each element has start and end date
+      dTimes = maxDayTimes,                   # number of school day time start/stops, for staggered schedules
+      wDays = maxWeekDays,                    # number of school week start/stops, for staggered schedules
+      bDays = maxBreakDays,                   # number of school break start/stops, for staggered schedules
       noSchool = noSchoolFactor,              # proportionate reduction in beta out of school
       night = nightFactor,                    # proportionate reduction in beta at night
       quarFactor = quarantineFactor           # proportionate reduction in beta due to quarantine
     )
 ```
-In addition to tracking the time step (in school, after school, weekend, break), `pts_funScriptClassQ` also attempts to detect infectious individuals once each morning in each classroom (including weekends, although I could change this).  
+In addition to tracking the time step (in school, after school, weekend, break) for each staggered schedule, `pts_funScriptClassQ` also attempts to detect infectious individuals once each morning in each classroom (including weekends, although I could change this).  
 
 First the function counts the number of preSymptomatic, symptomatic, postSymptomatic, and asymptomatic individuals (combining stationary and transitory). The code generates a uniform random variable between 0 and 1. The detection will be successful if the random variable is above that day's threshold.  
 
