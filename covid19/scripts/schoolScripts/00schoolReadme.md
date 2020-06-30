@@ -76,6 +76,7 @@ In order to save space with complex transitions, I moved the transitions string 
 ##### Group quarantine
 Under Group quarantine, an identified case will lower the effective R0 to represent that the relevant group has been sent home and is not spending as much time with each other as they would in school. This can be achieved without actually moving the affected group to a different compartment by multiplying the infection transition by the term `outOfSchool`. `outOfSchool` is a continuous variable stored in `v` and updated as necessary (to be explained later):
 ```
+# Transition from Susceptible stationary to PreSymptomatic Stationary
 paste0("Ss ->",
            "outOfSchool*",
            "(ssD*(betaPre*preSymps+",
@@ -155,10 +156,10 @@ Here are the arguments for `pts_funScriptIndividualQ`:
       night = nightFactor                     # proportionate reduction in beta at night
     )
 ```
-Every morning at 8am, the post time step function randomly identifies some proportion of infections, within bounds dictated by `preDet (etc.), detVar`. The detected infections will be moved to the isolation compartment at the next time step, while the unidentified infections will undergo normal transitions until the next day at 8am. The post time step function for individual isolation als tracks if the time step is in school or if it is after school, on the weekend, or on a break, for each of the staggered schedules.  
+Every morning at 8am, the post time step function randomly identifies some proportion of infections, within bounds dictated by `preDet (etc.), detVar`. The detected infections will be moved to the isolation compartment at the next time step, while the unidentified infections will undergo normal transitions until the next day at 8am. The post time step function for individual isolation also tracks if the time step is in school or if it is after school, on the weekend, or on a break, for each of the staggered schedules.  
 
 ##### Quarantine post time step function (classroom quarantine).
-Here are the argumnets for `pts_funScriptClassQ`:
+Here are the arguments for `pts_funScriptClassQ`:
 ```
 pts_fun <- pts_funScriptClassQ(
       startDay = startofSimDay,               # start of simulation
