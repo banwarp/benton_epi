@@ -147,29 +147,29 @@ pts_funScriptIndividualQ <- function(
     // Failure to detect does not move individual at higher rate, hence not dividing by _Period
     if(tint % 24 == 8) {
       rvDet = (double)rand() / RAND_MAX;
-      v_new[10] = preDet * (1 + (rvDet - 1) * detVar) / gdata[4];
-      v_new[11] = preDet * (1 + (rvDet - 1) * detVar);
+      v_new[11] = preDet * (1 + (rvDet - 1) * detVar) / gdata[4];
+      v_new[12] = preDet * (1 + (rvDet - 1) * detVar);
       
       rvDet = (double)rand() / RAND_MAX;
-      v_new[12] = sympDet * (1 + (rvDet - 1) * detVar) / gdata[5];
-      v_new[13] = sympDet * (1 + (rvDet - 1) * detVar);
+      v_new[13] = sympDet * (1 + (rvDet - 1) * detVar) / gdata[5];
+      v_new[14] = sympDet * (1 + (rvDet - 1) * detVar);
       
       rvDet = (double)rand() / RAND_MAX;
-      v_new[14] = postDet * (1 + (rvDet - 1) * detVar) / gdata[6];
-      v_new[15] = postDet * (1 + (rvDet - 1) * detVar);
+      v_new[15] = postDet * (1 + (rvDet - 1) * detVar) / gdata[6];
+      v_new[16] = postDet * (1 + (rvDet - 1) * detVar);
       
       rvDet = (double)rand() / RAND_MAX;
-      v_new[16] = asympDet * (1 + (rvDet - 1) * detVar) / gdata[7];
-      v_new[17] = asympDet * (1 + (rvDet - 1) * detVar);
+      v_new[17] = asympDet * (1 + (rvDet - 1) * detVar) / gdata[7];
+      v_new[18] = asympDet * (1 + (rvDet - 1) * detVar);
     } else {
-      v_new[10] = 0;
-      v_new[11] = 1;
-      v_new[12] = 0;
-      v_new[13] = 1;
-      v_new[14] = 0;
-      v_new[15] = 1;
-      v_new[16] = 0;
-      v_new[17] = 1;
+      v_new[11] = 0;
+      v_new[12] = 1;
+      v_new[13] = 0;
+      v_new[14] = 1;
+      v_new[15] = 0;
+      v_new[16] = 1;
+      v_new[17] = 0;
+      v_new[18] = 1;
     }
     
     // School in session or not
@@ -265,6 +265,7 @@ pts_funScriptClassQ <- function(
   dsTimeSig = detectSuccessTimeSig,      # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
   dsTimeLB = detectSuccessLowerBound,    # Lower bound on probability of detecting as time increases
   dsTimeUB = dsTimeUpperBound,            # Upper bound on probability of detecting as time increases
+  fPos = falsePositive,                   # False positive for detecting infection
   qDays = quarantineDays,                 # Length in days of quarantine/isolation
   dTimes = maxDayTimes,                   # number of school day time start/stops
   wDays = maxWeekDays,                    # number of school week start/stops
@@ -319,6 +320,9 @@ pts_funScriptClassQ <- function(
     const double dsTimeUB = ",
     1 - dsTimeUB,
     "; /* Upper bound on probability of detecting as time increases */
+    const double fPos = ",
+    fPos,
+    "; /* False positive rate for detecting infection */
     const double qDays = ",
     qDays,
     "; /* Number of days in quarantine */
@@ -349,6 +353,15 @@ pts_funScriptClassQ <- function(
     
     const int dayint = day - 1;
     
+    // False positive detection
+    double fpDetector = 0;
+    
+    // Classroom population
+    int k;
+    double pop = 0;
+    for(k = 0; k < 14; k++)
+    pop += u[k];
+    
     double outOfSchool = v[0];    // out-of-school factor
     double season = v[1];         // seasonality factor
     double sympProp = v[2];       // proportion of infections that are symptomatic
@@ -359,6 +372,7 @@ pts_funScriptClassQ <- function(
     int infectionTimer = v[7]; // Timer for tracking how long classroom has at least one infection
     double quarTimer = v[8];      // Timer for tracking how long quarantine has been going on
     double quarCounter = v[9];    // Counting number of quarantines for this classroom
+    double fpCounter = v[10];     // Counting number of false positive events for this classroom
     
     // Starting to update variables
     
@@ -375,7 +389,7 @@ pts_funScriptClassQ <- function(
     const double Symp_i = u[4] + u[5];
     const double postSymp_i = u[6] + u[7];
     const double aSymp_i = u[8] + u[9];
-    double PnoDetectPre, PnoDetectS, PnoDetectPost, PnoDetectA, PTimeFactor, PDetect, rvDetect;
+    double PnoDetectPre, PnoDetectS, PnoDetectPost, PnoDetectA, PTimeFactor, PDetect, rvDetect, rvFPos;
     int infectionTimerInt;
     
     // Update infectionTimer
@@ -398,6 +412,18 @@ pts_funScriptClassQ <- function(
           noQuarantine = 0;
           quarTimer = 0;
           quarCounter++;
+        } else {
+          for(k = 0; k < pop; k++) {
+            rvFPos = (double)rand() / RAND_MAX;
+            if(rvFPos < fPos) {
+              fpDetector++;
+            }
+          }
+          if(fpDetector > 0) {
+            noQuarantine = 0;
+            quarTimer = 0;
+            fpCounter++;
+          }
         }
       }
     } else {
@@ -483,6 +509,7 @@ pts_funScriptClassQ <- function(
     v_new[7] = infectionTimer;
     v_new[8] = quarTimer;
     v_new[9] = quarCounter;
+    v_new[10] = fpCounter;
     
     return 0;"
   )
@@ -514,6 +541,7 @@ pts_funScriptGradeQ <- function(
   dsTimeSig = detectSuccessTimeSig,      # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
   dsTimeLB = detectSuccessLowerBound,    # Lower bound on probability of detecting as time increases
   dsTimeUB = dsTimeUpperBound,            # Upper bound on probability of detecting as time increases
+  fPos = falsePositive,                   # False positive for detecting infection
   qDays = quarantineDays,                 # Length in days of quarantine/isolation
   dTimes = maxDayTimes,                   # number of school day time start/stops
   wDays = maxWeekDays,                    # number of school week start/stops
@@ -568,6 +596,9 @@ pts_funScriptGradeQ <- function(
     const double dsTimeUB = ",
     1 - dsTimeUB,
     "; /* Upper bound on probability of detecting as time increases */
+    const double fPos = ",
+    fPos,
+    "; /* False positive rate for detecting infection */
     const double qDays = ",
     qDays,
     "; /* Number of days in quarantine */
@@ -591,7 +622,7 @@ pts_funScriptGradeQ <- function(
     "; /* Factor to reduce beta in quarantine */
     
     
-    // For quarType 2
+    // For grade quarantine
     const int *u_0 = &u[-Nc*node]; // Very first node in simulation
     const double *v_0 = &v[-Nv*node]; // Very first entry in v0
     const int firstInGroup = ldata[0]; // first node in node group
@@ -606,6 +637,9 @@ pts_funScriptGradeQ <- function(
     
     const int dayint = day - 1;
     
+    // False positive detection
+    double fpDetector = 0;
+    
     double outOfSchool = v[0];    // out-of-school factor
     double season = v[1];         // seasonality factor
     double sympProp = v[2];       // proportion of infections that are symptomatic
@@ -616,6 +650,7 @@ pts_funScriptGradeQ <- function(
     double quarTimer = v_0[firstInGroup * Nv + 8];  // Timer for tracking how long grade has at least one infection
     double quarCounter = v_0[firstInGroup * Nv + 9]; // Timer for tracking how long quarantine has been going on
     int infectionTimer = v_0[firstInGroup * Nv + 7]; // Counting number of quarantines for this grade
+    double fpCounter = v[10];     // Counting number of false positive events for this classroom
     
     // Starting to update variables
     
@@ -677,17 +712,21 @@ pts_funScriptGradeQ <- function(
     // Grade quarantine
     
     // Count number of active infections in grade
+    int k;
     
-    double preSymp_i = 0, Symp_i = 0, postSymp_i = 0, aSymp_i = 0;
+    double preSymp_i = 0, Symp_i = 0, postSymp_i = 0, aSymp_i = 0, pop = 0;
         int m;
         for(m = firstInGroup; m < firstInGroup + numberNodeGroup; m++) {
           preSymp_i += u_0[m * Nc + 2] + u_0[m * Nc + 3];
           Symp_i += u_0[m * Nc + 4] + u_0[m * Nc + 5];
           postSymp_i += u_0[m * Nc + 6] + u_0[m * Nc + 7];
-          aSymp_i = u_0[m * Nc + 8] + u_0[m * Nc + 9];
+          aSymp_i += u_0[m * Nc + 8] + u_0[m * Nc + 9];
+          for(k = 0; k < 14; k++) {
+            pop += u_0[m * Nc + k];
+          }
         }
     
-    double PnoDetectPre, PnoDetectS, PnoDetectPost, PnoDetectA, PTimeFactor, PDetect = 0, rvDetect = 0;
+    double PnoDetectPre, PnoDetectS, PnoDetectPost, PnoDetectA, PTimeFactor, PDetect = 0, rvDetect, rvFPos;
         int infectionTimerInt;
   
       // Test all students in a grade, but only once per day, instead of testing all students in a grade for each class  
@@ -715,7 +754,21 @@ pts_funScriptGradeQ <- function(
             quarTimer = 0;  // quarTimer
             quarCounter++; // quarCounter
           }
-        } // End of active infection, no quarantine logic
+          else {
+            for(k = 0; k < pop; k++) {
+              rvFPos = (double)rand() / RAND_MAX;
+              if(rvFPos < fPos) {
+                fpDetector++;
+              }
+            }
+            if(fpDetector > 0) {
+              noQuarantine = 0;
+              quarTimer = 0;
+              fpCounter++;
+            }
+          }
+        }
+        // End of active infection, no quarantine logic
         // If no active infections or if quarantine
         else {
             infectionTimer = 0;  // infectionTimer
@@ -756,6 +809,7 @@ pts_funScriptGradeQ <- function(
     v_new[7] = infectionTimer;
     v_new[8] = quarTimer;
     v_new[9] = quarCounter;
+    v_new[10] = fpCounter;
     
     return 0;"
   )
@@ -789,6 +843,7 @@ pts_funScriptSchoolQ <- function(
   dsTimeSig = detectSuccessTimeSig,      # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
   dsTimeLB = detectSuccessLowerBound,    # Lower bound on probability of detecting as time increases
   dsTimeUB = dsTimeUpperBound,            # Upper bound on probability of detecting as time increases
+  fPos = falsePositive,                   # False positive for detecting infection
   qDays = quarantineDays,                 # Length in days of quarantine/isolation
   dTimes = maxDayTimes,                   # number of school day time start/stops
   wDays = maxWeekDays,                    # number of school week start/stops
@@ -843,6 +898,9 @@ pts_funScriptSchoolQ <- function(
     const double dsTimeUB = ",
     1 - dsTimeUB,
     "; /* Upper bound on probability of detecting as time increases */
+    const double fPos = ",
+    fPos,
+    "; /* False positive rate for detecting infection */
     const double qDays = ",
     qDays,
     "; /* Number of days in quarantine */
@@ -866,7 +924,7 @@ pts_funScriptSchoolQ <- function(
     "; /* Factor to reduce beta in quarantine */
     
     
-    // For quarType 2
+    // For school closure
     const int *u_0 = &u[-Nc*node]; // Very first node in simulation
     const double *v_0 = &v[-Nv*node]; // Very first entry in v0
     const int firstInTrial = ldata[2]; // first node in node group
@@ -879,6 +937,9 @@ pts_funScriptSchoolQ <- function(
     
     const int dayint = day - 1;
     
+    // False positive detection
+    double fpDetector = 0;
+    
     double outOfSchool = v[0];    // out-of-school factor
     double season = v[1];         // seasonality factor
     double sympProp = v[2];       // proportion of infections that are symptomatic
@@ -889,6 +950,7 @@ pts_funScriptSchoolQ <- function(
     double quarTimer = v_0[firstInTrial * Nv + 8];  // Timer for tracking how long grade has at least one infection
     double quarCounter = v_0[firstInTrial * Nv + 9]; // Timer for tracking how long quarantine has been going on
     int infectionTimer = v_0[firstInTrial * Nv + 7]; // Counting number of quarantines for this grade
+    double fpCounter = v[10];     // Counting number of false positive events for this classroom
     
     // Starting to update variables
     
@@ -949,21 +1011,25 @@ pts_funScriptSchoolQ <- function(
     
     // Grade quarantine
     
-    // Count number of active infections in school
+    // Count number of active infections in school, and population in school
+    int k;
     
-    double preSymp_i = 0, Symp_i = 0, postSymp_i = 0, aSymp_i = 0;
+    double preSymp_i = 0, Symp_i = 0, postSymp_i = 0, aSymp_i = 0, pop = 0;
         int m;
         for(m = firstInTrial; m < firstInTrial + Nn; m++) {
           preSymp_i += u_0[m * Nc + 2] + u_0[m * Nc + 3];
           Symp_i += u_0[m * Nc + 4] + u_0[m * Nc + 5];
           postSymp_i += u_0[m * Nc + 6] + u_0[m * Nc + 7];
-          aSymp_i = u_0[m * Nc + 8] + u_0[m * Nc + 9];
+          aSymp_i += u_0[m * Nc + 8] + u_0[m * Nc + 9];
+          for(k = 0; k < 14; k++) {
+            pop += u_0[m * Nc + k];
+          }
         }
     
-    double PnoDetectPre, PnoDetectS, PnoDetectPost, PnoDetectA, PTimeFactor, PDetect = 0, rvDetect = 0;
+    double PnoDetectPre, PnoDetectS, PnoDetectPost, PnoDetectA, PTimeFactor, PDetect = 0, rvDetect, rvFPos;
         int infectionTimerInt;
   
-      // Test all students in a grade, but only once per day, instead of testing all students in a grade for each class  
+      // Test all students in the school, but only once per day, instead of testing all students in the school for each class  
       
       // Update infectionTimer
       if(node == firstInTrial) {
@@ -987,8 +1053,21 @@ pts_funScriptSchoolQ <- function(
             noQuarantine = 0;  // noQuarantine
             quarTimer = 0;  // quarTimer
             quarCounter++; // quarCounter
+          }  // If no infections detected, try for false positives
+          else {
+            for(k = 0; k < pop; k++) {
+              rvFPos = (double)rand() / RAND_MAX;
+              if(rvFPos < fPos) {
+                fpDetector++;
+              }
+            }
+            if(fpDetector > 0) {
+              noQuarantine = 0;
+              quarTimer = 0;
+              fpCounter++;
+            }
           }
-        } // End of active infection, no quarantine logic
+        }
         // If no active infections or if quarantine
         else {
             infectionTimer = 0;  // infectionTimer
@@ -1029,6 +1108,7 @@ pts_funScriptSchoolQ <- function(
     v_new[7] = infectionTimer;
     v_new[8] = quarTimer;
     v_new[9] = quarCounter;
+    v_new[10] = fpCounter;
     
     return 0;"
   )
