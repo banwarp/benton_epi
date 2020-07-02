@@ -97,6 +97,7 @@ covidSimulator <- function(
   noSchoolFactor = .2,                     # Factor to reduce beta when outside of school
   nightFactor = .05,                       # Transmission rate at night; incorporates afternoon also
   quarantineFactor = .1,                   # Factor to reduce beta when quarantine
+  falsePositive = 0,                       # False positive rate for disease detection
   
   ### *day* specified infection events parameters - list to allow multiple events
   infectionEventsDF = NULL,                # pre-built infection spreader events data frame if the events will be preset before the script is run
@@ -375,6 +376,7 @@ covidSimulator <- function(
     infectionTimer = rep(0,NnumTrials),                      # Timer for length that at least one infection is present in node
     quarTimer = rep(0,NnumTrials),                           # Timer for length of quarantine
     quarCounter = rep(0,NnumTrials),                         # Counter for number of quarantine events
+    fpCounter = rep(0,NnumTrials),                           # False positive counter
     preDetectSuccess = rep(preDetectSuccess,NnumTrials),     # Probability of detecting a pre-symptomatic individual
     preDetectFailure = rep(1-preDetectSuccess,NnumTrials),   # Probability of failing to detect a pre-symptomatic individual
     sympDetectSuccess = rep(sympDetectSuccess,NnumTrials),   # Probability of detecting a symptomatic individual
@@ -423,6 +425,7 @@ covidSimulator <- function(
       dsTimeSig = detectSuccessTimeSig,       # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
       dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
       dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
+      fPos = falsePositive,                   # False positive for detecting infection
       qDays = quarantineDays,                 # Length in days of quarantine
       dTimes = maxDayTimes,                   # number of school day time start/stops
       wDays = maxWeekDays,                    # number of school week start/stops
@@ -448,6 +451,7 @@ covidSimulator <- function(
       dsTimeSig = detectSuccessTimeSig,       # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
       dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
       dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
+      fPos = falsePositive,                   # False positive for detecting infection
       qDays = quarantineDays,                 # Length in days of quarantine
       dTimes = maxDayTimes,                   # number of school day time start/stops
       wDays = maxWeekDays,                    # number of school week start/stops
@@ -473,6 +477,7 @@ covidSimulator <- function(
       dsTimeSig = detectSuccessTimeSig,       # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
       dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
       dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
+      fPos = falsePositive,                   # False positive for detecting infection
       qDays = quarantineDays,                 # Length in days of quarantine
       dTimes = maxDayTimes,                   # number of school day time start/stops
       wDays = maxWeekDays,                    # number of school week start/stops
