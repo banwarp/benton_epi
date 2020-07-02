@@ -90,10 +90,6 @@ covidSimulator <- function(
   postDetectSuccess = 0,                   # Probability of observing a post-symptomatic individual
   asympDetectSuccess = 0,                  # Probability of observing an asymptomatic individual
   detectionProbabilityVar = 0,             # Proportionate variable decrease in detection probability - only decreases probability, never increases
-  detectSuccessTimeMu = 0,                 # First parameter for function to increase probability of observing as time goes on; can be linear, sigmoid, or uniform
-  detectSuccessTimeSig = 0,                # Second parameter for function to increase probability of observing as time goes on; can be linear, sigmoid, or uniform
-  detectSuccessLowerBound = 1,             # Lower bound of probability of detection
-  detectSuccessUpperBound = 1,             # Upper bound of probability of detection
   noSchoolFactor = .2,                     # Factor to reduce beta when outside of school
   nightFactor = .05,                       # Transmission rate at night; incorporates afternoon also
   quarantineFactor = .1,                   # Factor to reduce beta when quarantine
@@ -166,7 +162,7 @@ covidSimulator <- function(
   source("transitionsScriptSchool_06.25.2020.R")
   source("eventFunctionsSchool_06.20.2020.R")
   source("simInfPlottingFunction_06.20.2020.R")
-  source("pts_funScript_school_06.30.2020.R")
+  source("pts_funScript_school_07.02.2020.R")
   if(is.null(folderPath)) {setwd("../")}
 
   # saving parameters
@@ -373,7 +369,6 @@ covidSimulator <- function(
     schoolWeek = rep(schoolWeek,NnumTrials),                 # Indicator for school week: 1 = week, 0 = weekend
     schoolTerm = rep(schoolTerm,NnumTrials),                 # Indicator for school term: 1 = school term, 0 = break
     noQuarantine = rep(noQuarantine,NnumTrials),             # Indicator for classroom level quarantine: 1 = no quarantine, 0 = quarantine
-    infectionTimer = rep(0,NnumTrials),                      # Timer for length that at least one infection is present in node
     quarTimer = rep(0,NnumTrials),                           # Timer for length of quarantine
     quarCounter = rep(0,NnumTrials),                         # Counter for number of quarantine events
     fpCounter = rep(0,NnumTrials),                           # False positive counter
@@ -421,10 +416,6 @@ covidSimulator <- function(
       sympDet = sympDetectSuccess,            # Probability of detecting a symptomatic individual
       postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
       asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
-      dsTimeMu = detectSuccessTimeMu,         # First parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeSig = detectSuccessTimeSig,       # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
-      dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
       fPos = falsePositive,                   # False positive for detecting infection
       qDays = quarantineDays,                 # Length in days of quarantine
       dTimes = maxDayTimes,                   # number of school day time start/stops
@@ -447,10 +438,6 @@ covidSimulator <- function(
       sympDet = sympDetectSuccess,            # Probability of detecting a symptomatic individual
       postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
       asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
-      dsTimeMu = detectSuccessTimeMu,         # First parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeSig = detectSuccessTimeSig,       # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
-      dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
       fPos = falsePositive,                   # False positive for detecting infection
       qDays = quarantineDays,                 # Length in days of quarantine
       dTimes = maxDayTimes,                   # number of school day time start/stops
@@ -473,10 +460,6 @@ covidSimulator <- function(
       sympDet = sympDetectSuccess,            # Probability of detecting a symptomatic individual
       postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
       asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
-      dsTimeMu = detectSuccessTimeMu,         # First parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeSig = detectSuccessTimeSig,       # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
-      dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
       fPos = falsePositive,                   # False positive for detecting infection
       qDays = quarantineDays,                 # Length in days of quarantine
       dTimes = maxDayTimes,                   # number of school day time start/stops
