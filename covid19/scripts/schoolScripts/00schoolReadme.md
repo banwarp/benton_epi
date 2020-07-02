@@ -109,7 +109,6 @@ As in the other scripts, the continuous variables are used to affect transitions
     schoolWeek = rep(schoolWeek,NnumTrials),                 # Indicator for school week: 1 = week, 0 = weekend
     schoolTerm = rep(schoolTerm,NnumTrials),                 # Indicator for school term: 1 = school term, 0 = break
     noQuarantine = rep(noQuarantine,NnumTrials),             # Indicator for classroom level quarantine: 1 = no quarantine, 0 = quarantine
-    infectionTimer = rep(0,NnumTrials),                      # Timer for length that at least one infection is present in node
     quarTimer = rep(0,NnumTrials),                           # Timer for length of quarantine
     quarCounter = rep(0,NnumTrials),                         # Counter for number of quarantine events
     preDetectSuccess = rep(preDetectSuccess,NnumTrials),     # Probability of detecting a pre-symptomatic individual
@@ -126,7 +125,7 @@ There are two main differences between the school scripts and the other scripts,
 
 First, since the time step is hourly and school is only in session about eight hours a day, five days a week, minus breaks like Winter Break, `schoolDay, schoolWeek, schoolTerm` track these different conditions and change the effective R0 accordingly.  
 
-Second, the school script does not use policy interventions to reduce R0 when prevalence grows. Instead, schools monitor for symptoms and then react by isolating the individual or quarantining the classroom, grade, or school.  `noQuarantine, infectionTimer, quarTimer, quarCounter` are used for the quarantine process.  
+Second, the school script does not use policy interventions to reduce R0 when prevalence grows. Instead, schools monitor for symptoms and then react by isolating the individual or quarantining the classroom, grade, or school.  `noQuarantine, quarTimer, quarCounter` are used for the quarantine process. `fpCounter` counts the number of false positive events.  
 
 `preDetectSuccess, sympDetectSuccess, postDetectSuccess, asympDetectSuccess` determine the success of symptom monitoring and `preDetectFailure, sympDetectFailure, postDetectFailure, asympDetectFailure` determine the failure of symptom monitoring. Theoretically, the success and failure probabilities sum to 1; however, the effect on the compartments of detection versus failure to detect are different: under the individual isolation model, successful detection of an infection results in an immediate removal to the isolation compartment (mathematically, it cancels out the reciprocal of the infectious period), but failure to detect does not immediately move the individual to the next compartment (mathematically, it retains the reciprocal of the infectious period). Therefore it is necessary to have two different parameters for the two different transitions. Note that `preDetectFailure`, etc., are only used in the individual isolation model.  
 
@@ -173,10 +172,7 @@ pts_fun <- pts_funScriptClassQ(
       sympDet = sympDetectSuccess,            # Probability of detecting a symptomatic individual
       postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
       asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
-      dsTimeMu = detectSuccessTimeMu,         # First parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeSig = detectSuccessTimeSig,       # Second parameter for function to increase probability of detecting as time goes on; can be linear, sigmoid, or uniform
-      dsTimeLB = detectSuccessLowerBound,     # Lower bound on probability of detecting as time increases
-      dsTimeUB = detectSuccessUpperBound,     # Upper bound on probability of detecting as time increases
+      fPos = falsePositive,                   # Probability of getting a false positive through symptom monitoring
       qDays = quarantineDays,                 # Length in days of quarantine
       dTimes = maxDayTimes,                   # number of school day time start/stops, for staggered schedules
       wDays = maxWeekDays,                    # number of school week start/stops, for staggered schedules
@@ -192,7 +188,7 @@ First the function counts the number of preSymptomatic, symptomatic, postSymptom
 
 The threshold is computed by the complement of the product of the probability of not detecting any infections in each of the four compartments. I.e. 1-(P(no detection of preSymptomatic)*P(no detection of symptomatic)*P(no detection of postsymptomatic)*P(no detection of asymptomatic))*TimeFactor.  
 
-The Time Factor is included to allow for the probability of detection to depend not just on the number of infections, but also on how long there have been any infections in the classroom. This could reflect, for example, the gradual onset of symptoms or more careful monitoring if students seem fatigued. Time factor defaults to having no effect.
+`fPos` is included in case the user wants to model false positive detection of cases. This allows the model to explore the effects of different levels of caution. For example, if a runny nose would institute a quarantine, setting `fPos` somewhat high would cause lots of unnecessary quarantines.
 
 If the random variable is below the probability of detection, then the classroom is put into quarantine (remote learning) for the user-defined number of days. This changes `outOfSchool` to reflect that students/teachers are not mixing in a classroom.  
 
