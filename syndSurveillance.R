@@ -128,7 +128,7 @@ syndSamples <- function(n,      # population
   p <- syndSuccess(n,k,prev,sensitivity)
   return(rbinom(nTrials,nSamp,p))
 }
-    
+
 # Based on estimated community prevalence, what is the expected number of cases
 # that will be identified when testing a sample of size k
 syndExpected <- function(n,k,prev,sensitivity) {
@@ -160,6 +160,7 @@ syndPower <- function(N,              # population of community
                       n,              # population of subgroup
                       k,              # size of sample in subgroup that will be tested
                       prev,           # community prevalence as decimal or count
+                      infLikelihood = 1, # Likelihood of infection
                       sensitivity = 1, # sensitivity of test
                       asymp = 1      # proportion of cases that are asymptomatic
 ) {
@@ -170,7 +171,7 @@ syndPower <- function(N,              # population of community
   # for each possible positive number of cases x, compute P(x|prevalence in community)*P(no detection|x cases in subgroup)
   # sum these probabilities to get pwrInverse
   for(x in 1:min(n,prev)){
-    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity = 1)*(1-syndSuccess(n,k,x,sensitivity))
+    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity = infLikelihood)*(1-syndSuccess(n,k,x,sensitivity = 1))
   }
   # power is probability of detecting given presence of disease = (1-P(missing | presence))
   pwr <- (1-pwrInverse)                
