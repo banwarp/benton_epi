@@ -294,7 +294,8 @@ syndExpected(10000,500,.005,.95)
 
 ### syndPower
 Along with `syndExact`, `syndPower` is the function that requires the closest inspection. The goal is to compute an analogue of statistical Power for surveillance in a subgroup within a community where the disease exists. Suppose you know the prevalence `prev` in the community with population `N` and you want to conduct surveillance in a subgroup like a school or long term care facility with population `n`. What is the likelihood that you will detect the disease in the subgroup by sampling `k` people? This depends on the likelihood that the disease is in the subgroup, specifically how many cases are in the subgroup, which is determined by `syndExact`. It also depends on the likelihood that the one or more case will be detected given a certain number of cases within the subgroup. This is determined by `syndSuccess` for each possible number of cases in the subgroup. In order to compute the Power, we sum the product of `syndExact(N,n,prev) * (1-synSuccess(n,k,x))` for every `x` from 1 to the minimum of `prev` and `k`. This gives us the probability of failing to detect the disease given its presence, so Power is the additive complement (i.e. 1-P(failing to detect | presence of disease)).  
-Furthermore, detection of disease depends on the sensitivity of the test, so `sensitivity` is passed to `syndExact` and `syndSuccess`:
+The number of cases depends in part on the likelihood of individual infection, so `infLikelihood` is passed to `syndExact` (remember that `sensitivity` in `syndExact` can represent both sensitivity of the test and likelihood of infection.  
+Detection of disease depends on the sensitivity of the test, so `sensitivity` is passed to `syndSuccess`.  
 Also, if we assume that any symptomatic person will be tested immediately, then we really only care about surveillance if the whole subgroup is asymptomatic. `asymp` reduces the prevalence to only asymptomatic people. E.g. `asymp = .35` means that 35% of cases are asymptomatic, and `syndPower` uses `prev*asymp` as its prevalence.  
 
 ```
@@ -302,6 +303,7 @@ syndPower <- function(N,               # population of community
                       n,               # population of subgroup
                       k,               # size of sample in subgroup that will be tested
                       prev,            # community prevalence as decimal or count
+                      infLikelihood = 1 # Likelihood of infection
                       sensitivity = 1, # sensitivity of test, defaults to 1
                       asymp = 1        # proportion of cases that are asymptomatic, defaults to 1
                       ) {
@@ -312,7 +314,7 @@ syndPower <- function(N,               # population of community
   # for each possible positive number of cases x, compute P(x|prevalence in community)*P(no detection|x cases in subgroup)
   # sum these probabilities to get pwrInverse
   for(x in 1:min(n,prev)){
-    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity=1)*(1-syndSuccess(n,k,x,sensitivity))
+    pwrInverse <- pwrInverse + syndExact(N,n,x,prev,sensitivity=infLikelihood)*(1-syndSuccess(n,k,x,sensitivity = 1))
   }
   # power is probability of detecting given presence of disease = (1-P(no detection | presence))
   pwr <- (1-pwrInverse)                
@@ -321,7 +323,7 @@ syndPower <- function(N,               # population of community
 ```
 
 #### Example of using `syndPower`
-Suppose that the community population is `N=8`, the subgroup population is `n=5`, you will sample `k=3` people, and the community prevalence of asymptomatic cases is `prev=2`. For simplicity, we assume that `sensitivity = 1`.
+Suppose that the community population is `N=8`, the subgroup population is `n=5`, you will sample `k=3` people, and the community prevalence of asymptomatic cases is `prev=2`. For simplicity, we assume that `infLikelihood, sensitivity = 1`.
 - There are `choose(N,n) = choose(8,5)` possible subgroups.
 ```
 combn(8,5)
@@ -370,4 +372,4 @@ combn(5,3)
 There are still `choose(5,3)` ways to select our sample for testing, and now individuals 1 and 2 are cases.  Now only 1 of the 10 combinations excludes both individuals 1 and 2.
 
 ##### Computing Power
-The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. Therefore the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2,sensitivity=1,asymp=1) = 0.75`.
+The probability that we fail to detect the disease given that it is present is therefore ` (30/56) * (4/10) + (20/56) * (1/10) = 0.25`. Therefore the Power of our sampling scheme is `(1-0.25)*1 = 0.75`. You can confirm that `syndPower(8,5,3,2,infLikelihood=1,sensitivity=1,asymp=1) = 0.75`.
