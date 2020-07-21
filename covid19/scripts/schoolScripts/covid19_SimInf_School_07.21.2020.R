@@ -1,4 +1,4 @@
-# covid19_SimInf_School_07.04.2020.R
+# covid19_SimInf_School_07.21.2020.R
 
 # copyright Peter Banwarth Benton County Health Department 2020
 
@@ -12,6 +12,10 @@
 
 # Bauer P, Engblom S, Widgren S (2016) Fast event-based epidemiological simulations on national scales.
 # International Journal of High Performance Computing Applications, 30(4), 438--453. doi: 10.1177/1094342016635723
+
+# changes from covid19_SimInf_School_07.04.2020.R
+# Updated parameters to most recent literature
+# Sources: 
 
 # changes from covid19_SimInf_School06.20.2020.R
 # Changed pts_fun to let user define the case number for which quarantine is started.
@@ -62,7 +66,7 @@ covidSimulator <- function(
   R0symp = 2,                              # Basic reproduction number for symptomatic
   R0post = .5,                             # Basic reproduction number for postsymptomatic
   R0asymp = .8,                            # Basic reproduction number for asymptomatic
-  studentTeacherDiff = rep(1,3),           # Differential R0 for stationary-stationary, transitory-transitory, and stationary-transitory interactions
+  studentTeacherDiff = rep(1,4),           # Differential R0 for stationary-stationary, transitory-transitory, and stationary-transitory interactions
   preSympPeriod = 1/3,                     # Reciprocal of presymptomatic period
   symptomaticPeriod = 1/4,                 # Reciprocal of symptomatic period
   postSympPeriod = 1/6,                    # Reciprocal of post-symptomatic period
@@ -249,8 +253,9 @@ covidSimulator <- function(
     reSuscepRate = reSuscepRate,               # Proportion of recovered who become re-susceptible
     tempImmPeriod = tempImmPeriod/24,          # Reciprocal of recovered period before re-susceptibility
     ssD = studentTeacherDiff[1],               # Differential on R0 for stationary-stationary interactions
-    ttD = studentTeacherDiff[2],               # Differential on R0 for transitory-transitory interactions
-    stD = studentTeacherDiff[3]                # Differential on R0 for stationary-transitory interactions
+    stD = studentTeacherDiff[2],               # Differential on R0 for stationary-transitory interactions
+    tsD = studentTeacherDiff[3],               # Differential on R0 for transitory-stationary interactiosn
+    ttD = studentTeacherDiff[4]                # Differential on R0 for transitory-transitory interactions
   )
   
   # local parameters
@@ -419,13 +424,13 @@ covidSimulator <- function(
     postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
     asympDet = asympDetectSuccess,          # Probability of detecting an asymptomatic individual
     detVar = detectionProbabilityVar,       # Proportionate variable decrease in probability
-    cThreshold = classroomThreshold,
-    gThreshold = gradeThreshold,
-    sThreshold = schoolThreshold,
-    cClassrooms = countClassrooms,
-    qDaysC = quarantineDaysClassroom,                 # Length in days of quarantine
-    qDaysG = quarantineDaysGrade,                 # Length in days of quarantine
-    qDaysS = quarantineDaysSchool,                 # Length in days of quarantine
+    cThreshold = classroomThreshold,        # Threshold for classroom quarantine
+    gThreshold = gradeThreshold,            # Threshold for grade quarantine
+    sThreshold = schoolThreshold,           # Threshold for school quarantine
+    cClassrooms = countClassrooms,          # Logical if to include classrooms that are on quarantine when deciding if to quarantine grades/school
+    qDaysC = quarantineDaysClassroom,       # Length in days of quarantine
+    qDaysG = quarantineDaysGrade,           # Length in days of quarantine
+    qDaysS = quarantineDaysSchool,          # Length in days of quarantine
     dTimes = maxDayTimes,                   # number of school day time start/stops
     wDays = maxWeekDays,                    # number of school week start/stops
     bDays = maxBreakDays,                   # number of school break start/stops
