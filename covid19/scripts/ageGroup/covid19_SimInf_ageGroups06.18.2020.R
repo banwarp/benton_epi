@@ -1,20 +1,5 @@
 # covid19_SimInf_ageGroups06.16.2020.R
 
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-##################### NEED TO TEST THIS SCRIPT #######################
-
 # copyright Peter Banwarth Benton County Health Department 2020
 
 # Using package SimInf to model stochastic disease spread
@@ -116,15 +101,15 @@ covidWrapper <- function(
   folderPath = NULL,                       # folder path for subroutines and output
   simID = "covid.mo.day.2020.Generic",     # Simulation ID
   simDate = "2020-06-01",                  # Start date of simulation
-  maxT = 10,                              # Length of simulation in days
-  numTrials = 2,                           # Number of trials in simulation
+  maxT = 365,                              # Length of simulation in days
+  numTrials = 100,                           # Number of trials in simulation
   
   ### population parameters
-  trialPop = 1000,                         # Total population in each trial
-  N = 3,                                  # Number of population nodes
+  trialPop = 65000,                         # Total population in each trial
+  N = 100,                                  # Number of population nodes
   nodeGroupList = NULL,                    # List of group IDs for node groups. Default is 1 group of nodes.
-  S0Prop = c(.25,.25,.25,.25),                 # Initial population: 0-17
-  I0Prop = rep(.1,4),                   # Initial proportion of infectious: 0-17
+  S0Prop = c(.21,.15,.46,.18),                 # Initial population proportions
+  I0Prop = c(.001,.005,.002,.001),                   # Initial proportion of infectious
   maxINodeProp = 1/10,                     # Maximum proportion of nodes that intially have one or more infectious
   I0nodeGroups = list(NULL,NULL,NULL,NULL), # Node groups where initial infectious are distributed by age group
   E0Pop = rep(0,4),                               # Initial number of exposed; all ages
@@ -140,7 +125,16 @@ covidWrapper <- function(
   R0I = 1.9,                               # Basic reproduction number for first infectiousPeriod days
   R0P = .125,                              # Basic reproduction number for post infectious (after successful monitoring)
   R0U = 1,                                 # Basic reproduction number for remaining infectious period if monitoring fails
-  RFactor = rep(1,10),                     # Factor to adjust the reproductive number within and between different age groups.
+  RFactor = c(1,                           # kid-kid
+              .75,                         # kid-youngadult
+              1,                           # kid-adult
+              .75,                         # kid-senior
+              1.25,                           # youngadult-youngadult
+              .75,                         # youngadult-adult
+              .5,                         # youngadult-senior
+              1,                           # adult-adult
+              1,                           # adult-senior
+              1),                          # senior-senior
   initInfectiousPeriod = 1/4,              # Reciprocal of initial infectious period
   postInfectiousPeriod = 1/10,             # Reciprocal of post-infectious period
   unknownInfectiousPeriod = 1/6,           # Reciprocal of remaining, unknown-infectious period
@@ -149,11 +143,11 @@ covidWrapper <- function(
   monitoringSuccess = rep(.25,4),          # Proportion of infectious whose symptoms are identified and moved to post-infectious; each age group
   hospRateExp = .033,                      # Proportion of isolated that are hospitalized - should match overall population hospitalization rate
   hospRatePost = .16,                      # Proportion of successfully identified cases who are hospitalized - should match observed hospitalization rate
-  hospRateFactor = rep(1,4),               # Factor to adjust hospitalization rate for each age group.
+  hospRateFactor = c(.05,.1,.2,1),               # Factor to adjust hospitalization rate for each age group.
   hospPeriod = 1/10,                       # Reciprocal of length of hospitalization period
   nonHospDeathRate = 0,                    # Non-hospitalized fatality rate
   hospDeathRate = .125,                    # Hospitalized fatality rate NOT CASE FATALITY RATE
-  deathRateFactor = rep(1,4),              # Factor to adjust mortality rate for each age group.
+  deathRateFactor = c(.05,.1,.2,1),              # Factor to adjust mortality rate for each age group.
   reSuscepRate = .1,                       # Proportion of recovereds who eventually become susceptible again
   tempImmPeriod = 1/100,                   # Reciprocal of temporary immunity period, after which R becomes Im or S
   
@@ -161,10 +155,10 @@ covidWrapper <- function(
   R0Spread = .1,                           # Uniform variation in R0 across trials (measured as %change from R0)
   
   ### continuous initialized parameters (v0)
-  phi0 = 2.9/.9,                           # Initial phi under the March 23rd stay-at-home orders
-  highSpreadProp = .5,                     # Average proportion of infectious who are high spreaders
+  phi0 = 2.9/2,                           # Initial phi under the March 23rd stay-at-home orders
+  highSpreadProp = .2,                     # Average proportion of infectious who are high spreaders
   highSpreadVariance = 0,                  # Uniform variance of high spreader proportion
-  highSpreadRate = .5,                     # Proportion of new cases caused by high spreaders - called rate to differentiate from highSpreadProp; defaults to no difference
+  highSpreadRate = .8,                     # Proportion of new cases caused by high spreaders - called rate to differentiate from highSpreadProp; defaults to no difference
   
   ### pts_fun parameters
   cosAmp = 0.25,                           # Amplitude of seasonal variation in beta
@@ -172,8 +166,8 @@ covidWrapper <- function(
   RNoAction = NULL,                        # Ongoing baseline Rt if no actions at are all taken
   RTarget1 = 1.5,                          # Target for the reduction in R under minor intervention
   RTarget2 = .9,                           # Target for the reduction in R under major intervention
-  maxPrev1 = .0005,                         # Maximum prevalence before instituting minor intervention
-  maxPrev2 = .001,                         # Maximum prevalence before instituting major intervention
+  maxPrev1 = .001,                         # Maximum prevalence before instituting minor intervention
+  maxPrev2 = .002,                         # Maximum prevalence before instituting major intervention
   upDelay = 10,                            # Number of days after prevalence passes threshold until minor/major intervention
   downDelay = 28,                          # Number of days after prevalence drops below threshold until intervention lifted
   phiMoveUp = .25,                         # Rate at which phi increases when interventions are imposed
@@ -186,7 +180,7 @@ covidWrapper <- function(
   kbDay1 = "2020-05-15",                   # Date of first phase of lifting stay-at-home orders
   kbDay2 = "2020-06-05",                   # Date of second phase of lifting stay-at-home orders
   kbDay3 = "2020-07-03",                   # Date of third phase of lifting stay-at-home orders
-  kbPhase = 1,                             # Phase of reopening, defaults to full stay-at-home orders
+  kbPhase = 3,                             # Phase of reopening
   switchOffPolicies = 0,                   # Indicator if intervention policies will cease after a certain day
   switchOffDay = "2020-07-03",             # Date intervention policies will cease if indicator == 1
   
@@ -222,13 +216,13 @@ covidWrapper <- function(
   massEntryEventsDF = NULL,                # pre-built mass entry events data frame if the events will be preset before the script is run
   massEntryReturnDate = "2020-09-21",      # Date of mass Entry
   massEntryReturnSpread = 3,               # Symmetric spread of days to spread out mass entry
-  massEntryPop = 100,                    # Mass entry population
+  massEntryPop = 15000,                    # Mass entry population
   maxMassEntryNodes = 0,                   # Maximum number of nodes that individuals enter. Set to 0 to remove massEntry event
   massEntryNodeGroups = NULL,              # Which node groups the individuals enter
-  mSProp = rep(.9,4)/4,                      # Proportion of individuals who are susceptible
-  mEProp = rep(.0001,4)/4,                          # Proportion of individuals who are exposed
-  mIProp = rep(.001,4)/4,                           # Proportion of individuals who are infectious
-  muIProp = rep(0,4)/4,                             # Proportion of individuals who are unknown-infectious; other compartments are calculated
+  mSProp = rep(.9,4)*c(0,.9,.1,0),         # Proportion of individuals who are susceptible; each age group
+  mEProp = rep(.0001,4)*c(0,.9,.1,0),      # Proportion of individuals who are exposed
+  mIProp = rep(.001,4)*c(0,.9,.1,0),       # Proportion of individuals who are infectious
+  muIProp = rep(0,4)*c(0,.9,.1,0),         # Proportion of individuals who are unknown-infectious; other compartments are calculated
   
   ### plot parameters
   plotCompList = "cumI",                   # List of compartments that will be plotted
@@ -267,18 +261,18 @@ covidWrapper <- function(
   
   if(is.null(folderPath)) {setwd("L:/Health/Epidemiology/Banwarth_Epi/covid19/scripts")}
   source("eventFunctionsAgeGroups_06.19.2020.R")
-  source("simInfPlottingFunction_05.30.2020.R")
+  source("simInfPlottingFunction_06.20.2020.R")
   source("pts_funScriptAgeGroups06.19.2020.R")
   source("transitionsScriptAgeGroups06.19.2020.R")
   if(is.null(folderPath)) {setwd("../")}
   
-  # saving parameters
-  if(is.null(folderPath)) {setwd("./parameters")}
-  sink(paste0("parms",simID,".txt"))
-  print("All parameters:")
-  print(mget(names(formals())))
-  sink()
-  if(is.null(folderPath)) {setwd("../")}
+  # # saving parameters
+  # if(is.null(folderPath)) {setwd("./parameters")}
+  # sink(paste0("parms",simID,".txt"))
+  # print("All parameters:")
+  # print(mget(names(formals())))
+  # sink()
+  # if(is.null(folderPath)) {setwd("../")}
 
   ####### Setting additional parameters #######
   
@@ -326,6 +320,9 @@ covidWrapper <- function(
   xCompt <- 16
   
   # More model parameters
+  # Standardize RFactor so that weighted R0 is correct
+  RFactor <- RFactor*length(RFactor)/sum(RFactor)
+  
   # global parameters
   gdata = data.frame(
     betaI = R0I*initInfectiousPeriod,                      # Transmission rate among initial infectious = R0/infectiousPeriod
@@ -722,8 +719,8 @@ covidWrapper <- function(
   allEvents <- data.frame(NULL)
   if(nrow(parachuteEvents) > 0) { allEvents <- rbind(allEvents,parachuteEvents) }
   if(nrow(transferEvents) > 0) { allEvents <- rbind(allEvents,transferEvents) }
-  if(nrow(superEvents) > 0 ) { allEvents <- rbind(allEvents,superEvents)}
-  if(nrow(massEntryEvents) > 0) { allEvents <- rbind(allEvents,massEntryEvents) }
+  if(length(superInfections) > 0 ) { allEvents <- rbind(allEvents,superEvents)}
+  if(maxMassEntryNodes > 0) { allEvents <- rbind(allEvents,massEntryEvents) }
   
   
   ###### BUILDING MODEL ######
@@ -746,7 +743,7 @@ covidWrapper <- function(
   ###### RUNNING MODEL ######
   ###### RUNNING MODEL ######
   
-  # set.seed(123)
+  set.seed(123)
   result <- run(model)
   
   ###### PLOTTING RESULT ######
@@ -761,7 +758,8 @@ covidWrapper <- function(
   trajPlotInfections <- simInfPlottingFunction(
     result = result,                           # model result
     table = "U",                               # which table: U or V
-    compts= c("hI_lI_uhI_ulI_pI_H"),           # compartments that will be summed and plotted
+    compts = "hIk_hIy_hIa_hIs_lIk_lIy_lIa_lIs_uhIk_uhIy_uhIa_uhIs_ulIk_ulIy_ulIa_ulIs",
+    newI = FALSE,
     groups = plotGroups,                       # List of groups to aggregate and plot
     sumGroups = sumGroups,                     # Automatically sums over all groups
     uNames = names(u0),                        # list of compartments
@@ -770,13 +768,16 @@ covidWrapper <- function(
     allTraj = allTraj,                         # Logical for plotting all simulation trajectories or just median and spread
     plotRandomTrajs = plotRandomTrajs,         # If allTraj = true, can plot random trajectories, select the number desired
     percentile = percentile,                   # percentile for central (or other) tendency
+    includeMedian = TRUE,                      # Plot the median
     confIntv = confIntv,                       # confidence interval for plotting spread
     nTM = nodeTrialMat,                        # node-Trial matrix
     tS = tspan,                                # length of simulation
     enn = N,                                   # number of nodes per trial
     nT = numTrials,                            # number of trials in simulation
     startDate = startofSimDay,                 # start date of simulation
+    byHour = FALSE,                            # 
     dateBreaks = dateBreaks,          # plot parameter: Date axis format
+    dataTitle = "Infections",
     titleString = paste0("Active infections in ",titleString),        # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Number of infections",          # plot parameter: Title of y axis
@@ -796,13 +797,16 @@ covidWrapper <- function(
     allTraj = allTraj,                         # Logical for plotting all simulation trajectories or just median and spread
     plotRandomTrajs = plotRandomTrajs,         # If allTraj = true, can plot random trajectories, select the number desired
     percentile = percentile,                   # percentile for central (or other) tendency
+    includeMedian = TRUE,
     confIntv = confIntv,              # confidence interval for plotting spread
     nTM = nodeTrialMat,                        # node-Trial matrix
     tS = tspan,                                # length of simulation
     enn = N,                                   # number of nodes per trial
     nT = numTrials,                            # number of trials in simulation
     startDate = startofSimDay,                 # start date of simulation
+    byHour = FALSE,
     dateBreaks = "1 month",                    # plot parameter: Date axis format
+    dataTitle = "Intervention intensity",
     titleString = paste0("Interventions in ",titleString),   # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Intensity of intervention",          # plot parameter: Title of y axis
@@ -814,7 +818,7 @@ covidWrapper <- function(
     trajPlotHosp <- simInfPlottingFunction(
       result = result,                           # model result
       table = "U",                               # which table: U or V
-      compts= c("H"),                            # compartments that will be plotted
+      compts= "Hk_Hy_Ha_Hs",                            # compartments that will be plotted
       groups = plotGroups,                       # List of groups to aggregate and plot
       sumGroups = sumGroups,                       # Automatically sums over all groups
       uNames = names(u0),                        # list of compartments
@@ -830,6 +834,7 @@ covidWrapper <- function(
       nT = numTrials,                            # number of trials in simulation
       startDate = startofSimDay,                 # start date of simulation
       dateBreaks = dateBreaks,          # plot parameter: Date axis format
+      dataTitle = "Hospitalizations",
       titleString = paste0("Hospitalizations, 7-day average, ",titleString),          # plot parameter: Title of plot
       xString = "Date",                          # plot parameter: Title of x axis
       yString = "Number of hospital beds",          # plot parameter: Title of y axis
@@ -841,7 +846,8 @@ covidWrapper <- function(
   trajPlotnewI <- simInfPlottingFunction(
     result = result,                           # model result
     table = "U",                               # which table: U or V
-    compts= c("newI"),                         # compartments that will be plotted
+    compts= "cumIk_cumIy_cumIa_cumIs",                         # compartments that will be plotted
+    newI = TRUE,
     groups = plotGroups,                       # List of groups to aggregate and plot
     sumGroups = sumGroups,                          # Automatically sums over all groups
     uNames = names(u0),                        # list of compartments
@@ -857,6 +863,7 @@ covidWrapper <- function(
     nT = numTrials,                            # number of trials in simulation
     startDate = startofSimDay,                 # start date of simulation
     dateBreaks = dateBreaks,          # plot parameter: Date axis format
+    dataTitle = "New Infections",
     titleString = paste0("Daily new infections in ",titleString),        # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Number of infections",          # plot parameter: Title of y axis
@@ -868,7 +875,7 @@ covidWrapper <- function(
     trajPlotDeaths <- simInfPlottingFunction(
       result = result,                           # model result
       table = "U",                               # which table: U or V
-      compts= c("M"),                            # compartments that will be plotted
+      compts= "Mk_My_Ma_Ms",                            # compartments that will be plotted
       groups = plotGroups,                       # List of groups to aggregate and plot
       sumGroups = sumGroups,                       # Automatically sums over all groups
       uNames = names(u0),                        # list of compartments
@@ -884,6 +891,7 @@ covidWrapper <- function(
       nT = numTrials,                            # number of trials in simulation
       startDate = startofSimDay,                 # start date of simulation
       dateBreaks = dateBreaks,          # plot parameter: Date axis format
+      dataTitle = "Deaths",
       titleString = paste0("Cumulative deaths in ",titleString),        # plot parameter: Title of plot
       xString = "Date",                          # plot parameter: Title of x axis
       yString = "Cumulative deaths",             # plot parameter: Title of y axis
