@@ -219,10 +219,11 @@ covidWrapper <- function(
   massEntryPop = 15000,                    # Mass entry population
   maxMassEntryNodes = 0,                   # Maximum number of nodes that individuals enter. Set to 0 to remove massEntry event
   massEntryNodeGroups = NULL,              # Which node groups the individuals enter
-  mSProp = rep(.9,4)*c(0,.9,.1,0),         # Proportion of individuals who are susceptible; each age group
-  mEProp = rep(.0001,4)*c(0,.9,.1,0),      # Proportion of individuals who are exposed
-  mIProp = rep(.001,4)*c(0,.9,.1,0),       # Proportion of individuals who are infectious
-  muIProp = rep(0,4)*c(0,.9,.1,0),         # Proportion of individuals who are unknown-infectious; other compartments are calculated
+  mSProp = rep(.9,4),                 # Proportion of individuals who are susceptible; each age group
+  mEProp = rep(.0001,4),              # Proportion of individuals who are exposed
+  mIProp = rep(.001,4),               # Proportion of individuals who are infectious
+  muIProp = rep(0,4),                 # Proportion of individuals who are unknown-infectious; other compartments are calculated
+  mPopProp = c(0,.9,.1,0),            # Population proportions for mass entry event
   
   ### plot parameters
   plotCompList = "cumI",                   # List of compartments that will be plotted
@@ -681,7 +682,10 @@ covidWrapper <- function(
     massEntryPropTable <- data.frame(compartment = compartments,
                                      frac = c(mSProp,mEProp,mhIProp,mlIProp,
                                               muhIProp,mulIProp,mRProp,mImProp,mpIProp,
-                                              mHProp,mcumIProp,mMProp))
+                                              mHProp,mcumIProp,mMProp),
+                                     popProp = mPopProp)
+    massEntryPropTable$frac <- massEntryPropTable$frac*massEntryPropTable$popProp # Scale compartment proportions to population proportions
+    massEntryPropTable <- massEntryPropTable[,c("compartment","frac")] # drop population proportions
     
     if(maxMassEntryNodes > 0) {
       # Event for day(s) individuals return, with random returns around massEntryReturnDate
