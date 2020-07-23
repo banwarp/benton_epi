@@ -1,4 +1,4 @@
-# covid19_SimInf_School_07.21.2020.R
+# BentonCountyCOVID19Simulator_Education_07232020.R
 
 # copyright Peter Banwarth Benton County Health Department 2020
 
