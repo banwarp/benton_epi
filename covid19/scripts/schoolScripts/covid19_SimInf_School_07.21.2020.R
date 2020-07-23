@@ -168,7 +168,7 @@ covidSimulator <- function(
   library(viridis)
   library(combinat)
   
-  # if(!is.null(folderPath)) {setwd(folderPath)}
+  if(!is.null(folderPath)) {setwd(folderPath)}
   
   if(is.null(folderPath)) {setwd("L:/Health/Epidemiology/Banwarth_Epi/covid19/scripts")}
   source("transitionsScriptSchool_07.04.2020.R")
