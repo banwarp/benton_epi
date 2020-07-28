@@ -43,29 +43,29 @@ Choosing the right parameter values is critical for producing reasonable simulat
 
 - Probability of symptomatic infections
   - Probability of symptomatic infections in middle and high school = 0.43
-  - Source: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext
+    - Source: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext
   - Probability of symptomatic infections in elementary school = 0.43
-  - Source: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext; not direct support, this just is a Bayesian starting point
+    - Source: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext; not direct support, this just is a Bayesian starting point
   - Probability of symptomatic infections in adults (teachers/staff) = 0.65
-  - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
+    - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
 
 - Differential transmission rates (transmission from student-student; student-teacher; teacher-student; teacher-teacher)
   - Children are 44% as likely as adults to transmit the coronavirus to household contacts:
   - Student-student and student-teacher transmission rates factor = 0.44
   - Teacher-teacher transmission rate factor = 1
   - Teacher- student transmission rate factor = ?
-  - Source: https://www.medrxiv.org/content/10.1101/2020.05.20.20108126v1
+    - Source: https://www.medrxiv.org/content/10.1101/2020.05.20.20108126v1
   - Alternative: middle and high-school students are as likely as adults to transmit; young children are 1/3 as likely to transmit:
   - Student-student and student-teacher transmission rates factor for elementary = 0.33
   - Student-student and student-teacher transmission rates factor for middle/high school = 1
   - Teacher-teacher transmission rate factor = 1
   - Teacher-student transmission rate factor = ?
-  - Source: https://wwwnc.cdc.gov/eid/article/26/10/20-1315_article
+    - Source: https://wwwnc.cdc.gov/eid/article/26/10/20-1315_article
 
 - Seasonality of the coronavirus
   - Assume that the biological infectiousness of the coronavirus intrisically varies with temperature/humidity, according to seasonality like influenza.
   - The seasonality factor for the coronavirus = 0.125
-  - Source: Just a baseline guess at this point
+    - Source: Just a baseline guess at this point
  
  - Probability of detecting a coronavirus infection
    - Assume that the probability of detecting an infection is different depending on pre-, post, a- or symptomatic infection
@@ -75,33 +75,17 @@ Choosing the right parameter values is critical for producing reasonable simulat
    - Probability of detecting COVID-19 in symptomatic individual = 0.8
    - Probability of detecting COVID-19 in post-symptomatic individual = 0.1
    - Probability of detecting COVID-19 in a-symptomatic individual = 0.1
-   - Source: Just an educated guess.
+     - Source: Just an educated guess.
    
 - Factors that reduce R0 across the board
   - Assume that outside of school, people stay mostly isolated; which reduces mixing, which reduces epidemic pressure, and therefore reduces R0 for every group.
   - Proportionate reduction in baseline R0 during out-of-school hours (afternoons, weekends) = 0.2
   - Proportionate reduction in baseline R0 during nights = 0.05 (Not 0 because there could be some mixing during the night)
   - Proportionate reduction in baseline R0 during classroom/grade/school quarantines = 0.1 (Assumes lower than normal afternoon/weekend because people are being more cautious).
-  - Source: Just an educated guess.
+    - Source: Just an educated guess.
   - Proportionate reduction in baseline R0 for high-compliance with face coverings and physical distancing in schools = ?
   - Proportionate reduction in baseline R0 for adequate ventilation in schools/classrooms = ?
 
-
-```
-R0Base = 2.5,                            # Baseline R0
-  R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
-  R0sympFrac = .55,                          # Symptomatic R0 fraction
-  R0postFrac = .05,                         # Postsymptomatic R0 fraction
-  R0asympFrac = .4,                        # Asymptomatic R0 fraction
-  studentTeacherDiff = rep(1,4),           # Differential R0 for stationary-stationary, transitory-transitory, and stationary-transitory interactions
-  preSympPeriod = 1/3,                     # Reciprocal of presymptomatic period
-  symptomaticPeriod = 1/4,                 # Reciprocal of symptomatic period
-  postSympPeriod = 1/6,                    # Reciprocal of post-symptomatic period
-  aSympPeriod = 1/6,                       # Reciprocal of asymptomatic period
-  isoPeriod = 1/10,                        # Reciprocal of isolation period
-  reSuscepRate = .1,                       # Proportion of recovereds who eventually become susceptible again
-  tempImmPeriod = 1/100,                   # Reciprocal of temporary immunity period, after which R becomes Im or S
-```
 
 
 ##### Acknowledgements:
