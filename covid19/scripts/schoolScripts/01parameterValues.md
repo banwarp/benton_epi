@@ -28,16 +28,18 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - R0 for symptomatic infections - 0.55 * 2.5 = 1.375
   - R0 for post-symptomatic infections = .05 * 2.5 = 0.125
 
-- Recovery rates, etc.
-  - Length of pre-symptomatic period = 2 days
+- Duration parameters
+  - I settled on these duration parameters from a combination of the Covasim duration parameters and some educated guesses.
+  - Length of pre-symptomatic period = 2 days (directly from Covasim)
   - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
-  - Length of symptomatic period = 4 days
-  - Source: NEED SOURCE
-  - Length of post-symptomatic period = 6 days
-  - Source: NEED SOURCE
-  - Length of asymptomatic period (after pre-symptomatic period) = 6 days (8 days - 2 days in presymptomatic)
+  - Length of symptomatic period = 4 days (Covasim recovery time for mild cases = 6-10 days from symptom onset. I assume that symptoms decrease (but not to zero) by day 4, moving the individual to the post-symptomatic compartment, where symptoms continue to decrease).
   - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
-  - Length of period of temporary immunity (after recovery) = 100 days
+  - Length of post-symptomatic period = 6 days (Covasim recovery time for mild cases = 6-10 days from symptom onset. I assume that symptoms have decreased significantly after 4 days, then continue to decrease for another 6 days).
+  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
+  - Length of asymptomatic period (after pre-symptomatic period) = 6 days (Covasim recovery time for asymptomatic = 8 days; subtract 2 days for the presymptomatic period)
+  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
+  - Length of period of temporary immunity (after recovery) = 100 days (Just a baseline guess to allow for some reinfection)
+  - Probability of moving into permanent immunity status after the temporary immunity compartment = 0.9 (Just a baseline guess to allow for some reinfection)
 ```
 R0Base = 2.5,                            # Baseline R0
   R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
