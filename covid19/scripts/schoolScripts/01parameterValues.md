@@ -11,7 +11,8 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Alternate base R0 = 2.5 * .021 / .016 = 3.28; Source: OHA modeling used .021 for the pre-intervention beta instead of the .016 that IDM used; therefore 3.28 inflates the base 2.5 R0 by the same factor.
   
 - Relative infectiousness of presymptomatic or asymptomatic infections
-  - Relative infectiousness = 0.75
+  - Relative infectiousness of asymptomatic infection = 0.75
+  - Relative infectiousness of pre-symptomatic infection is assumed to be the same.
   - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
   
 - Transforming relative infectiousness into transmission probabilities
@@ -19,7 +20,8 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - 0.75 is relative infectiousness of pre- and asymptomatic infections; 1 is relative infectiousness of symptomatic infection; 0.1 is relative infectiousness of post-symptomatic infection
   - Source:  https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
   - Note: Post-symptomatic infectiousness = 0.1 does not come from literature; it is a baseline guess.
-
+  - Proportionate transmissibility of symptomatic infection = 1 /  (0.75 + 1 + 0.1) = 0.55
+  - Proportionate transmissibility of post-symptomatic infection = 0.1 /  (0.75 + 1 + 0.1) = 0.5
 
 ```
 R0Base = 2.5,                            # Baseline R0
