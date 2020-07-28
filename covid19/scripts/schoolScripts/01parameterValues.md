@@ -29,14 +29,14 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - R0 for post-symptomatic infections = .05 * 2.5 = 0.125
 
 - Recovery rates, etc.
-  - Length of pre-symptomatic period = 3 days
-  - Source: NEED SOURCE
+  - Length of pre-symptomatic period = 2 days
+  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
   - Length of symptomatic period = 4 days
   - Source: NEED SOURCE
   - Length of post-symptomatic period = 6 days
   - Source: NEED SOURCE
-  - Length of asymptomatic period (after pre-symptomatic period) = 6 days
-  - Source: NEED SOURCE
+  - Length of asymptomatic period (after pre-symptomatic period) = 6 days (8 days - 2 days in presymptomatic)
+  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
   - Length of period of temporary immunity (after recovery) = 100 days
 ```
 R0Base = 2.5,                            # Baseline R0
