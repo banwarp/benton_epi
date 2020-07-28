@@ -49,6 +49,13 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Probability of symptomatic infections in adults (teachers/staff) = 0.65
   - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
 
+- Differential transmission rates (transmission from student-student; student-teacher; teacher-student; teacher-teacher)
+  - Children are 44% as likely as adults to transmit the coronavirus to household contacts
+  - Student-student and student-teacher transmission rates factor = 0.44
+  - Teacher-teacher transmission rate factor = 1
+  - Teacher- student transmission rate factor = ?
+  - Source: https://www.medrxiv.org/content/10.1101/2020.05.20.20108126v1
+
 ```
 R0Base = 2.5,                            # Baseline R0
   R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
