@@ -6,9 +6,9 @@ Choosing the right parameter values is critical for producing reasonable simulat
 
 ### Disease dynamics parameters
 - Baseline Reproductive Number: R0.
- - R0 = 2.5
- - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box
- - Alternate base R0 = 2.5 * .021 / .016 = 3.28; Source: OHA modeling used .021 for the pre-intervention beta instead of the .016 that IDM used; therefore 3.28 inflates the base 2.5 R0 by the same factor.
+  - R0 = 2.5
+  - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box
+  - Alternate base R0 = 2.5 * .021 / .016 = 3.28; Source: OHA modeling used .021 for the pre-intervention beta instead of the .016 that IDM used; therefore 3.28 inflates the base 2.5 R0 by the same factor.
 
 
 ```
