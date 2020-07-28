@@ -40,6 +40,15 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
   - Length of period of temporary immunity (after recovery) = 100 days (Just a baseline guess to allow for some reinfection)
   - Probability of moving into permanent immunity status after the temporary immunity compartment = 0.9 (Just a baseline guess to allow for some reinfection)
+
+- Probability of symptomatic infections
+  - Probability of symptomatic infections in middle and high school = 0.43
+  - Source: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext
+  - Probability of symptomatic infections in elementary school = 0.43
+  - Source: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext; not direct support, this just is a Bayesian starting point
+  - Probability of symptomatic infections in adults (teachers/staff) = 0.65
+  - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
+
 ```
 R0Base = 2.5,                            # Baseline R0
   R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
