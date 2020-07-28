@@ -77,6 +77,14 @@ Choosing the right parameter values is critical for producing reasonable simulat
    - Probability of detecting COVID-19 in a-symptomatic individual = 0.1
    - Source: Just an educated guess.
    
+- Factors that reduce R0 across the board
+  - Assume that outside of school, people stay mostly isolated; which reduces mixing, which reduces epidemic pressure, and therefore reduces R0 for every group.
+  - Proportionate reduction in baseline R0 during out-of-school hours (afternoons, weekends) = 0.2
+  - Proportionate reduction in baseline R0 during nights = 0.05 (Not 0 because there could be some mixing during the night)
+  - Proportionate reduction in baseline R0 during classroom/grade/school quarantines = 0.1 (Assumes lower than normal afternoon/weekend because people are being more cautious).
+  - Source: Just an educated guess.
+  - Proportionate reduction in baseline R0 for high-compliance with face coverings and physical distancing in schools = ?
+  - Proportionate reduction in baseline R0 for adequate ventilation in schools/classrooms = ?
 
 
 ```
