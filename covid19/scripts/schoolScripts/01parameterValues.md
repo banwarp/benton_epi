@@ -7,19 +7,19 @@ Choosing the right parameter values is critical for producing reasonable simulat
 ### Disease dynamics parameters
 - Baseline Reproductive Number: R0.
   - R0 = 2.5
-  - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
+    - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
   - Alternate base R0 = 2.5 * .021 / .016 = 3.28; Source: OHA modeling used .021 for the pre-intervention beta instead of the .016 that IDM used; therefore 3.28 inflates the base 2.5 R0 by the same factor.
   
 - Relative infectiousness of presymptomatic or asymptomatic infections
   - Relative infectiousness of asymptomatic infection = 0.75
   - Relative infectiousness of pre-symptomatic infection is assumed to be the same.
-  - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
+    - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
   
 - Transforming relative infectiousness into transmission probabilities
   - Proportionate transmissibility of pre- and asymptomatic infections = 0.75 / (0.75 + 1 + 0.1) = 0.4
   - 0.75 is relative infectiousness of pre- and asymptomatic infections; 1 is relative infectiousness of symptomatic infection; 0.1 is relative infectiousness of post-symptomatic infection
-  - Source:  https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
-  - Note: Post-symptomatic infectiousness = 0.1 does not come from literature; it is a baseline guess.
+    - Source:  https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
+    - Note: Post-symptomatic infectiousness = 0.1 does not come from literature; it is a baseline guess.
   - Proportionate transmissibility of symptomatic infection = 1 /  (0.75 + 1 + 0.1) = 0.55
   - Proportionate transmissibility of post-symptomatic infection = 0.1 /  (0.75 + 1 + 0.1) = 0.05
   
@@ -31,13 +31,13 @@ Choosing the right parameter values is critical for producing reasonable simulat
 - Duration parameters
   - I settled on these duration parameters from a combination of the Covasim duration parameters and some educated guesses.
   - Length of pre-symptomatic period = 2 days (directly from Covasim)
-  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
+    - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
   - Length of symptomatic period = 4 days (Covasim recovery time for mild cases = 6-10 days from symptom onset. I assume that symptoms decrease (but not to zero) by day 4, moving the individual to the post-symptomatic compartment, where symptoms continue to decrease).
-  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
+    - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
   - Length of post-symptomatic period = 6 days (Covasim recovery time for mild cases = 6-10 days from symptom onset. I assume that symptoms have decreased significantly after 4 days, then continue to decrease for another 6 days).
-  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
+    - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
   - Length of asymptomatic period (after pre-symptomatic period) = 6 days (Covasim recovery time for asymptomatic = 8 days; subtract 2 days for the presymptomatic period)
-  - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
+    - Source: https://covid.idmod.org/data/Covasim_model_report.pdf
   - Length of period of temporary immunity (after recovery) = 100 days (Just a baseline guess to allow for some reinfection)
   - Probability of moving into permanent immunity status after the temporary immunity compartment = 0.9 (Just a baseline guess to allow for some reinfection)
 
