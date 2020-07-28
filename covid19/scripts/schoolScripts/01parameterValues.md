@@ -28,6 +28,16 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - R0 for symptomatic infections - 0.55 * 2.5 = 1.375
   - R0 for post-symptomatic infections = .05 * 2.5 = 0.125
 
+- Recovery rates, etc.
+  - Length of pre-symptomatic period = 3 days
+  - Source: NEED SOURCE
+  - Length of symptomatic period = 4 days
+  - Source: NEED SOURCE
+  - Length of post-symptomatic period = 6 days
+  - Source: NEED SOURCE
+  - Length of asymptomatic period (after pre-symptomatic period) = 6 days
+  - Source: NEED SOURCE
+  - Length of period of temporary immunity (after recovery) = 100 days
 ```
 R0Base = 2.5,                            # Baseline R0
   R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
