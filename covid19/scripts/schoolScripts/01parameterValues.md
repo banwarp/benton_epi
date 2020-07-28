@@ -50,11 +50,17 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
 
 - Differential transmission rates (transmission from student-student; student-teacher; teacher-student; teacher-teacher)
-  - Children are 44% as likely as adults to transmit the coronavirus to household contacts
+  - Children are 44% as likely as adults to transmit the coronavirus to household contacts:
   - Student-student and student-teacher transmission rates factor = 0.44
   - Teacher-teacher transmission rate factor = 1
   - Teacher- student transmission rate factor = ?
   - Source: https://www.medrxiv.org/content/10.1101/2020.05.20.20108126v1
+  - Alternative: middle and high-school students are as likely as adults to transmit; young children are 1/3 as likely to transmit:
+  - Student-student and student-teacher transmission rates factor for elementary = 0.33
+  - Student-student and student-teacher transmission rates factor for middle/high school = 1
+  - Teacher-teacher transmission rate factor = 1
+  - Teacher-student transmission rate factor = ?
+  - Source: https://wwwnc.cdc.gov/eid/article/26/10/20-1315_article
 
 ```
 R0Base = 2.5,                            # Baseline R0
