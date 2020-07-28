@@ -15,6 +15,10 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
   
 - Transforming relative infectiousness into transmission probabilities
+  - Proportionate transmissibility of pre- and asymptomatic infections = 0.75 / (0.75 + 1 + 0.1) = 0.4
+  - 0.75 is relative infectiousness of pre- and asymptomatic infections; 1 is relative infectiousness of symptomatic infection; 0.1 is relative infectiousness of post-symptomatic infection
+  - Source:  https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
+  - Note: Post-symptomatic infectiousness = 0.1 does not come from literature; it is a baseline guess.
 
 
 ```
