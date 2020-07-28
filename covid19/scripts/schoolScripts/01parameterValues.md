@@ -6,7 +6,7 @@ Choosing the right parameter values is critical for producing reasonable simulat
 
 ### Disease dynamics parameters
 - Baseline Reproductive Number: R0. 
-'''
+```
 R0Base = 2.5,                            # Baseline R0
   R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
   R0sympFrac = .55,                          # Symptomatic R0 fraction
@@ -20,7 +20,7 @@ R0Base = 2.5,                            # Baseline R0
   isoPeriod = 1/10,                        # Reciprocal of isolation period
   reSuscepRate = .1,                       # Proportion of recovereds who eventually become susceptible again
   tempImmPeriod = 1/100,                   # Reciprocal of temporary immunity period, after which R becomes Im or S
-'''
+```
 
 
 ##### Acknowledgements:
