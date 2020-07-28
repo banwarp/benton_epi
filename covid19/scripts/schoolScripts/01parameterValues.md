@@ -62,6 +62,23 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Teacher-student transmission rate factor = ?
   - Source: https://wwwnc.cdc.gov/eid/article/26/10/20-1315_article
 
+- Seasonality of the coronavirus
+  - Assume that the biological infectiousness of the coronavirus intrisically varies with temperature/humidity, according to seasonality like influenza.
+  - The seasonality factor for the coronavirus = 0.125
+  - Source: Just a baseline guess at this point
+ 
+ - Probability of detecting a coronavirus infection
+   - Assume that the probability of detecting an infection is different depending on pre-, post, a- or symptomatic infection
+   - Assume that detection efforts are limited to symptom monitoring (see list of child symptoms: https://www.cdc.gov/coronavirus/2019-ncov/symptoms-testing/symptoms.html)
+   - These probabilities have to take into account the limited nature of the model; there is no scale of symptom intensity for an individual in the symptomatic compartment; some individuals may have a symptomatic level of transmission probability but unnoticeable mild symptoms; others may have more obvious symptoms; therefore the probabilities are discounted. Likewise, some individuals who are shedding at an asymptomatic rate may still have noticeable symptoms and are detected.
+   - Probability of detecting COVID-19 in pre-symptomatic individual = 0.1
+   - Probability of detecting COVID-19 in symptomatic individual = 0.8
+   - Probability of detecting COVID-19 in post-symptomatic individual = 0.1
+   - Probability of detecting COVID-19 in a-symptomatic individual = 0.1
+   - Source: Just an educated guess.
+   
+
+
 ```
 R0Base = 2.5,                            # Baseline R0
   R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
