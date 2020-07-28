@@ -21,7 +21,12 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Source:  https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
   - Note: Post-symptomatic infectiousness = 0.1 does not come from literature; it is a baseline guess.
   - Proportionate transmissibility of symptomatic infection = 1 /  (0.75 + 1 + 0.1) = 0.55
-  - Proportionate transmissibility of post-symptomatic infection = 0.1 /  (0.75 + 1 + 0.1) = 0.5
+  - Proportionate transmissibility of post-symptomatic infection = 0.1 /  (0.75 + 1 + 0.1) = 0.05
+  
+- Transforming proportionate transmissibility into differential reproductive numbers
+  - R0 for pre-symptomatic and asymptomatic infections = 0.4 * 2.5 = 1
+  - R0 for symptomatic infections - 0.55 * 2.5 = 1.375
+  - R0 for post-symptomatic infections = .05 * 2.5 = 0.125
 
 ```
 R0Base = 2.5,                            # Baseline R0
