@@ -54,7 +54,8 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Student-student and student-teacher transmission rates factor for elementary = 0.33
   - Student-student and student-teacher transmission rates factor for middle/high school = 1
   - Teacher-teacher transmission rate factor = 1
-  - Teacher-student transmission rate factor = ?
+  - Teacher-student transmission rate factor for elementary = .5, based on moderate levels of distancing and ACE2 reduction
+  - Teacher-student transmission rate factor for middle/high = .5, based on high levels of distancing
     - Source: https://wwwnc.cdc.gov/eid/article/26/10/20-1315_article
   - Alternative: Children are 44% as likely as adults to transmit the coronavirus to household contacts:
   - Student-student and student-teacher transmission rates factor = 0.44
@@ -64,8 +65,8 @@ Choosing the right parameter values is critical for producing reasonable simulat
 
 - Seasonality of the coronavirus
   - Assume that the biological infectiousness of the coronavirus intrisically varies with temperature/humidity, according to seasonality like influenza.
-  - The seasonality factor for the coronavirus = 0.125
-    - Source: Just a baseline guess at this point
+  - The seasonality factor for the coronavirus = 0.125 (represents a 28% higher R0 in winter versus summer)
+    - Stephen M Kissler, Christine Tedijanto, Marc Lipsitch, and Yonatan Grad. n.d. “Social Distancing Strategies for Curbing the COVID-19 Epidemic | medRxiv.” Accessed July 9, 2020. https://www.medrxiv.org/content/10.1101/2020.03.22.20041079v1.
  
  - Probability of detecting a coronavirus infection
    - Assume that the probability of detecting an infection is different depending on pre-, post, a- or symptomatic infection
