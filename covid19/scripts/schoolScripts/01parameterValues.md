@@ -50,17 +50,17 @@ Choosing the right parameter values is critical for producing reasonable simulat
     - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
 
 - Differential transmission rates (transmission from student-student; student-teacher; teacher-student; teacher-teacher)
-  - Children are 44% as likely as adults to transmit the coronavirus to household contacts:
-  - Student-student and student-teacher transmission rates factor = 0.44
-  - Teacher-teacher transmission rate factor = 1
-  - Teacher- student transmission rate factor = ?
-    - Source: https://www.medrxiv.org/content/10.1101/2020.05.20.20108126v1
-  - Alternative: middle and high-school students are as likely as adults to transmit; young children are 1/3 as likely to transmit:
+  - Middle and high-school students are as likely as adults to transmit; young children are 1/3 as likely to transmit:
   - Student-student and student-teacher transmission rates factor for elementary = 0.33
   - Student-student and student-teacher transmission rates factor for middle/high school = 1
   - Teacher-teacher transmission rate factor = 1
   - Teacher-student transmission rate factor = ?
     - Source: https://wwwnc.cdc.gov/eid/article/26/10/20-1315_article
+  - Alternative: Children are 44% as likely as adults to transmit the coronavirus to household contacts:
+  - Student-student and student-teacher transmission rates factor = 0.44
+  - Teacher-teacher transmission rate factor = 1
+  - Teacher- student transmission rate factor = ?
+    - Source: https://www.medrxiv.org/content/10.1101/2020.05.20.20108126v1
 
 - Seasonality of the coronavirus
   - Assume that the biological infectiousness of the coronavirus intrisically varies with temperature/humidity, according to seasonality like influenza.
@@ -83,8 +83,11 @@ Choosing the right parameter values is critical for producing reasonable simulat
   - Proportionate reduction in baseline R0 during nights = 0.05 (Not 0 because there could be some mixing during the night)
   - Proportionate reduction in baseline R0 during classroom/grade/school quarantines = 0.1 (Assumes lower than normal afternoon/weekend because people are being more cautious).
     - Source: Just an educated guess.
-  - Proportionate reduction in baseline R0 for high-compliance with face coverings and physical distancing in schools = ?
-  - Proportionate reduction in baseline R0 for adequate ventilation in schools/classrooms = ?
+  - Proportionate reduction in baseline R0 for high-compliance with face coverings and physical distancing in schools = 0.2
+    - Source: 3.1%/17.4% ~= 0.2; Chu, Derek K., Elie A. Akl, Stephanie Duda, Karla Solo, Sally Yaacoub, Holger J. Schünemann, Derek K. Chu, et al. 2020. “Physical Distancing, Face Masks, and Eye Protection to Prevent Person-to-Person Transmission of SARS-CoV-2 and COVID-19: A Systematic Review and Meta-Analysis.” The Lancet 395 (10242): 1973–87. https://doi.org/10.1016/S0140-6736(20)31142-9. 
+  - Proportionate reduction in baseline R0 for adequate ventilation in schools/classrooms = 0.33
+    - Source = 13.5/37 ~= .33; Table E.1 from https://apps.who.int/iris/bitstream/handle/10665/44167/9789241547857_eng.pdf?sequence=1
+    
 
 
 
