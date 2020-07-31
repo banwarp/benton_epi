@@ -2,9 +2,12 @@
 
 Choosing the right parameter values is critical for producing reasonable simulations of disease dynamics of COVID-19 in schools. Please review these parameters and make suggestions about how they can be improved. The Benton County Covid-19 Simulator - Education Branch is a modified SEIR compartmental model
 
-#### Last updated: 07/28/2020
+#### Last updated: 07/30/2020
 
 ### Disease dynamics parameters
+- Estimated proportion of community cases that are known to public health = 0.2
+  - Source: NEED SOURCE
+
 - Baseline Reproductive Number: R0.
   - R0 = 2.5
     - Source: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box, Scenario 5
