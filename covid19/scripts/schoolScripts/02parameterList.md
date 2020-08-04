@@ -44,9 +44,7 @@
   isoPeriod = 1/10,                        # Reciprocal of isolation period
   reSuscepRate = .1,                       # Proportion of recovereds who eventually become susceptible again
   tempImmPeriod = 1/100,                   # Reciprocal of temporary immunity period, after which R becomes Im or S
-  
-  ### ldata parameters
-  R0Spread = 0,                            # Uniform variation in R0 across trials (measured as %change from R0)
+  R0Spread = 0,                            # Uniform variation in R0 across trials (measured as %change from base R0)
   
   ### continuous initialized parameters (v0)
   symptomaticProp = c(.43,.65),            # Average proportion of infectious who are symptomatic; (stationary, transitory)
