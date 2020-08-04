@@ -3,6 +3,8 @@
 # changes from pts_funScript_school_07.02.2020.R
 # Changed quarantine decision process from 1 case leads to quarantine to user-defined number of cases leads to quarantine
 # Removed false positives - too complex for right now
+# Fixed error in detection rates
+# Added counters for number of isolated in classroom;grade;school for post-run inspection of results
 
 # changes from pts_funScript06.30.2020.R
 # Removed Infection Timer
@@ -42,22 +44,15 @@
 # increased baseline phi to represent impact of physical distancing and contact tracing
 # changed defaults for cosAmp, prevType, upDelay, downDelay, switchOffPolicies, switchOffDay, phiMoveUp, phiMoveDown
 
-
-########### INDIVIDUAL QUARANTINE ############
-########### INDIVIDUAL QUARANTINE ############
-########### INDIVIDUAL QUARANTINE ############
-########### INDIVIDUAL QUARANTINE ############
-########### INDIVIDUAL QUARANTINE ############
-
-
 pts_funScriptSchool <- function(
   startDay = startofSimDay,               # start of simulation
   enn = N,                                # number of nodes in a trial
   numComp = length(compartments),         # number of compartments
   ncolV0 = ncol(v0),                      # number of continuous variables
   cosA = cosAmp,                          # Amplitude of seasonal variation in beta
-  sympProp0 = symptomaticProp,            # Baseline high spreader proportion that gets re-randomized each time step
-  sympVar = symptomaticVariance,          # Uniform variance of high spreader proportion
+  sympProp0s = symptomaticProp[1],            # Baseline symptomatic proportion that gets re-randomized each time step
+  sympProp0t = symptomaticProp[2],        # Baseline symptomatic proportion that gets re-randomized each time step; transitory
+  sympVar = symptomaticVariance,          # Uniform variance of symptomatic proportion
   preDet = preDetectSuccess,             # Probability of detecting a pre-symptomatic individual
   sympDet = sympDetectSuccess,           # Probability of detecting a symptomatic individual
   postDet = postDetectSuccess,             # Probability of detecting a post-symptomatic individual
@@ -93,9 +88,12 @@ pts_funScriptSchool <- function(
     const double cosAmp = ",
     cosA,
     "; /* seasonality factor */
-    const double sympProp0 = ",
-    sympProp0,
-    "; /* Proportion of infections that are symptomatic */
+    const double sympProp0s = ",
+    sympProp0s,
+    "; /* Proportion of infections that are symptomatic; stationary */
+    const double sympProp0t = ",
+    sympProp0t,
+    "; /* Proportion of infections that are symptomatic; transitory */
     const double sympVar = ",
     sympVar,
     "; /* Variance of proportion of infections that are symptomatic */
@@ -170,22 +168,23 @@ pts_funScriptSchool <- function(
     
     double outOfSchool = v[0];    // out-of-school factor
     double season = v[1];         // seasonality factor
-    double sympProp = v[2];       // proportion of infections that are symptomatic
-    double schoolDay = v[3];      // Is it during school hours
-    double schoolWeek = v[4];     // Is it during week
-    double schoolTerm = v[5];     // Is school in session (or on break)
+    double sympProps = v[2];       // proportion of infections that are symptomatic; stationary
+    double sympPropt = v[3];       // proportion of infections that are symptomatic; transitory
+    double schoolDay = v[4];      // Is it during school hours
+    double schoolWeek = v[5];     // Is it during week
+    double schoolTerm = v[6];     // Is school in session (or on break)
     
-    double noQuarC = v[10];   // Is there a quarantine for this classroom (1 = no)
-    double qTimerC = v[11];      // Timer for tracking how long quarantine has been going on
-    double qCounterC = v[12];    // Counting number of quarantines for this classroom
+    double noQuarC = v[11];   // Is there a quarantine for this classroom (1 = no)
+    double qTimerC = v[12];      // Timer for tracking how long quarantine has been going on
+    double qCounterC = v[13];    // Counting number of quarantines for this classroom
 
-    double noQuarG = v_0[firstInGroup * Nv + 13]; // Is there a quarantine for this grade (1 = no)
-    double qTimerG = v_0[firstInGroup * Nv + 14];  // Timer for tracking length of grade quarantine
-    double qCounterG = v_0[firstInGroup * Nv + 15]; // Counter for number of grade quarantines
+    double noQuarG = v_0[firstInGroup * Nv + 14]; // Is there a quarantine for this grade (1 = no)
+    double qTimerG = v_0[firstInGroup * Nv + 15];  // Timer for tracking length of grade quarantine
+    double qCounterG = v_0[firstInGroup * Nv + 16]; // Counter for number of grade quarantines
     
-    double noQuarS = v_0[firstInTrial * Nv + 16]; // Is there a quarantine for school (1 = no)
-    double qTimerS = v_0[firstInTrial * Nv + 17];  // Timer for tracking length of school closure
-    double qCounterS = v_0[firstInTrial * Nv + 18]; // Counter for number of school closures
+    double noQuarS = v_0[firstInTrial * Nv + 17]; // Is there a quarantine for school (1 = no)
+    double qTimerS = v_0[firstInTrial * Nv + 18];  // Timer for tracking length of school closure
+    double qCounterS = v_0[firstInTrial * Nv + 19]; // Counter for number of school closures
     
     // Updating variables
     
@@ -195,48 +194,49 @@ pts_funScriptSchool <- function(
     // Generate random variable for proportion of new infectious who are symptomatic
     double rvSymp;
     rvSymp = (double)rand() / RAND_MAX;
-    sympProp = sympProp0 + (rvSymp - .5) * 2 * sympVar;
+    sympProps = sympProp0s + (rvSymp - .5) * 2 * sympVar;
+    rvSymp = (double)rand() / RAND_MAX; // recycle random variable
+    sympPropt = sympProp0t + (rvSymp - .5) * 2 * sympVar;
     
     // update quarantine variables because logic is not working
-    v_new[10] = noQuarC;
-    v_new[11] = qTimerC;
-    v_new[12] = qCounterC;
-    v_new[13] = noQuarG;
-    v_new[14] = qTimerG;
-    v_new[15] = qCounterG;
-    v_new[16] = noQuarS;
-    v_new[17] = qTimerS;
-    v_new[18] = qCounterS;
+    v_new[11] = noQuarC;
+    v_new[12] = qTimerC;
+    v_new[13] = qCounterC;
+    v_new[14] = noQuarG;
+    v_new[15] = qTimerG;
+    v_new[16] = qCounterG;
+    v_new[17] = noQuarS;
+    v_new[18] = qTimerS;
+    v_new[19] = qCounterS;
     
     // Attempting to detect infections
-    // Always test at 8am, for simplicity
-    // Positive detection moves individual to isolation right away, hence dividing by _Period
-    // Failure to detect does not move individual at higher rate, hence not dividing by _Period
+    // Always test at 7am, for simplicity
+    // Positive detection moves individual to isolation right away
     // modulo 7 to set up next time step
     
     double rvDet;
     if(tint % 24 == 7) {
       rvDet = (double)rand() / RAND_MAX;
-      v_new[6] = preDet * (1 + (rvDet - 1) * detVar);
+      v_new[7] = preDet * (1 - rvDet * detVar);
       
       rvDet = (double)rand() / RAND_MAX;
-      v_new[7] = sympDet * (1 + (rvDet - 1) * detVar);
+      v_new[8] = sympDet * (1 - rvDet * detVar);
       
       rvDet = (double)rand() / RAND_MAX;
-      v_new[8] = postDet * (1 + (rvDet - 1) * detVar);
+      v_new[9] = postDet * (1 - rvDet * detVar);
       
       rvDet = (double)rand() / RAND_MAX;
-      v_new[9] = asympDet * (1 + (rvDet - 1) * detVar);
+      v_new[10] = asympDet * (1 - rvDet * detVar);
     } else {
-      v_new[6] = 0;
       v_new[7] = 0;
       v_new[8] = 0;
       v_new[9] = 0;
+      v_new[10] = 0;
     }
     
     // Determine if quarantine is warranted
-    
-    // initialize counts by classroom, grade, school, also random variable for false positive
+
+    // initialize isolation counts by classroom, grade, school
     double isoC = 0, isoG = 0, isoS = 0, rvFPos;
     int m;
 
@@ -262,6 +262,11 @@ pts_funScriptSchool <- function(
         }
       }
     }
+
+    // HERE HERE HERE
+    v_new[20] = isoC;
+    v_new[21] = isoG;
+    v_new[22] = isoS;
 
     if(tint % 24 == 8 && (qTimerC + qTimerG + qTimerS) == 0) {
     
@@ -374,19 +379,20 @@ pts_funScriptSchool <- function(
     // Update other new continuous variables
     v_new[0] = outOfSchool;
     v_new[1] = season;
-    v_new[2] = sympProp;
-    v_new[3] = schoolDay;
-    v_new[4] = schoolWeek;
-    v_new[5] = schoolTerm;
-    v_new[10] = noQuarC;
-    v_new[11] = qTimerC;
-    v_new[12] = qCounterC;
-    v_new[13] = noQuarG;
-    v_new[14] = qTimerG;
-    v_new[15] = qCounterG;
-    v_new[16] = noQuarS;
-    v_new[17] = qTimerS;
-    v_new[18] = qCounterS;
+    v_new[2] = sympProps;
+    v_new[3] = sympPropt;
+    v_new[4] = schoolDay;
+    v_new[5] = schoolWeek;
+    v_new[6] = schoolTerm;
+    v_new[11] = noQuarC;
+    v_new[12] = qTimerC;
+    v_new[13] = qCounterC;
+    v_new[14] = noQuarG;
+    v_new[15] = qTimerG;
+    v_new[16] = qCounterG;
+    v_new[17] = noQuarS;
+    v_new[18] = qTimerS;
+    v_new[19] = qCounterS;
     
     return 0;"
   )
