@@ -1,4 +1,13 @@
-# BentonCountyCOVID19Simulator_Education_07232020.R
+# covid19_SimInf_School_08.04.2020.R
+
+# k-5 versus 6-12
+# middle versus high school
+# vary community prevalence
+# high, medium, low community infection rate
+# varying susceptibility of the population - 50% black and hispanic versus (probability of bringing infection in)
+# compliance with rules (facemasks, staff attesting to their own health)
+# presence or absence of ventilation
+# user interface wrapper a la graph
 
 # copyright Peter Banwarth Benton County Health Department 2020
 
@@ -14,8 +23,31 @@
 # International Journal of High Performance Computing Applications, 30(4), 438--453. doi: 10.1177/1094342016635723
 
 # changes from covid19_SimInf_School_07.04.2020.R
+# Brought back parachuting
+
 # Updated parameters to most recent literature
-# Sources: 
+# Sources:
+# R0; asymptomatic transmission; presymptomatic transmission: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box
+# Base R0 = 2.5
+# Need to review the following:
+# Asymptomatic/presymptomatic transmission fraction = .75/(1 + .75 + .1) = .4; denominator is relative infectiousness of symptomatic + presymptomatic + postsymptomatic
+# Postsymptomatic tranmission fraction = .1/(1+.75+.1) = .05 (just a guess)
+# Symptomatic transmission fraction = 1/1.85 = .55
+
+# Child/Adult transmission differential: https://www.medrxiv.org/content/10.1101/2020.05.20.20108126v1
+# Child is 44% of adult 
+# Need more research on this in particular
+
+# Probability of detection for each infectious state; Just a guess at this point
+# pre/post/asymp = 0.1
+# symp = .8
+
+# Probability of symptomatic infection versus asymptomatic for middle/high school: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext
+# 43% for middle/high school
+# Probability of symptoms for staff: https://www.cdc.gov/coronavirus/2019-ncov/hcp/planning-scenarios.html#box
+# 65%
+# Probability of symptomatic infection versus asymptomatic for elementary: without other data: https://www.eurosurveillance.org/content/10.2807/1560-7917.ES.2020.25.29.2001352#html_fulltext
+# 43% for elementary
 
 # changes from covid19_SimInf_School06.20.2020.R
 # Changed pts_fun to let user define the case number for which quarantine is started.
@@ -38,36 +70,39 @@ covidSimulator <- function(
   folderPath = NULL,                       # folder path for subroutines and output
   simID = "covid.mo.day.2020.School",      # Simulation ID
   simDate = "2020-09-01",                  # Start date of simulation
-  maxT = 270,                              # number of days in simulation
-  numTrials = 100,                         # Number of trials in simulation
+  maxT = 100,                              # number of days in simulation
+  numTrials = 50,                          # Number of trials in simulation
   
   ### population parameters
   N = 18,                                  # Number of classrooms
   nodeGroupList = NULL,                    # List of group IDs for node groups. Default is 1 group of nodes.
   Symp0nodeGroups = NULL,                  # Node groups where initial infectious are distributed
   Trans0nodes = NULL,                      # Nodes group where transitory individuals are distributed
-  S0Pops = 25*18,                          # Initial number of susceptible - stationary
-  preSymp0Pops = 0,                        # Initial number of presymptomatic - stationary
-  Symp0Pops = 0,                           # Initial number of symptomatic and asymptomatic - stationary
-  postSymp0Pops = 0,                       # Initial number of post-symptomatic - stationary
-  R0Pops = 0,                              # Initial number of recovered - stationary
-  Im0Pops = 0,                             # Initial number of immune - stationary
-  Iso0Pops = 0,                            # Initial number of isolated - stationary
-  S0Popt = 10,                             # Initial number of susceptible - transitory
-  preSymp0Popt = 0,                        # Initial number of pre-symptomatic - transitory
-  Symp0Popt = 0,                           # Initial number of symptomatic and asymptomatic - transitory
-  postSymp0Popt = 0,                       # Initial number of post-symptomatic - transitory
-  R0Popt = 0,                              # Initial number of recovered - transitory
-  Im0Popt = 0,                             # Initial number of immune - transitory
-  Iso0Popt = 0,                            # Initial number of isolated - transitory
+  S0Pops = 25*18,                          # Initial number of susceptible - stationary; total per trial
+  preSymp0Pops = 0,                        # Initial number of presymptomatic - stationary; count per node
+  Symp0Pops = 0,                           # Initial number of symptomatic and asymptomatic - stationary; count per node
+  postSymp0Pops = 0,                       # Initial number of post-symptomatic - stationary; count per node
+  R0Pops = 0,                              # Initial number of recovered - stationary; count per node
+  Im0Pops = 0,                             # Initial number of immune - stationary; count per node
+  Iso0Pops = 0,                            # Initial number of isolated - stationary; count per nodey
+  S0Popt = 10,                             # Initial number of susceptible - transitory; total per trial
+  preSymp0Popt = 0,                        # Initial number of pre-symptomatic - transitory; count per node
+  Symp0Popt = 0,                           # Initial number of symptomatic and asymptomatic - transitory; count per node
+  postSymp0Popt = 0,                       # Initial number of post-symptomatic - transitory; count per node
+  R0Popt = 0,                              # Initial number of recovered - transitory; count per node
+  Im0Popt = 0,                             # Initial number of immune - transitory; count per node
+  Iso0Popt = 0,                            # Initial number of isolated - transitory; count per node
   
   ### gdata parameters
-  R0pre = .5,                              # Basic reproduction number for presypmtomatic
-  R0symp = 2,                              # Basic reproduction number for symptomatic
-  R0post = .5,                             # Basic reproduction number for postsymptomatic
-  R0asymp = .8,                            # Basic reproduction number for asymptomatic
-  studentTeacherDiff = rep(1,4),           # Differential R0 for stationary-stationary, transitory-transitory, and stationary-transitory interactions
-  preSympPeriod = 1/3,                     # Reciprocal of presymptomatic period
+  R0Base = 3,                              # Baseline R0; compromize betwen 2.5 from CDC and 3.28 from OHA
+  R0preFrac = .4,                          # Presymptomatic R0 fraction (what proportion of new cases come from presymptomatic)
+  R0sympFrac = .55,                        # Symptomatic R0 fraction
+  R0postFrac = .05,                        # Postsymptomatic R0 fraction
+  R0asympFrac = .4,                        # Asymptomatic R0 fraction
+  R0ComplianceFrac = 1,                    # Proportionate reduction in R0 with high compliance to masks/distancing
+  R0VentilationFrac = 1,                   # Proportionate reduction in R0 with good ventilation
+  studentTeacherDiff = c(.33,1,.5,1),      # Differential R0 for stationary-stationary, transitory-transitory, and stationary-transitory interactions
+  preSympPeriod = 1/2,                     # Reciprocal of presymptomatic period
   symptomaticPeriod = 1/4,                 # Reciprocal of symptomatic period
   postSympPeriod = 1/6,                    # Reciprocal of post-symptomatic period
   aSympPeriod = 1/6,                       # Reciprocal of asymptomatic period
@@ -76,10 +111,10 @@ covidSimulator <- function(
   tempImmPeriod = 1/100,                   # Reciprocal of temporary immunity period, after which R becomes Im or S
   
   ### ldata parameters
-  R0Spread = .1,                           # Uniform variation in R0 across trials (measured as %change from R0)
+  R0Spread = 0,                            # Uniform variation in R0 across trials (measured as %change from R0)
   
   ### continuous initialized parameters (v0)
-  symptomaticProp = .65,                   # Average proportion of infectious who are symptomatic
+  symptomaticProp = c(.43,.65),            # Average proportion of infectious who are symptomatic; (stationary, transitory)
   symptomaticVariance = 0,                 # Uniform variance of symptomatic proportion
   schoolDay = 1,                           # Indicator for school day: 1 = school day, 0 = evening, list for each node or single entry
   schoolWeek = 1,                          # Indicator for school week: 1 = week, 0 = weekend, list for each node or single entry
@@ -90,24 +125,26 @@ covidSimulator <- function(
   breakDays = list(),                      # List of school break days, each element has a start date and end date, can be Date or Numeric
   
   ### pts_fun parameters
-  cosAmp = 0.25,                           # Amplitude of seasonal variation in beta
-  quarantineDaysClassroom = 1,                      # Length in days of quarantine
-  quarantineDaysGrade = NULL,                      # Length in days of quarantine
-  quarantineDaysSchool = NULL,                      # Length in days of quarantine
-  preDetectSuccess = 0,                    # Probability of observing a pre-symptomatic individual
-  sympDetectSuccess = 0,                   # Probability of observing a symptomatic individual
-  postDetectSuccess = 0,                   # Probability of observing a post-symptomatic individual
-  asympDetectSuccess = 0,                  # Probability of observing an asymptomatic individual
+  cosAmp = 0.125,                          # Amplitude of seasonal variation in beta
+  quarantineDaysClassroom = 14,            # Length in days of quarantine
+  quarantineDaysGrade = 14,                # Length in days of quarantine
+  quarantineDaysSchool = 28,               # Length in days of quarantine
+  preDetectSuccess = 0.1,                  # Probability of detecting a pre-symptomatic individual
+  sympDetectSuccess = 0.8,                 # Probability of detecting a symptomatic individual
+  postDetectSuccess = 0.1,                 # Probability of detecting a post-symptomatic individual
+  asympDetectSuccess = 0.1,                # Probability of detecting an asymptomatic individual
   detectionProbabilityVar = 0,             # Proportionate variable decrease in detection probability - only decreases probability, never increases
-  classroomThreshold = 1,                  # Number of active detected cases before classroom quarantined
-  gradeThreshold = 5,                      # Number of active detected cases before grade quarantined
-  schoolThreshold = 10,                    # Number of active detected cases before school quarantined
+  classroomThreshold = 2,                  # Number of active detected cases before classroom quarantined
+  gradeThreshold = 8,                      # Number of active detected cases before grade quarantined
+  schoolThreshold = 16,                    # Number of active detected cases before school quarantined
   countClassrooms = TRUE,                  # Whether to count classrooms on quarantine when counting active detected cases
   noSchoolFactor = .2,                     # Factor to reduce beta when outside of school
   nightFactor = .05,                       # Transmission rate at night; incorporates afternoon also
   quarantineFactor = .1,                   # Factor to reduce beta when quarantine
   
-  ### *day* specified infection events parameters - list to allow multiple events
+  ### *day* specified infection events parameters - list to allow multiple events, use list structure to accommodate stationary/transitory
+  ### take care with infection of transitory - the populations are so small that it risks trying to shift 1+ from a pop of 0
+  ### might need to revisit this, perhaps have students, teachers, and transitory as three different compartments
   infectionEventsDF = NULL,                # pre-built infection spreader events data frame if the events will be preset before the script is run
   infectionCount = c(),                    # Number of infections caused by the infection spreader
   infectionNodes = c(),                    # Number of nodes that the infection spreader contacts
@@ -115,6 +152,14 @@ covidSimulator <- function(
   infectionDate = c(),                     # Date the infection spreader lands. Date can also be numeric i.e. 200
   infectionSpread = c(),                   # Symmetric spread in days of infection spreader infections
   infectionCohort = c(),                   # Infection cohort: 1=stationary or 2=transitory
+  
+  ### *day* random infection events "parachuters" parameters; list of two for (stationary,transitory)
+  paraEventsDF = NULL,                     # pre-built parachuter events data frame if the events will be preset before the script is run
+  paraMu = c(1,1),                         # First shape parameter for beta function for timing of parachute events
+  paraSig = c(1,1),                        # Second shape parameter for beta function for timing of parachute events
+  parachuteRate = c(0,0),                  # Reciprocal of expected waiting time in days for a parachute event
+  parachuteNum = c(1,1),                   # Number of infectious in each parachute event
+  parachuteNodeGroups = NULL,              # Which node groups the parachuters can land in
   
   ### *hourly* transfer event parameters
   transferEventsDF = NULL,                 # pre-built *hourly* transfer events data frame if the events will be preset before the script is run
@@ -155,7 +200,7 @@ covidSimulator <- function(
   ######## Begin function #######
   ######## Begin function #######
   
-  set.seed(123)
+  # set.seed(123)
   
   library(ggplot2)
   library(reshape2)
@@ -177,13 +222,13 @@ covidSimulator <- function(
   source("pts_funScript_school_07.04.2020.R")
   if(is.null(folderPath)) {setwd("../")}
 
-  # # saving parameters
-  # if(is.null(folderPath)) {setwd("./parameters")}
-  # sink(paste0("parms",simID,".txt"))
-  # print("All parameters:")
-  # print(mget(names(formals())))
-  # sink()
-  # if(is.null(folderPath)) {setwd("../")}
+  # saving parameters
+  if(is.null(folderPath)) {setwd("./parameters")}
+  sink(paste0("parms",simID,".txt"))
+  print("All parameters:")
+  print(mget(names(formals())))
+  sink()
+  if(is.null(folderPath)) {setwd("../")}
 
   ####### Setting additional parameters #######
   
@@ -241,21 +286,23 @@ covidSimulator <- function(
   # More model parameters
   # global parameters
   gdata = data.frame(
-    betaPre = R0pre*preSympPeriod/24,          # Transmission rate among presypmtomatic
-    betaSymp = R0symp*symptomaticPeriod/24,    # Transmission rate among symptomatic
-    betaPost = R0post*postSympPeriod/24,       # Transmission rate among post symptomatic
-    betaA = R0asymp*aSympPeriod/24,            # Transmission rate among asymptomatic
-    preSympPeriod = preSympPeriod/24,          # Reciprocal of pre symptomatic period
-    symptomaticPeriod = symptomaticPeriod/24,  # Reciprocal of infectious period
-    postSympPeriod = postSympPeriod/24,        # Reciprocal of post symptomatic period
-    aSympPeriod = aSympPeriod/24,              # Reciprocal of asymptomatic period
-    isoPeriod = isoPeriod/24,                  # Reciprocal of isolation period
-    reSuscepRate = reSuscepRate,               # Proportion of recovered who become re-susceptible
-    tempImmPeriod = tempImmPeriod/24,          # Reciprocal of recovered period before re-susceptibility
-    ssD = studentTeacherDiff[1],               # Differential on R0 for stationary-stationary interactions
-    stD = studentTeacherDiff[2],               # Differential on R0 for stationary-transitory interactions
-    tsD = studentTeacherDiff[3],               # Differential on R0 for transitory-stationary interactiosn
-    ttD = studentTeacherDiff[4]                # Differential on R0 for transitory-transitory interactions
+    betaPre = R0Base*R0preFrac*preSympPeriod/24,         # Transmission rate among presymptomatic
+    betaSymp = R0Base*R0sympFrac*symptomaticPeriod/24,   # Transmission rate among symptomatic
+    betaPost = R0Base*R0postFrac*postSympPeriod/24,      # Transmission rate among post symptomatic
+    betaA = R0Base*R0asympFrac*aSympPeriod/24,           # Transmission rate among asymptomatic
+    R0ComplianceFrac = R0ComplianceFrac,                 # Proportionate reduction in R0 for high/low mask/distancing compliance
+    R0VentilationFrac = R0VentilationFrac,               # Proportionate reduction in R0 for high/low ventilation
+    preSympPeriod = preSympPeriod/24,                    # Reciprocal of pre symptomatic period
+    symptomaticPeriod = symptomaticPeriod/24,            # Reciprocal of infectious period
+    postSympPeriod = postSympPeriod/24,                  # Reciprocal of post symptomatic period
+    aSympPeriod = aSympPeriod/24,                        # Reciprocal of asymptomatic period
+    isoPeriod = isoPeriod/24,                            # Reciprocal of isolation period
+    reSuscepRate = reSuscepRate,                         # Proportion of recovered who become re-susceptible
+    tempImmPeriod = tempImmPeriod/24,                    # Reciprocal of recovered period before re-susceptibility
+    ssD = studentTeacherDiff[1],                         # Differential on R0 for stationary-stationary interactions
+    stD = studentTeacherDiff[2],                         # Differential on R0 for stationary-transitory interactions
+    tsD = studentTeacherDiff[3],                         # Differential on R0 for transitory-stationary interactiosn
+    ttD = studentTeacherDiff[4]                          # Differential on R0 for transitory-transitory interactions
   )
   
   # local parameters
@@ -352,12 +399,12 @@ covidSimulator <- function(
     St = S0t,
     preSymps = rep(preSymp0Pops, NnumTrials),
     preSympt = rep(preSymp0Popt, NnumTrials),
-    Symps = rep(Symp0Pops*symptomaticProp, Symp0srepeat),
-    Sympt = rep(Symp0Popt*symptomaticProp, Symp0trepeat),
+    Symps = rep(Symp0Pops*symptomaticProp[1], Symp0srepeat),
+    Sympt = rep(Symp0Popt*symptomaticProp[2], Symp0trepeat),
     postSymps = rep(postSymp0Pops, NnumTrials),
     postSympt = rep(postSymp0Popt, NnumTrials),
-    aSymps = rep(Symp0Pops*(1-symptomaticProp), Symp0srepeat),
-    aSympt = rep(Symp0Popt*(1-symptomaticProp), Symp0trepeat),
+    aSymps = rep(Symp0Pops*(1-symptomaticProp[1]), Symp0srepeat),
+    aSympt = rep(Symp0Popt*(1-symptomaticProp[2]), Symp0trepeat),
     Rs = rep(R0Pops, NnumTrials),
     Rt = rep(R0Popt, NnumTrials),
     Ims = rep(Im0Pops, NnumTrials),
@@ -372,7 +419,8 @@ covidSimulator <- function(
   v0 = data.frame(
     outOfSchool = rep(1,NnumTrials),                           # out-of-school factor for beta
     season = rep(1,NnumTrials),                                # seasonality factor for beta
-    symptomaticProp = rep(symptomaticProp,NnumTrials),         # proportion of infections that are symptomatic
+    symptomaticProps = rep(symptomaticProp[1],NnumTrials),     # proportion of infections that are symptomatic; stationary
+    symptomaticPropt = rep(symptomaticProp[2],NnumTrials),     # proportion of infections that are symptomatic; transitory
     schoolDay = rep(schoolDay,NnumTrials),                     # Indicator for school day: 1 = school day, 0 = evening 
     schoolWeek = rep(schoolWeek,NnumTrials),                   # Indicator for school week: 1 = week, 0 = weekend
     schoolTerm = rep(schoolTerm,NnumTrials),                   # Indicator for school term: 1 = school term, 0 = break
@@ -388,7 +436,10 @@ covidSimulator <- function(
     quarCounterG = rep(0,NnumTrials),                          # Counter for number of quarantine events - grade
     noQuarantineS = rep(noQuarantine,NnumTrials),              # Indicator for school level quarantine: 1 = no quarantine, 0 = quarantine
     quarTimerS = rep(0,NnumTrials),                            # Timer for length of quarantine - school
-    quarCounterS = rep(0,NnumTrials)                           # Counter for number of quarantine events - school
+    quarCounterS = rep(0,NnumTrials),                          # Counter for number of quarantine events - school
+    isoC = rep(0,NnumTrials),                                  # Counter for number of isolated in classroom
+    isoG = rep(0,NnumTrials),                                  # Counter for number of isolated in grade
+    isoS = rep(0,NnumTrials)                                   # Counter for number of isolated in school
   )
 
   # building pts_fun
@@ -417,8 +468,9 @@ covidSimulator <- function(
     numComp = length(compartments),         # number of compartments
     ncolV0 = ncol(v0),                      # number of continuous variables
     cosA = cosAmp,                          # Amplitude of seasonal variation in beta
-    sympProp0 = symptomaticProp,            # Baseline high spreader proportion that gets re-randomized each time step
-    sympVar = symptomaticVariance,          # Uniform variance of high spreader proportion
+    sympProp0s = symptomaticProp[1],        # Baseline symptomatic proportion that gets re-randomized each time step; stationary
+    sympProp0t = symptomaticProp[2],        # Baseline symptomatic proportion that gets re-randomized each time step; transitory
+    sympVar = symptomaticVariance,          # Uniform variance of symptomatic proportion
     preDet = preDetectSuccess,              # Probability of detecting a pre-symptomatic individual
     sympDet = sympDetectSuccess,            # Probability of detecting a symptomatic individual
     postDet = postDetectSuccess,            # Probability of detecting a post-symptomatic individual
@@ -485,6 +537,50 @@ covidSimulator <- function(
       infectionEvents <- bind_rows(infectionEventList[lengths(infectionEventList) != 0])
     }
   } else {infectionEvents <- infectionEventsDF}
+  
+  ###### PARACHUTE EVENTS ######
+  # Follows a poisson process, shifts one or more individuals from susceptible to presymptomatic
+  # Use fractions to avoid trying to shift 1+ individuals from a pop of 0
+  
+  if(is.null(paraEventsDF)) {
+    
+    # Allowable node groups: all are allowed if none are selected
+    if(is.null(parachuteNodeGroups)) {parachuteNodeGroups <- list(unique(nodeGroupList),unique(nodeGroupList))}
+    
+    parachuteEvents <- data.frame(NULL)
+    paraCompartments <- c("Ss","St")
+    paraPops <- c(S0Pops/N,S0Popt)
+    
+    # 2 iterations: stationary parachuters; transitory parachuters
+    # compensate for hour/day by dividing/multiplying by 24 and adding 7 to parachute infection before testing
+    for(i in 1:2) {
+      # number of events in each trial
+      numParachuteList <- lapply(1:numTrials,function(x) rpois(1,parachuteRate[i]*max(tspan)/24))
+      parachuteNTM <- nodeTrialMat[nodeTrialMat$nodeGroup %in% parachuteNodeGroups[[i]],]
+      pNList <- split(parachuteNTM$node,parachuteNTM$trial)
+
+      if(max(unlist(numParachuteList)) > 0){
+        # parachute events data frame
+        parachuteEV <- data.frame(
+          event = "intTrans",
+          time = unlist(lapply(numParachuteList, function(x) 7+24*ceiling(rbeta(x,paraMu[i],paraSig[i])*max(tspan)/24))),
+          node = unlist(lapply(c(1:numTrials),function(x) sample(pNList[[x]],numParachuteList[[x]],replace=TRUE))),
+          dest = 0,
+          n = 0,
+          proportion = min(parachuteNum[i]/paraPops[i],1),
+          select = which(compartments == paraCompartments[i]),
+          shift = 1
+        )
+        # Adding to the cumulative infections
+        parachuteCum <- parachuteEV
+        parachuteCum$event <- "enter"
+        parachuteCum$select <- which(compartments == paraCompartments[i])+16
+        parachuteCum$shift <- 0
+        parachuteEV <- rbind(parachuteEV,parachuteCum)
+        parachuteEvents <- rbind(parachuteEvents,parachuteEV)
+      }
+    }
+  } else {parachuteEvents <- paraEventsDF}
   
   ###### TRANSFER EVENTS ######
   if(is.null(transferEventsDF)) {
@@ -605,6 +701,7 @@ covidSimulator <- function(
   ###### ALL EVENTS ######
   allEvents <- data.frame(NULL)
   if(length(infectionCount | !is.null(infectionEventsDF))>0) { allEvents <- rbind(allEvents,infectionEvents)}
+  if(max(parachuteRate) > 0) { allEvents <- rbind(allEvents,parachuteEvents)}
   if(max(inGroupTransferRate,outGroupTransferRate)>0 | !is.null(transferEventsDF)) { allEvents <- rbind(allEvents,transferEvents) }
   if(nrow(allEvents) > 0) {allEvents <- allEvents[order(allEvents$time),]}
   
@@ -643,7 +740,7 @@ covidSimulator <- function(
   trajPlotInfections <- simInfPlottingFunction(
     result = result,                           # model result
     table = "U",                               # which table: U or V
-    compts= c("preSymps_preSympt_Symps_Sympt_postSymps_postSympt_aSymps_aSympt"),           # compartments that will be summed and plotted
+    compts= c("preSymps_preSympt_Symps_Sympt_postSymps_postSympt_aSymps_aSympt_Isos_Isot"),           # compartments that will be summed and plotted
     newI = FALSE,              # Logical to plot new infections
     groups = plotGroups,                       # List of groups to aggregate and plot
     sumGroups = sumGroups,                     # Automatically sums over all groups
@@ -694,7 +791,7 @@ covidSimulator <- function(
     byHour = TRUE,                            # time span is by hours
     dateBreaks = dateBreaks,          # plot parameter: Date axis format
     dataTitle = "Cumulative infections",                    # Title of data
-    titleString = paste0("Active infections in ",titleString),        # plot parameter: Title of plot
+    titleString = paste0("Cumulative infections in ",titleString),        # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Number of infections",          # plot parameter: Title of y axis
     lString = lString,                         # plot parameter: Title of legend
@@ -724,7 +821,7 @@ covidSimulator <- function(
     byHour = TRUE,                            # time span is by hours
     dateBreaks = dateBreaks,          # plot parameter: Date axis format
     dataTitle = "Cumulative infections",                    # Title of data
-    titleString = paste0("Active infections in ",titleString),        # plot parameter: Title of plot
+    titleString = paste0("New infections in ",titleString),        # plot parameter: Title of plot
     xString = "Date",                          # plot parameter: Title of x axis
     yString = "Number of infections",          # plot parameter: Title of y axis
     lString = lString,                         # plot parameter: Title of legend
