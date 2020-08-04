@@ -1,7 +1,7 @@
 # schoolPassThrough_07302020.R
 
 setwd("L:/Health/Epidemiology/Banwarth_Epi/covid19/scripts")
-source("covid19_SimInf_School_07.21.2020.R")
+source("covid19_SimInf_School_08.04.2020.R")
 
 # parachute rate at 10 cases/100,000k per week for a community of 25,000
 # assume 1/5 of cases are known, so multiply by 5
