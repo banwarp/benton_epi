@@ -1,5 +1,7 @@
 # schoolPassThrough_07302020.R
 
+#### NOTE: Make sure that the Covid-19 Simulator scripts' name matches the source on line 6 of this script.
+
 setwd("L:/Health/Epidemiology/Banwarth_Epi/covid19/scripts")
 source("covid19_SimInf_School_08.04.2020.R")
 
