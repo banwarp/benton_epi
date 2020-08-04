@@ -8,11 +8,13 @@ transitionsScript <- function() {
     "Rs -> reSuscepRate*tempImmPeriod*Rs -> Ss",                     # Recovereds who become susceptible again: 
     paste0("Ss ->",
            "outOfSchool*",
+           "R0ComplianceFrac*",
+           "R0VentilationFrac*",
            "(ssD*(betaPre*preSymps+",
            "betaSymp*Symps+",
            "betaPost*postSymps+",
            "betaA*aSymps)+",
-           "stD*(betaPre*preSympt+",
+           "tsD*(betaPre*preSympt+",
            "betaSymp*Sympt+",
            "betaPost*postSympt+",
            "betaA*aSympt))*",
@@ -21,8 +23,8 @@ transitionsScript <- function() {
            " -> preSymps + cumIs"
     ),                                                               # Infection: 
     "preSymps -> preDetectSuccess*preSymps -> Isos",        # Identification and Isolation of presymptomatic
-    "preSymps -> (1-preDetectSuccess)*symptomaticProp*preSympPeriod*preSymps -> Symps",        # Development of symptomatic disease among exposed: stationary
-    "preSymps -> (1-preDetectSuccess)*(1-symptomaticProp)*preSympPeriod*preSymps -> aSymps",     # Development of asymptomatic disease among exposed: stationary
+    "preSymps -> (1-preDetectSuccess)*symptomaticProps*preSympPeriod*preSymps -> Symps",        # Development of symptomatic disease among exposed: stationary
+    "preSymps -> (1-preDetectSuccess)*(1-symptomaticProps)*preSympPeriod*preSymps -> aSymps",     # Development of asymptomatic disease among exposed: stationary
     "Symps -> sympDetectSuccess*Symps -> Isos",                             # Identification and Isolation of symptomatic
     "Symps -> (1-sympDetectSuccess)*symptomaticPeriod*Symps -> postSymps",                             # Transition from symptomatic disease to recovered 
     "postSymps -> postDetectSuccess*postSymps -> Isos",                # Identification and Isolation of postsymptomatic
@@ -35,6 +37,8 @@ transitionsScript <- function() {
     "Rt -> reSuscepRate*tempImmPeriod*Rt -> St",                     # Recovereds who become susceptible again: 
     paste0("St ->",
            "outOfSchool*",
+           "R0ComplianceFrac*",
+           "R0VentilationFrac*",
            "(stD*(betaPre*preSymps+",
            "betaSymp*Symps+",
            "betaPost*postSymps+",
@@ -48,8 +52,8 @@ transitionsScript <- function() {
            " -> preSympt + cumIt"
     ),                                                               # Infection: 
     "preSympt -> preDetectSuccess*preSympt -> Isot",        # Identification and Isolation of presymptomatic
-    "preSympt -> (1-preDetectSuccess)*symptomaticProp*preSympPeriod*preSympt -> Sympt",        # Development of symptomatic disease among exposed: stationary
-    "preSympt -> (1-preDetectSuccess)*(1-symptomaticProp)*preSympPeriod*preSympt -> aSympt",     # Development of asymptomatic disease among exposed: stationary
+    "preSympt -> (1-preDetectSuccess)*symptomaticPropt*preSympPeriod*preSympt -> Sympt",        # Development of symptomatic disease among exposed: stationary
+    "preSympt -> (1-preDetectSuccess)*(1-symptomaticPropt)*preSympPeriod*preSympt -> aSympt",     # Development of asymptomatic disease among exposed: stationary
     "Sympt -> sympDetectSuccess*Sympt -> Isot",                             # Identification and Isolation of symptomatic
     "Sympt -> (1-sympDetectSuccess)*symptomaticPeriod*Sympt -> postSympt",                             # Transition from symptomatic disease to recovered 
     "postSympt -> postDetectSuccess*postSympt -> Isot",                # Identification and Isolation of postsymptomatic
