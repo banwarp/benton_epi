@@ -1,0 +1,242 @@
+---
+title: "Analysis of breakthrough infections"
+author: "Peter Banwarth - Benton County Health Department"
+date: "10/06/2021"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: my_header.txt
+classoption: landscape
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r, echo = FALSE, results = "hide", message=FALSE,warning=FALSE}
+
+caseFile <- "bcases02012020_10242021.xlsx"
+
+# libraries
+library(sf)
+library(tidyverse)
+library(tidycensus)
+library(data.table)
+library(fmsb)
+library(eeptools)
+library(kableExtra)
+
+# reading in vaccine data
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton")
+vax <- readxl::read_xlsx("alertDataBenton.xlsx",
+                         col_types = c("numeric","text","text","text","date",rep("skip",26),"date",rep("skip",6),"text","text",rep("skip",5)))
+
+# # temporary dataset for development
+# vsave <- vax
+# vax <- vax[c(1:100),]
+
+# separate incomplete from complete and recombine into wider format
+vaxInc <- vax %>% filter(MFR %in% c("Pfizer","Moderna") & DOSE == 1)
+vaxComp <- vax %>% filter(MFR == "Janssen" | DOSE == 2)
+
+names(vaxInc) <- c("CLIENT_ID","LAST_NAME","FIRST_NAME","MIDDLE_NAME","BIRTHDATE","FIRSTDOSE_DATE","MFR","FIRSTDOSE")
+names(vaxComp) <- c("CLIENT_ID","LN","FN","MN","BD","COMPLETEDOSE_DATE","Manu","COMPLETEDOSE")
+
+vaxWide <- data.table(merge(vaxInc,vaxComp, by="CLIENT_ID",all=TRUE))
+vaxWide[is.na(vaxWide$LAST_NAME),c("LAST_NAME","FIRST_NAME","MIDDLE_NAME","BIRTHDATE","MFR")] <- vaxWide[is.na(vaxWide$LAST_NAME),c("LN","FN","MN","BD","Manu")]
+vaxWide[is.na(vaxWide$COMPLETEDOSE),"COMPLETEDOSE"] <- 0
+
+vax <- vaxWide %>% select(c(CLIENT_ID,LAST_NAME,FIRST_NAME,MIDDLE_NAME,BIRTHDATE,FIRSTDOSE_DATE,MFR,COMPLETEDOSE_DATE,COMPLETEDOSE))
+vax$Age <- age_calc(as.Date(vax$BIRTHDATE), enddate = Sys.Date(), units = "years", precise = FALSE)
+
+# paste name and DOB
+vax$nameDOB <- paste0(vax$LAST_NAME,vax$BIRTHDATE)
+
+# reading in case data
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/benton")
+case <- readxl::read_xlsx(caseFile,
+                          col_types = c("numeric",rep("skip",15),"numeric",rep("skip",6),"date",rep("skip",5),"date","text","date"))
+
+# # temp dataset for development
+# csave <- case
+# case <- case[c(1:100),]
+
+# keep only useful data
+names(case) <- c("CaseID","Age","ReportDateLHD","TrueCaseDate","LastFirstMid","DOB")
+case$LastFirstMid <- toupper(case$LastFirstMid)
+case <- case %>% separate(LastFirstMid, c("Last","FirstMid"), sep=", ")
+case <- case %>% separate(FirstMid,c("First","Mid"))
+case$nameDOB <- paste0(case$Last,case$DOB)
+
+# keep only vax and case records that match a case
+vaxcase <- vax[which(vax$nameDOB %in% case$nameDOB),]
+vaxcase <- data.table(merge(vaxcase,case,by="nameDOB"))
+
+# flag case before vaccination; case after vaccine complete
+vaxcase$prePostVax <- 0
+vaxcase[which(vaxcase$FIRSTDOSE_DATE < (as.Date(vaxcase$TrueCaseDate) - 14)),"prePostVax"] <- 1
+vaxcase[which(vaxcase$COMPLETEDOSE_DATE < (as.Date(vaxcase$TrueCaseDate) - 14)),"prePostVax"] <- 2
+
+# merge back to cases
+caseVax <- data.table(merge(case,vaxcase[,c("CaseID","prePostVax","COMPLETEDOSE_DATE","MFR")],all=TRUE))
+caseVax[is.na(caseVax$prePostVax),"prePostVax"] <- -1
+caseVax$daysAfterComplete <- caseVax$TrueCaseDate-caseVax$COMPLETEDOSE_DATE-14
+caseVax[caseVax$prePostVax<2,"daysAfterComplete"] <- NA
+
+caseVax$AgeAtInfection <- floor(as.numeric((caseVax$TrueCaseDate-caseVax$DOB)/365))
+
+caseVax$prePostVax <- plyr::mapvalues(caseVax$prePostVax, from = c(-1,0,1,2),to=c("Unvaccinated","Unvaccinated at time of infection","1st dose only + 14 days","Complete vaccine + 14 days"))
+
+caseVax <- caseVax[-which(duplicated(caseVax$CaseID)),]
+
+
+# age groups
+compFun <- function(ageGroups,dtcase,dtvax,months,pop) {
+  
+  dtcase <- dtcase[dtcase$Age >= ageGroups[1],]
+  dtcase <- dtcase[dtcase$Age <= ageGroups[2],]
+  dtcase <- dtcase[dtcase$TrueCaseDate>= (Sys.Date()-31*months),]
+  
+  pdt <- data.table(cellTitle = c("Case rate per 1,000 among unvaccinated",
+                                  "Case count and population among unvaccinated",
+                                  "Case rate per 1,000 among vaccinated",
+                                  "Case count and population among vaccinated",
+                                  "Risk ratio (vaccinated/unvaccinated)",
+                                  "Risk ratio 95% confidence interval"),
+                    data = rep(NA,6))
+  
+  if(ageGroups[2]>12) {  
+    dtvax <- dtvax[dtvax$Age >= ageGroups[1]]
+    dtvax <- dtvax[dtvax$Age <= ageGroups[2]]
+    dtvax <- dtvax[dtvax$COMPLETEDOSE>=1,]
+    if(length(which(duplicated(dtvax$CLIENT_ID)))>0) {dtvax <- dtvax[-which(duplicated(dtvax$CLIENT_ID)),]}
+    dtvaxlow <- dtvax[dtvax$COMPLETEDOSE_DATE <= (Sys.Date()-31*months),]
+    vaxCount <- mean(c(dim(dtvax)[1],dim(dtvaxlow)[1]))
+    
+    unvaxpop <- pop-vaxCount
+    
+    vaxCaseCount <- length(which(dtcase$prePostVax=="Complete vaccine + 14 days"))
+    unvaxCaseCount <- dim(dtcase)[1]-vaxCaseCount
+    
+    vaxRate <- vaxCaseCount/vaxCount
+    unvaxRate <- unvaxCaseCount/unvaxpop
+    
+    vaxmat <- matrix(c(vaxCaseCount,unvaxCaseCount,vaxCount-vaxCaseCount,unvaxpop-unvaxCaseCount),nrow=2)
+    
+    rr <- riskratio(vaxCaseCount,unvaxCaseCount,vaxCount,unvaxpop)
+    
+    pdt[,2] <- c(round(unvaxRate,4)*1000,
+                 paste(unvaxCaseCount,"out of", unvaxpop,sep=" "),
+                 round(vaxRate,4)*1000,
+                 paste(vaxCaseCount,"out of", vaxCount,sep=" "),
+                 round(rr$estimate,3),
+                 paste(round(rr$conf.int[1],3),"to",round(rr$conf.int[2],3),sep=" "))
+    
+  } else {
+    # age 0-11
+    vaxCount <- 0
+    unvaxpop <- pop
+    vaxCaseCount <- 0
+    unvaxCaseCount <- dim(dtcase)[1]
+    vaxRate <- vaxCaseCount/vaxCount
+    unvaxRate <- unvaxCaseCount/unvaxpop
+    vaxmat <- matrix(c(vaxCaseCount,unvaxCaseCount,vaxCount-vaxCaseCount,unvaxpop-unvaxCaseCount),nrow=2)
+    rr <- NaN
+    pdt[,2] <- c(round(unvaxRate,4)*1000,
+                       paste(unvaxCaseCount,"out of", unvaxpop,sep=" "),
+                 rep(NA,4))
+  }
+  
+  return(pdt)
+}
+
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton")
+
+mfrCase <- data.table(table(caseVax[caseVax$prePostVax == "Complete vaccine + 14 days","MFR"]))
+mfrVax <- data.table(table(vax[vax$COMPLETEDOSE > 0,"MFR"]))[c(1:3),]
+mfrPropCase <- mfrCase$N/sum(mfrCase$N)
+mfrPropVax <- mfrVax$N/sum(mfrVax$N)
+
+a1 <- compFun(c(0,120),caseVax,vax,1,95000)
+a2 <- compFun(c(0,120),caseVax,vax,3,95000)
+a3 <- compFun(c(0,11),caseVax,vax,1,9010)
+a4 <- compFun(c(0,11),caseVax,vax,3,9010)
+a5 <- compFun(c(12,17),caseVax,vax,1,5985)
+a6 <- compFun(c(12,17),caseVax,vax,3,5985)
+a7 <- compFun(c(18,29),caseVax,vax,1,27620)
+a8 <- compFun(c(18,29),caseVax,vax,3,27620)
+a9 <- compFun(c(30,64),caseVax,vax,1,35546)
+a10 <- compFun(c(30,64),caseVax,vax,3,35546)
+a11 <- compFun(c(65,120),caseVax,vax,1,15005)
+a12 <- compFun(c(65,120),caseVax,vax,3,15005)
+
+a13 <- data.table("ageGroup" = rep(c("All ages","0 to 11","12 to 17","18 to 29","30 to 64","65 and older"),each=12),
+                  "timeframe" = rep(rep(c("1 month","3 months"),each=6),6))
+a13[,c("cellTitle","data")] <- rbind(a1,a2,a3,a4,a5,a6,a7,a8,a9,a10,a11,a12)
+a13 <- reshape(a13,direction="wide",idvar=c("ageGroup","timeframe"),timevar="cellTitle")
+
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton/breakthrough")
+write.csv(a13,"breakthroughCasesAnalysis.csv",row.names=FALSE)
+```
+
+```{r, echo = FALSE}
+
+a1 %>%
+  kbl(caption = "Case rates by vaccination status and age",
+      col.names = c("All ages","Previous month")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a2 %>%
+  kbl(caption = "Case rates by vaccination status and age",
+      col.names = c("All ages","Previous 3 months")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+data.table("Manufacturer" = c("Janssen","Moderna","Pfizer"),
+                    "Number of breakthrough cases" = mfrCase$N,
+                    "Proportion of breakthrough cases" = round(mfrPropCase,2),
+                    "Proportion of vaccines" = round(mfrPropVax,2)) %>%
+  kbl(caption = "Breakthrough cases by manufacturer") %>% kable_paper(latex_options = c("HOLD_position"))
+
+a3 %>%
+  kbl(caption = "Case rates by vaccination status and age",
+      col.names = c("0 to 11","Previous month")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a4 %>%
+  kbl(col.names = c("0 to 11","Previous 3 months")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a5 %>%
+  kbl(col.names = c("12 to 17","Previous month")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a6 %>%
+  kbl(col.names = c("12 to 17","Previous 3 months")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a7 %>%
+  kbl(col.names = c("18 to 29","Previous month")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a8 %>%
+  kbl(col.names = c("18 to 29","Previous 3 months")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a9 %>%
+  kbl(col.names = c("30 to 64","Previous month")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a10 %>%
+  kbl(col.names = c("30 to 64","Previous 3 months")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a11 %>%
+  kbl(col.names = c("65 and older","Previous month")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+a12 %>%
+  kbl(col.names = c("65 and older","Previous 3 months")) %>% 
+  kable_paper(latex_options = c("HOLD_position"))
+
+```
