@@ -1,0 +1,183 @@
+---
+title: "Benton County COVID-19 Vaccine Booster Demand Forecast"
+author: "Peter Banwarth, Benton County Health Department, peter.banwarth@co.benton.or.us"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: my_header.txt
+classoption: landscape
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r initialize, include = FALSE}
+# libraries
+library(tidyverse)
+library(tidycensus)
+library(data.table)
+library(lubridate)
+library(ggplot2)
+library(eeptools)
+library(kableExtra)
+
+county <- "Benton"
+
+
+jCap <- 50
+mCap <- 300
+pCap <- 300
+
+##### 
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton")
+vax <- readxl::read_xlsx("alertDataBenton.xlsx")
+
+# separating Pfizer and Moderna (vaxP) from Janssen (vaxJ)
+vaxP <- vax[vax$DOSE == 2,]
+vaxJ <- vax[vax$MFR == "Janssen",]
+
+# determine when person will turn 18
+vaxP$AGE <- as.numeric(age_calc(as.Date(vaxP$BIRTHDATE), enddate = as.Date(vaxP$VACCINATION_DATE), units = "days", precise = TRUE))
+vaxP$untilEligible <- 18*365-vaxP$AGE
+vaxP[which(vaxP$VACCINATION_DATE < as.Date("2021-03-22")),"untilEligible"] <- 0
+
+vaxP$boosterEligibleDate <- pmax(vaxP$VACCINATION_DATE+days(182),vaxP$VACCINATION_DATE+days(vaxP$untilEligible))
+
+# Janssen
+vaxJ$untilEligible <- 0
+vaxJ$boosterEligibleDate <- vaxJ$VACCINATION_DATE+days(60)
+
+# start on October 1
+vaxE <- rbind(vaxP,vaxJ)
+
+vaxE[which(vaxE$boosterEligibleDate < as.Date("2021-10-01")),"boosterEligibleDate"] <- as.Date("2021-10-01")
+
+vaxE$Week <- floor_date(vaxE$boosterEligibleDate, unit="week")
+
+# setwd("./demand")
+# ggsave(paste0(county,"Booster",Sys.Date(),".png"),p1)
+
+# Through six months from now
+
+vtable <- vaxE[vaxE$boosterEligibleDate<max(vaxE$VACCINATION_DATE)+days(182),] %>% count(Week,MFR)
+names(vtable) <- c("Week","MFR","Newly eligible")
+
+# zP <- vaxE[vaxE$boosterEligibleDate<as.Date("2022-0-01"),]
+# ziptable <- table(zP$Week,zP$ZIP_CODE)
+# 
+# write.csv(ziptable,paste0(county,"PfizerBoosterDemandByZip",Sys.Date(),".csv"))
+
+
+# capacity and excess demand
+# booster doses given
+vaxB <- vax[vax$DOSE == 0,]
+vaxB$Week <- floor_date(vaxB$VACCINATION_DATE, unit="week")
+
+btable <- vaxB %>% count(Week,MFR) %>% subset(Week > "2021-09-19")
+names(btable) <- c("Week","MFR","Boosters given")
+
+vbtable <- merge(vtable,btable,all=TRUE) %>% subset(MFR %in% c("Janssen","Moderna","Pfizer"))
+
+vbtable[is.na(vbtable)] <- 0
+
+# county-wide capacity
+vbtable[vbtable$MFR == "Janssen","Capacity"] <- jCap
+vbtable[vbtable$MFR == "Moderna","Capacity"] <- mCap
+vbtable[vbtable$MFR == "Pfizer","Capacity"] <- pCap
+
+#actual number of doses
+vbtable[vbtable$Week < Sys.Date(),"Capacity"] <- vbtable[vbtable$Week < Sys.Date(),"Boosters given"] 
+
+vblist <- split(vbtable,vbtable$MFR)
+
+demandFun <- function(dt) {
+  dt$weeklyDemand <- 0
+  dt[1,"weeklyDemand"] <- dt[1,"Newly eligible"]
+  dt$metDemand <- 0
+  dt[1,"metDemand"] <- min(unlist(dt[1,"weeklyDemand"]),unlist(dt[1,"Capacity"]))
+  dt$unmetDemand <- 0
+  dt[1,"unmetDemand"] <- max(0,unlist(dt[1,"weeklyDemand"]-dt[1,"metDemand"]))
+  
+  for(i in 2:nrow(dt)) {
+    dt[i,"weeklyDemand"] <- dt[i,"Newly eligible"]+dt[i-1,"unmetDemand"]
+    dt[i,"metDemand"] <- min(dt[i,"weeklyDemand"],dt[i,"Capacity"])
+    dt[i,"unmetDemand"] <- max(0,unlist(dt[i,"weeklyDemand"]-dt[i,"metDemand"]))
+  }
+  
+  return(dt)
+}
+
+vbreturn <- lapply(vblist,demandFun)
+vbAll <- data.table(do.call(rbind,vbreturn))
+
+
+gg_color_hue <- function(n) {
+  hues = seq(15, 375, length = n + 1)
+  hcl(h = hues, l = 65, c = 100)[1:n]
+}
+
+ggcols = gg_color_hue(3)
+
+vaxE <- vaxE %>% subset(MFR %in% c("Janssen","Moderna","Pfizer"))
+
+p1 <- ggplot(data=vaxE[vaxE$boosterEligibleDate<max(vaxE$VACCINATION_DATE)+days(182),],aes(Week)) +
+  geom_bar(aes(fill=MFR))+
+  labs(title=paste("Estimated new Booster demand", Sys.Date(),sep = " ")) +
+       xlab("Week of initial eligibility")+
+       ylab("Number of individuals")
+
+p2 <- ggplot(data=vbreturn[[1]],aes(x=as.Date(Week),y=unmetDemand)) +
+  geom_bar(stat="identity",fill=ggcols[1])+
+  labs(title=paste("Est. weekly unmet demand for Janssen boosters, weekly capacity:", jCap,sep = " ")) +
+  xlab("Week")+
+  ylab("Number of individuals")+
+  theme(legend.position = "none")
+
+p3 <- ggplot(data=vbreturn[[2]],aes(x=as.Date(Week),y=unmetDemand)) +
+  geom_bar(stat="identity",fill=ggcols[2])+
+  labs(title=paste("Est. weekly unmet demand for Moderna boosters, weekly capacity:", mCap,sep = " ")) +
+  xlab("Week")+
+  ylab("Number of individuals")+
+  theme(legend.position = "none")
+
+p4 <- ggplot(data=vbreturn[[3]],aes(x=as.Date(Week),y=unmetDemand)) +
+  geom_bar(stat="identity",fill=ggcols[3])+
+  labs(title=paste("Est. weekly unmet demand for Pfizer boosters, weekly capacity:", pCap,sep = " ")) +
+  xlab("Week")+
+  ylab("Number of individuals")+
+  theme(legend.position = "none")
+
+p5 <- ggplot(data=vbAll,aes(x=as.Date(Week),y=unmetDemand)) +
+  geom_bar(stat="identity",aes(fill=MFR))+
+  labs(title=paste("Est. weekly unmet demand for all boosters, weekly capacity:", jCap+mCap+pCap,sep = " ")) +
+  xlab("Week")+
+  ylab("Number of individuals")
+
+```
+
+```{r forecastOutput, echo = FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.width=8, fig.asp =.8, out.width='100%'}
+
+p1
+p2
+p3
+p4
+p5
+
+```
+
+```{r table, echo=FALSE}
+vbreturn[[1]] %>%
+  kbl(caption = paste0("Janssen Booster Demand",Sys.Date())) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+
+vbreturn[[2]] %>%
+  kbl(caption = paste0("Moderna Booster Demand",Sys.Date())) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+
+vbreturn[[3]] %>%
+  kbl(caption = paste0("Pfizer Booster Demand",Sys.Date())) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+```

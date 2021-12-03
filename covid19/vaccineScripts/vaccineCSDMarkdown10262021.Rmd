@@ -1,0 +1,659 @@
+---
+title: "Corvallis School District Vaccination Data - biweekly report"
+author: "Peter Banwarth, Benton County Health Department, peter.banwarth@co.benton.or.us"
+date: "`r Sys.Date()`"
+output:
+  rmarkdown::pdf_document:
+    fig_caption: yes        
+    includes:  
+      in_header: my_header.txt
+classoption: landscape
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r initialize, include = FALSE}
+library(sf)
+library(tidyverse)
+library(tidycensus)
+library(ggplot2)
+library(data.table)
+library(ggmap)
+library(RColorBrewer)
+library(lubridate)
+library(eeptools)
+library(kableExtra)
+library(scales)
+library(jsonlite)
+library(stringi)
+library(rvest)
+library(rgdal)
+library(dplyr)
+library(mgcv)
+
+# age cutoff date
+ageCutoffDate <- "2009-11-20"
+
+# reading in vaccine data
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton")
+vax <- readxl::read_xlsx("alertDataBenton.xlsx",
+                          col_types = c("numeric","text","text","text","date",rep("skip",26),"date",rep("skip",6),"text","text",rep("skip",5)))
+
+vaxDate <- max(vax$VACCINATION_DATE,na.rm=TRUE)
+
+# separate incomplete from complete and recombine into wider format
+vaxInc <- vax %>% filter(MFR !="Janssen" & DOSE == 1)
+vaxComp <- vax %>% filter(MFR == "Janssen" | DOSE >= 2)
+
+names(vaxInc) <- c("CLIENT_ID","LAST_NAME","FIRST_NAME","MIDDLE_NAME","BIRTHDATE","FIRSTDOSE_DATE","MFR","FIRSTDOSE")
+names(vaxComp) <- c("CLIENT_ID","LN","FN","MN","BD","COMPLETEDOSE_DATE","Manu","COMPLETEDOSE")
+
+vaxWide <- data.table(merge(vaxInc,vaxComp, by="CLIENT_ID",all=TRUE))
+vaxWide[is.na(vaxWide$LAST_NAME),c("LAST_NAME","FIRST_NAME","MIDDLE_NAME","BIRTHDATE","MFR")] <- vaxWide[is.na(vaxWide$LAST_NAME),c("LN","FN","MN","BD","Manu")]
+vaxWide[is.na(vaxWide$COMPLETEDOSE),"COMPLETEDOSE"] <- 0
+
+vax <- vaxWide %>% select(c(CLIENT_ID,LAST_NAME,FIRST_NAME,MIDDLE_NAME,BIRTHDATE,FIRSTDOSE_DATE,MFR,COMPLETEDOSE_DATE,COMPLETEDOSE))
+
+# paste name and DOB
+vax$nameDOB <- paste0(vax$LAST_NAME,vax$BIRTHDATE)
+
+vaxPrevious2Week <- vax %>% subset(as.Date(FIRSTDOSE_DATE) < as.Date(vaxDate)-14)
+
+####
+####
+
+# setting date of birth cutoff for student data
+dobCutoff <- floor_date(Sys.Date(), unit="week") - days(3)
+
+# read in student data
+student <- readxl::read_excel("csdRE11232021.xlsx",
+                              col_types = c("text","text",rep("skip",5),"date","text","text","skip",rep("text",7),rep("skip",8),"text","skip","skip"))
+
+# restrict to only Benton County
+countyResidence <- data.table(table(student$`Resident County`))
+names(countyResidence) <- c("County of residence","Number of students")
+student <- student %>% subset(`Resident County` == "Benton")
+
+# restrict to students 5 years and older
+student <- student %>% subset(`DOB` <"2016-11-20")
+
+student$`Legal Last Name` <- toupper(student$`Legal Last Name`)
+student$nameDOB <- paste0(student$`Legal Last Name`,student$DOB)
+
+# flag vaccinated students
+student$vax <- 0
+student[student$nameDOB %in% vax$nameDOB,"vax"] <- 1
+student$vaxP2W <- 0
+student[student$nameDOB %in% vaxPrevious2Week$nameDOB,"vaxP2W"] <- 1
+
+###
+###
+
+# read in school districts
+setwd("L:/Health/Epidemiology/Banwarth_Epi/ACS_tables/census2020/schoolDistricts")
+ssd <- st_read("tl_2020_41_unsd.shp")
+
+# filter to counties
+ssd <- ssd[ssd$NAME %in% c("Lincoln County School District",
+                           "Monroe School District 1J",
+                           "Alsea School District 7J",
+                           "Corvallis School District 509J",
+                           "Philomath School District 17J",
+                           "Greater Albany School District 8J",
+                           "Central Linn School District 552",
+                           "Harrisburg School District 7J",
+                           "Lebanon Community School District 9",
+                           "Santiam Canyon School District 129J",
+                           "Scio School District 95",
+                           "Sweet Home School District 55"),]
+
+###
+###
+
+# read in block shapefile
+setwd("L:/Health/Epidemiology/Banwarth_Epi/ACS_tables/census2020")
+blocks <- st_read("tl_2020_41_tabblock20.shp")
+
+blocks <- blocks[blocks$COUNTYFP %in% c("003","041","043"),]
+
+# read in block group shapefile
+setwd("L:/Health/Epidemiology/Banwarth_Epi/ACS_tables/census2020")
+blockgroups <- st_read("tl_2020_41_bg.shp")
+
+blockgroups <- blockgroups[blockgroups$COUNTYFP %in% c("003","041","043"),]
+blockgroups <- blockgroups[blockgroups$GEOID != "410419901000",]
+```
+
+```{r tableCode, include = FALSE}
+vaxRateFun <- function(dt=student,column,school,race) {
+  dt <- dt[dt$'School Name' == school,]
+  dt <- dt[dt$'FAFSA Race' == race,]
+
+  if(nrow(dt) > 0) {
+
+  t <- data.table("School" = school,
+                  "Race/Eth." = race,
+                  "Vax" = length(which(dt[,..column] == 1)),
+                  "Unvax" = length(which(dt[,..column] == 0)),
+                  "No. students" = nrow(dt),
+                  "Vax rate (percent)" = length(which(dt[,..column] == 1))/nrow(dt))
+
+  t$`Vax rate (percent)` <- t[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+  return(t)
+  } else {return(NULL)}
+}
+
+# 12 and older
+student12 <- student %>% subset(`DOB` <ageCutoffDate)
+
+schoolRaceGrid <- expand.grid(unique(student12$`School Name`), unique(student12$`FAFSA Race`))
+
+listTable <- mapply(vaxRateFun,dt = list(data.table(student12)), column = "vax", school = schoolRaceGrid[,1],race = schoolRaceGrid[,2])
+school <- do.call(rbind,listTable)
+schoolTotal <- school[,-c(2,6)][,lapply(.SD,sum),by=.(School)]
+schoolTotal$`Race/Eth.` <- "Total"
+schoolTotal <- schoolTotal %>% relocate(`Race/Eth.`,.after=School)
+schoolTotal$`Vax rate (percent)` <- schoolTotal$Vax/schoolTotal$`No. students`
+schoolTotal$`Vax rate (percent)` <- schoolTotal[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+school <- rbind(school,schoolTotal)
+school <- school[order(school$School),]
+
+listTableP2W <- mapply(vaxRateFun,dt = list(data.table(student12)), column = "vaxP2W", school = schoolRaceGrid[,1],race = schoolRaceGrid[,2])
+schoolP2W <- do.call(rbind,listTableP2W)
+schoolTotal <- schoolP2W[,-c(2,6)][,lapply(.SD,sum),by=.(School)]
+schoolTotal$`Race/Eth.` <- "Total"
+schoolTotal <- schoolTotal %>% relocate(`Race/Eth.`,.after=School)
+schoolTotal$`Vax rate (percent)` <- schoolTotal$Vax/schoolTotal$`No. students`
+schoolTotal$`Vax rate (percent)` <- schoolTotal[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+schoolP2W <- rbind(schoolP2W,schoolTotal)
+school$`Prev. Vax Rate` <- schoolP2W[order(schoolP2W$School),"Vax rate (percent)"]
+school$`Pvax` <- schoolP2W[order(schoolP2W$School),"Vax"]
+
+# Middle school age
+middle <- school[school$School %in% c("Cheldelin Middle School","Linus Pauling Middle School","Franklin K-8 School"),]
+middle <- middle[,-c(1,6,7)][,lapply(.SD,sum),by=.(`Race/Eth.`)]
+middle$School <- "All middle schools"
+middle <- middle %>% relocate(School,.before=`Race/Eth.`)
+middle$`Vax rate (percent)` <- middle$Vax/middle$`No. students`
+middle$`Vax rate (percent)` <- middle[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+middle$`Prev. Vax rate` <- middle$Pvax/middle$`No. students`
+middle$`Prev. Vax rate` <- middle[,.(percent(`Prev. Vax rate`,accuracy = 0.1))]
+
+# High school age
+high <- school[school$School %in% c("Corvallis High School","Crescent Valley High School","Harding/College Hill"),]
+high <- high[,-c(1,6,7)][,lapply(.SD,sum),by=.(`Race/Eth.`)]
+high$School <- "All high schools"
+high <- high %>% relocate(School,.before=`Race/Eth.`)
+high$`Vax rate (percent)` <- high$Vax/high$`No. students`
+high$`Vax rate (percent)` <- high[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+high$`Prev. Vax rate` <- high$Pvax/high$`No. students`
+high$`Prev. Vax rate` <- high[,.(percent(`Prev. Vax rate`,accuracy = 0.1))]
+
+# District
+# district <- school[,-c(1,6,7)][,lapply(.SD,sum),by=.(`Race/Eth.`)]
+# district$School <- "District"
+# district <- district %>% relocate(School,.before=`Race/Eth.`)
+# district$`Vax rate (percent)` <- district$Vax/district$`No. students`
+# district$`Vax rate (percent)` <- district[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+# district$`Prev. Vax rate` <- district$Pvax/district$`No. students`
+# district$`Prev. Vax rate` <- district[,.(percent(`Prev. Vax rate`,accuracy = 0.1))]
+
+# introducing NA for privacy
+school[school$`No. students`<10,c(3:6)] <- NA
+school12 <- school
+middle[middle$`No. students`<10,c(3:6)] <- NA
+high[high$`No. students`<10,c(3:6)] <- NA
+# district[district$`No. students`<10,c(3:6)] <- NA
+```
+
+```{r five2eleven, include=FALSE}
+# 5 to 11
+student5 <- student %>% subset(`DOB` >= ageCutoffDate)
+
+schoolRaceGrid <- expand.grid(unique(student5$`School Name`), unique(student5$`FAFSA Race`))
+
+listTable <- mapply(vaxRateFun,dt = list(data.table(student5)), column = "vax", school = schoolRaceGrid[,1],race = schoolRaceGrid[,2])
+school <- do.call(rbind,listTable)
+schoolTotal <- school[,-c(2,6)][,lapply(.SD,sum),by=.(School)]
+schoolTotal$`Race/Eth.` <- "Total"
+schoolTotal <- schoolTotal %>% relocate(`Race/Eth.`,.after=School)
+schoolTotal$`Vax rate (percent)` <- schoolTotal$Vax/schoolTotal$`No. students`
+schoolTotal$`Vax rate (percent)` <- schoolTotal[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+school <- rbind(school,schoolTotal)
+school <- school[order(school$School),]
+
+listTableP2W <- mapply(vaxRateFun,dt = list(data.table(student5)), column = "vaxP2W", school = schoolRaceGrid[,1],race = schoolRaceGrid[,2])
+schoolP2W <- do.call(rbind,listTableP2W)
+schoolTotal <- schoolP2W[,-c(2,6)][,lapply(.SD,sum),by=.(School)]
+schoolTotal$`Race/Eth.` <- "Total"
+schoolTotal <- schoolTotal %>% relocate(`Race/Eth.`,.after=School)
+schoolTotal$`Vax rate (percent)` <- schoolTotal$Vax/schoolTotal$`No. students`
+schoolTotal$`Vax rate (percent)` <- schoolTotal[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+schoolP2W <- rbind(schoolP2W,schoolTotal)
+school$`Prev. Vax Rate` <- schoolP2W[order(schoolP2W$School),"Vax rate (percent)"]
+school$`Pvax` <- schoolP2W[order(schoolP2W$School),"Vax"]
+
+five2eleven <- school
+five2eleven <- five2eleven[,-c(1,6,7)][,lapply(.SD,sum),by=.(`Race/Eth.`)]
+five2eleven$School <- "5 to 11 year olds"
+five2eleven <- five2eleven %>% relocate(School,.before=`Race/Eth.`)
+five2eleven$`Vax rate (percent)` <- five2eleven$Vax/five2eleven$`No. students`
+five2eleven$`Vax rate (percent)` <- five2eleven[,.(percent(`Vax rate (percent)`,accuracy = 0.1))]
+five2eleven$`Prev. Vax rate` <- five2eleven$Pvax/five2eleven$`No. students`
+five2eleven$`Prev. Vax rate` <- five2eleven[,.(percent(`Prev. Vax rate`,accuracy = 0.1))]
+names(five2eleven)[1] <- "Age group"
+
+# introducing NA for privacy
+five2eleven[five2eleven$`No. students`<10,c(3:6)] <- NA
+
+```
+
+# Section 1: Tables of vaccination rates, stratified by school and demographic group
+
+### These tables present summary data to show vaccination rates for middle school and high school students, stratified by race and ethnicity. The purpose of these data is to facilitate a bi-weekly review of the current vaccination landscape, so that decisions can be made regarding which demographic groups should be a focus moving forward. The previous bi-weekly rate is presented for a comparison, but more extensive longitudinal data can be found in the graphs in section 3.
+
+### There are two levels of stratification. The first level of stratification is school. These tables show the total vaccination rate at each school, but are not stratified by race/ethnicity. The second level of stratification is race/ethnicity. These tables show the vaccination rate by race/ethnicity at all middle schools combined and at all high schools combined. Data are available stratified by both school and race/ethnicity, but are not included in the bi-weekly report to avoid a data deluge.
+
+<!-- ```{r tableCounty,echo = FALSE} -->
+<!-- countyResidence  %>% -->
+<!--   kbl(caption = "County of residence for CSD students") %>%  -->
+<!--   kable_paper(latex_options = c("HOLD_position")) -->
+<!-- ``` -->
+
+### Vaccination data is updated through `r vaxDate` , but is provisional and subject to change. School enrollment data is updated to October 6th and is subject to change.
+
+### Note: Vaccination rates are computed only among students residing in Benton County. Some "school residences" may not match the "vaccination residence", so the computed vaccination rates may be very slightly off.
+
+### Note: NA is introduced when the population of that race/ethnicity is 10 or fewer in order to protect the privacy of students.
+
+```{r tableSchool, echo = FALSE}
+school %>% select(-one_of("Pvax")) %>% subset(School %in% c(as.vector(unique(school$School)[grep("Elementary",unique(school$School))]),"Franklin K-8 School")) %>% subset(`Race/Eth.`=="Total") %>%
+  kbl(caption = paste0("Vaccination rates at CSD elementary schools; ",vaxDate)) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+
+school12 %>% select(-one_of("Pvax")) %>% subset(School %in% c("Cheldelin Middle School","Linus Pauling Middle School","Franklin K-8 School")) %>% subset(`Race/Eth.`=="Total") %>%
+  kbl(caption = paste0("Vaccination rates at CSD middle schools; ",vaxDate)) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+
+school12 %>% select(-one_of("Pvax")) %>% subset(School %in% c("Corvallis High School","Crescent Valley High School","Harding/College Hill")) %>% subset(`Race/Eth.`=="Total") %>%
+  kbl(caption = paste0("Vaccination rates at CSD high schools; ",vaxDate)) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+
+```
+
+```{r tableRE, echo = FALSE}
+five2eleven %>% select(-one_of("Pvax")) %>%
+  kbl(caption = paste0("Vaccination rates of all CSD 5-11 year-olds students by race/ethnicity; ",vaxDate)) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+
+middle %>% select(-one_of("Pvax")) %>%
+  kbl(caption = paste0("Vaccination rates of all CSD middle school students by race/ethnicity; ",vaxDate)) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+
+high %>% select(-one_of("Pvax")) %>%
+  kbl(caption = paste0("Vaccination rates of all CSD high school students by race/ethnicity; ",vaxDate)) %>%
+  kable_paper(latex_options = c("HOLD_position"))
+```
+
+
+<!-- ```{r tableDistrict, echo = FALSE} -->
+<!-- district %>% select(-one_of("Pvax")) %>% -->
+<!--   kbl(caption = paste0("Vaccination rates of all CSD middle and high school students by race/ethnicity; ",vaxDate)) %>% -->
+<!--   kable_paper(latex_options = c("HOLD_position")) -->
+
+<!-- ``` -->
+
+```{r mapsCode, include = FALSE}
+# read in geocoded addresses
+setwd("L:/Health/Epidemiology/Banwarth_Epi/GIS/GIS_files/address_matching")
+studentGeocode <- st_read("csdMatchedAddresses11232021.shp")
+studentGeocode <- studentGeocode %>% select("Student_DB")
+names(studentGeocode)[1] <- "Student DBN"
+
+# merge to data
+studentGC <- merge(studentGeocode,student)
+
+###
+###
+
+# Blocks
+
+# intersect
+studentTransform <- st_transform(studentGC,crs = st_crs(blocks))
+studentBlocks <- st_join(studentTransform,blocks,join=st_within)
+
+# separate into 5 and 12
+studentBlocks5 <- studentBlocks %>% subset(`DOB` >= ageCutoffDate)
+studentBlocks12 <- studentBlocks %>% subset(`DOB` < ageCutoffDate)
+
+# 5 to 11
+unvaxCount <- dplyr::count(as_tibble(studentBlocks[studentBlocks5$vax==0,]), GEOID20)
+unvaxBlock <- merge(blocks,unvaxCount, by="GEOID20",all.x=TRUE)
+unvaxBlock[is.na(unvaxBlock$n),"n"] <- 0
+
+## joining neighboring blocks
+unvaxCentroid <- st_centroid(unvaxBlock)
+htree <- hclust(dist(data.frame(rownames=unvaxCentroid$GEOID20, x=as.numeric(unvaxCentroid$INTPTLON20),
+                       y=as.numeric(unvaxCentroid$INTPTLAT20))), method="complete")
+unvaxBlock$cluster <- cutree(htree,h=8)
+
+unvaxBlockCluster <- group_by(unvaxBlock,cluster) %>% summarize(n = sum(n),do_union = TRUE)
+
+## only mapping blocks with 15 or more unvaccinated
+unvaxBlockCluster$n15 <- ifelse(unvaxBlockCluster$n > 14,unvaxBlockCluster$n,NA)
+
+# mapping Benton County block clusters
+crds <- c(left = -123.35, bottom = 44.5, right = -123.22843, top = 44.62)
+
+basemap <- get_stamenmap(crds, zoom = 12, maptype = "toner-background")
+lines <- get_stamenmap(crds, zoom = 12, maptype = "toner-lines")
+labels <- get_stamenmap(crds, zoom = 14, maptype = "toner-labels")
+
+m5a <- ggmap(basemap) +
+  geom_sf(data = unvaxBlockCluster, aes(fill = n15, alpha = .1),inherit.aes=FALSE)+coord_sf(datum=NA) +
+  geom_sf(data=ssd,aes(),color="blue",fill=NA,inherit.aes = FALSE,size=1)+
+  scale_fill_viridis_c(option="plasma", name="Number of unvaccinated students")+
+  labs(title="Count of unvaccinated students age 5 to 11 by block cluster - Corvallis",
+       subtitle =paste("Restricted to block groups with 15+ unvaccinated students;", as.Date(max(vax$FIRSTDOSE_DATE,na.rm=TRUE)),sep=" "))+
+  theme(title=element_text(size=8), legend.text=element_text(size=6),axis.text=element_text(size=6))+
+  inset_ggmap(lines) +
+  inset_ggmap(labels)
+
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton/csd")
+
+ggsave(paste0("CorvallisUnvaxCountBlockCluster",Sys.Date(),".jpg"), plot = m5a, width = 6, height = 6, units = "in")
+
+# 12 and up
+unvaxCount <- dplyr::count(as_tibble(studentBlocks[studentBlocks12$vax==0,]), GEOID20)
+unvaxBlock <- merge(blocks,unvaxCount, by="GEOID20",all.x=TRUE)
+unvaxBlock[is.na(unvaxBlock$n),"n"] <- 0
+
+## joining neighboring blocks
+unvaxCentroid <- st_centroid(unvaxBlock)
+htree <- hclust(dist(data.frame(rownames=unvaxCentroid$GEOID20, x=as.numeric(unvaxCentroid$INTPTLON20),
+                       y=as.numeric(unvaxCentroid$INTPTLAT20))), method="complete")
+unvaxBlock$cluster <- cutree(htree,h=8)
+
+unvaxBlockCluster <- group_by(unvaxBlock,cluster) %>% summarize(n = sum(n),do_union = TRUE)
+
+## only mapping blocks with 15 or more unvaccinated
+unvaxBlockCluster$n15 <- ifelse(unvaxBlockCluster$n > 14,unvaxBlockCluster$n,NA)
+
+# mapping Benton County block clusters
+crds <- c(left = -123.35, bottom = 44.5, right = -123.22843, top = 44.62)
+
+basemap <- get_stamenmap(crds, zoom = 12, maptype = "toner-background")
+lines <- get_stamenmap(crds, zoom = 12, maptype = "toner-lines")
+labels <- get_stamenmap(crds, zoom = 14, maptype = "toner-labels")
+
+m12a <- ggmap(basemap) +
+  geom_sf(data = unvaxBlockCluster, aes(fill = n15, alpha = .1),inherit.aes=FALSE)+coord_sf(datum=NA) +
+  geom_sf(data=ssd,aes(),color="blue",fill=NA,inherit.aes = FALSE,size=1)+
+  scale_fill_viridis_b(option="plasma", name="Number of unvaccinated students")+
+  labs(title="Count of unvaccinated students age 12+ by block cluster - Corvallis",
+       subtitle =paste("Restricted to block groups with 15+ unvaccinated students;", as.Date(max(vax$FIRSTDOSE_DATE,na.rm=TRUE)),sep=" "))+
+  theme(title=element_text(size=8), legend.text=element_text(size=6),axis.text=element_text(size=6))+
+  inset_ggmap(lines) +
+  inset_ggmap(labels)
+
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton/csd")
+
+ggsave(paste0("CorvallisUnvaxCountBlockCluster",Sys.Date(),".jpg"), plot = m12a, width = 6, height = 6, units = "in")
+
+
+###
+###
+
+# Block groups
+
+# intersect
+studentTransform <- st_transform(studentGC,crs = st_crs(blockgroups))
+studentBGs <- st_join(studentTransform,blockgroups,join=st_within)
+
+# separate into 5 and 12
+studentBGs5 <- studentBGs %>% subset(`DOB` >= ageCutoffDate)
+studentBGs12 <- studentBGs %>% subset(`DOB` < ageCutoffDate)
+
+# 5 to 11
+unvaxCount <- dplyr::count(as_tibble(studentBGs[studentBGs5$vax==0,]), GEOID)
+unvaxBG <- merge(blockgroups,unvaxCount, by="GEOID",all.x=TRUE)
+
+unvaxBG$n15 <- ifelse(unvaxBG$n > 14,unvaxBG$n,NA)
+
+# mapping Corvallis School District block groups
+
+crdsB <- c(left = -123.4748, bottom = 44.38875, right = -123.1623, top = 44.72024)
+basemapB <- get_stamenmap(crdsB, zoom = 11, maptype = "toner-background")
+linesB <- get_stamenmap(crdsB, zoom = 11, maptype = "toner-lines")
+labelsB <- get_stamenmap(crdsB, zoom = 11, maptype = "toner-labels")
+
+m5b <- ggmap(basemapB) +
+  geom_sf(data = unvaxBG, aes(fill = n15, alpha = .1),inherit.aes=FALSE)+coord_sf(datum=NA) +
+  geom_sf(data=ssd,aes(),color="blue",fill=NA,inherit.aes = FALSE,size=1)+
+  scale_fill_viridis_c(option="plasma", name="Number of unvaccinated students")+
+  labs(title="Count of unvaccinated students age 5 to 11 by block group - Corvallis School District",
+       subtitle =paste("Restricted to block groups with 15+ unvaccinated students;", as.Date(max(vax$FIRSTDOSE_DATE,na.rm=TRUE)),sep=" "))+
+  theme(title=element_text(size=8), legend.text=element_text(size=6),axis.text=element_text(size=6))+
+  inset_ggmap(linesB) +
+  inset_ggmap(labelsB)
+
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton/csd")
+
+ggsave(paste0("CSDUnvaxCountBlockGroup",Sys.Date(),".jpg"), plot = m5b, width = 6, height = 6, units = "in")
+
+# 12 and up
+unvaxCount <- dplyr::count(as_tibble(studentBGs[studentBGs12$vax==0,]), GEOID)
+unvaxBG <- merge(blockgroups,unvaxCount, by="GEOID",all.x=TRUE)
+
+unvaxBG$n15 <- ifelse(unvaxBG$n > 14,unvaxBG$n,NA)
+
+# mapping Corvallis School District block groups
+
+crdsB <- c(left = -123.4748, bottom = 44.38875, right = -123.1623, top = 44.72024)
+basemapB <- get_stamenmap(crdsB, zoom = 11, maptype = "toner-background")
+linesB <- get_stamenmap(crdsB, zoom = 11, maptype = "toner-lines")
+labelsB <- get_stamenmap(crdsB, zoom = 11, maptype = "toner-labels")
+
+m12b <- ggmap(basemapB) +
+  geom_sf(data = unvaxBG, aes(fill = n15, alpha = .1),inherit.aes=FALSE)+coord_sf(datum=NA) +
+  geom_sf(data=ssd,aes(),color="blue",fill=NA,inherit.aes = FALSE,size=1)+
+  scale_fill_viridis_b(option="plasma", name="Number of unvaccinated students")+
+  labs(title="Count of unvaccinated students age 12+ by block group - Corvallis School District",
+       subtitle =paste("Restricted to block groups with 15+ unvaccinated students;", as.Date(max(vax$FIRSTDOSE_DATE,na.rm=TRUE)),sep=" "))+
+  theme(title=element_text(size=8), legend.text=element_text(size=6),axis.text=element_text(size=6))+
+  inset_ggmap(linesB) +
+  inset_ggmap(labelsB)
+
+setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton/csd")
+
+ggsave(paste0("CSDUnvaxCountBlockGroup",Sys.Date(),".jpg"), plot = m12b, width = 6, height = 6, units = "in")
+
+```
+
+# Section 2: Maps of neighborhoods with many unvaccinated students
+
+### These maps show block clusters (groups of about 6 adjoining blocks) and block groups (Census structured groups of blocks) that have high numbers of students who are unvaccinated. The purpose of these maps is to provide specific geographic information for use in targeting resource-intensive outreach methods (e.g. door-to-door outreach) and planning for clinics or other geographically-based outreach efforts. The maps may also complement the previous tables in informing the district about shared characteristics of communities with large numbers of unvaccinated individuals.
+
+### There are two levels of geographic detail. The first is block cluster, a grouping of about six adjoining blocks. This level of detail is zoomed into the geographic boundaries of Corvallis. Only block clusters that have 15 or more unvaccinated students are shaded a color. All blocks clusters with 14 or fewer unvaccinated students are gray - these block clusters have lower need and also this protects student confidentiality. The second level of geographic detail is block group. This level of detail is zoomed to the boundaries of the Corvallis School District, which includes many outlying areas around Corvallis. These block groups are also restricted to 15 or more unvaccinated students. The Corvallis School District boundary is shown as a bold blue line.
+
+\newpage
+
+## Map 1: Vaccination rates among CSD students age 5 to 11, focused on the City of Corvallis - block cluster level.
+
+```{r mapsOutput1, echo = FALSE, fig.align='center', fig.width=6, fig.asp =.8, out.width='100%'}
+m5a
+```
+
+The grayed-out block clusters have fewer than 15 unvaccinated CSD students age 5 to 11. The "alpha" parameter is an artifact of the mapping algorithm; it has no meaning related to vaccination. The purpose of this map is to provide the district with an up-to-date snapshot of high-priority areas in terms of outreach and access. Longitudinal analysis of geographical vaccination status requires much more space and explanation than can reasonably fit into this bi-weekly report, but is available upon request.
+
+\newpage
+
+## Map 2: Vaccination rates among CSD students age 5 to 11, full Corvallis School District boundary - block group level.
+
+```{r mapsOutput2, echo = FALSE, fig.align='center', fig.width=6, fig.asp =.8, out.width='100%'}
+m5b
+```
+
+The grayed-out block groups have fewer than 15 unvaccinated CSD students age 5 to 11. The "alpha" parameter is an artifact of the mapping algorithm; it has no meaning related to vaccination.  The purpose of this map is to provide the district with an up-to-date snapshot of high-priority areas in terms of outreach and access. Longitudinal analysis of geographical vaccination status requires much more space and explanation than can reasonably fit into this bi-weekly report, but is available upon request.
+
+\newpage
+
+## Map 3: Vaccination rates among CSD students age 12 and older, focused on the City of Corvallis - block cluster level.
+
+```{r mapsOutput3, echo = FALSE, fig.align='center', fig.width=6, fig.asp =.8, out.width='100%'}
+m12a
+```
+
+The grayed-out block clusters have fewer than 15 unvaccinated CSD students age 12 and older. The "alpha" parameter is an artifact of the mapping algorithm; it has no meaning related to vaccination. The purpose of this map is to provide the district with an up-to-date snapshot of high-priority areas in terms of outreach and access. Longitudinal analysis of geographical vaccination status requires much more space and explanation than can reasonably fit into this bi-weekly report, but is available upon request.
+
+\newpage
+
+## Map 4: Vaccination rates among CSD students age 12 and older, full Corvallis School District boundary - block group level.
+
+```{r mapsOutput4, echo = FALSE, fig.align='center', fig.width=6, fig.asp =.8, out.width='100%'}
+m12b
+```
+
+The grayed-out block groups have fewer than 15 unvaccinated CSD students age 12 and older. The "alpha" parameter is an artifact of the mapping algorithm; it has no meaning related to vaccination.  The purpose of this map is to provide the district with an up-to-date snapshot of high-priority areas in terms of outreach and access. Longitudinal analysis of geographical vaccination status requires much more space and explanation than can reasonably fit into this bi-weekly report, but is available upon request.
+
+```{r forecastCode, include = FALSE}
+# merge vaccination data
+student <- merge(student,vax,by = "nameDOB",all.x=TRUE)
+
+# restrict to 12 and older for now
+student <- student %>% subset(DOB < ageCutoffDate)
+
+# transformation function
+f <- function (x, a, b) log((x - a) / (b - x))
+# inverse transformation function
+finv <- function (x, a, b) (b * exp(x) + a) / (exp(x) + 1)
+
+#############
+#############
+#############
+
+vaxFunction <- function(school, schoolLabel, raceEthnicity, cmvrLista, vaxdt = student) {
+
+  vaxdt <- subset(vaxdt, `School Name` %in% school)
+
+  if(raceEthnicity == "Latinx") {
+    vaxdt <- subset(vaxdt,`FAFSA Race` == "Hispanic")
+  } else if(raceEthnicity == "White") {
+    vaxdt <- subset(vaxdt,`FAFSA Race` == "White")
+  } else if(raceEthnicity == "Black") {
+    vaxdt <- subset(vaxdt,`FAFSA Race` == "Black/African American")
+  } else if(raceEthnicity == "AIAN") {
+    vaxdt <- subset(vaxdt,`FAFSA Race` == "American Indian/Alaska Native")
+  } else if(raceEthnicity == "Asian") {
+    vaxdt <- subset(vaxdt,`FAFSA Race` == "Asian")
+  } else if(raceEthnicity == "NHPI") {
+    vaxdt <- subset(vaxdt,`FAFSA Race` == "Native Hawaiian/Pacific Islander")
+  }
+
+  vaxBD <- data.table(dplyr::count(as_tibble(vaxdt[vaxdt$vax==1,]), FIRSTDOSE_DATE))
+  vaxBD$cumulative <- cumsum(vaxBD$n)
+  vaxBD$percent <- vaxBD$cumulative/nrow(vaxdt)
+  if(length(which(is.na(vaxBD$FIRSTDOSE_DATE))) > 0) {vaxBD <- vaxBD[-which(is.na(vaxBD$FIRSTDOSE_DATE)),]}
+
+  intervalCutoff <- vaxBD$FIRSTDOSE_DATE[which(vaxBD$percent==max(vaxBD$percent))]
+
+  vaxBD$Day <- as.Date(vaxBD$FIRSTDOSE_DATE)-as.Date(vaxBD$FIRSTDOSE_DATE[1])
+
+  # counterfactual maximum vaccination rate
+  cmvrL <- cmvrLista[1]
+  cmvrU <- cmvrLista[2]
+
+  # lower estimate
+
+  vaxBD$percentT <- f(vaxBD$percent,0,cmvrL)
+
+  train <- subset(vaxBD,FIRSTDOSE_DATE < "2021-09-01")
+
+  gam_m <- gam(percentT ~ s(as.numeric(Day)),method = "REML",data = train)
+
+  p <- predict(gam_m, data.frame(Day = seq(0:500)), type = "link", se.fit = TRUE)
+
+  vaxPrediction <- finv(p$fit,0,cmvrL)
+
+  # Create 95% confidence intervals
+  lwr <- finv(p$fit - (1.96 * p$se.fit),0,cmvrL)
+
+  # create data table with estimates and actuals
+  predDT <- data.table(data.frame(Day = seq(0:500),
+                                  FIRSTDOSE_DATE = seq(min(as.Date(vaxBD$FIRSTDOSE_DATE),na.rm=TRUE), min(as.Date(vaxBD$FIRSTDOSE_DATE),na.rm=TRUE)+500, by="days"),
+                                  prediction = vaxPrediction,lwr=lwr))
+  predDT <- merge(predDT,vaxBD[,c("Day","percent")],by="Day",all.x=TRUE)
+  predDT[predDT$lwr < max(vaxBD$percent) & (predDT$FIRSTDOSE_DATE > intervalCutoff),"lwr"] <- max(vaxBD$percent)
+  predDT[predDT$FIRSTDOSE_DATE <= intervalCutoff,"lwr"] <- predDT$prediction[predDT$FIRSTDOSE_DATE <= intervalCutoff]
+
+  # upper estimate
+  vaxBD$percentT <- f(vaxBD$percent,0,cmvrU)
+
+  gam_m <- gam(percentT ~ s(as.numeric(Day)),method = "REML",data = vaxBD)
+
+  p <- predict(gam_m, data.frame(Day = seq(0:500)), type = "link", se.fit = TRUE)
+
+  vaxPrediction <- finv(p$fit,0,cmvrU)
+
+  # Create 95% confidence intervals
+  upr <- finv(p$fit + (1.96 * p$se.fit),0,cmvrU)
+  predDT$upr <- upr
+  predDT[predDT$FIRSTDOSE_DATE <= intervalCutoff,"upr"] <- predDT$prediction[predDT$FIRSTDOSE_DATE <= intervalCutoff]
+
+  # plot results
+  pl <- ggplot(predDT, aes(x=FIRSTDOSE_DATE, y=prediction)) +
+    geom_line(color="red")+
+    geom_point(aes(x=FIRSTDOSE_DATE, y=percent), size=1) +
+    geom_ribbon(aes(ymin=lwr, ymax=upr, x=FIRSTDOSE_DATE, fill="band"), alpha=0.3, fill="deepskyblue") +
+    scale_y_continuous(label=scales::percent, limits=c(0,1)) +
+    labs(y = "Vaccinated",
+         title = paste0("Forecast of CSD Vaccination rate - age 12+; ",raceEthnicity),
+         subtitle = ifelse(length(school)<4,paste(school,collapse=", "),schoolLabel)) +
+    theme_bw()+
+    theme(axis.title.x = element_blank())
+
+  # setwd("L:/Health/CD/Coronavirus - Covid19 - SARS CoV 2/Epi Data/Data - Orpheus Exports/banwarth/raw/alertData/benton/csd")
+  # ggsave(paste0("CSDForecast",raceEthnicity,schoolLabel,Sys.Date(),".png"), plot = p, width = 9, height = 6, units = "in")
+
+  return(pl)
+}
+
+schoolList <- list(c("Crescent Valley High School","Corvallis High School","Harding/College Hill"),
+                   c("Franklin K-8 School","Cheldelin Middle School","Linus Pauling Middle School"))
+  
+schoolLL <- list("HS","MS")
+cmvrList <- list(c(.71,.8),
+                 c(.67,.75),
+                 c(.52,.62),
+                 c(.43,.55),
+                 c(.76,.85),
+                 c(.72,.82)
+                 )
+reList <- as.list(rep(c("Total","Latinx","White"),each=2))
+
+# vaxForecasts <- mapply(vaxFunction,schoolList,schoolLL,reList,cmvrList)
+# vaxForecasts[sapply(vaxForecasts,is.null)] <- NULL
+```
+
+# Section 3: Vaccination rate forecasts
+
+### These graphs show modeled forecasts of vaccination rates among CSD students age 12 and older, stratified by different groups (Middle School, High School, and All race/ethnicity, Latinx, and White). The forecasts are shown by the red line. The blue band is an estimated range of possible vaccination rates moving forward, and the black dots are the actual vaccination rates on each day. Given the limitations of space in this bi-weekly report, only a selection of forecasts are presented here; but forecasts for specific schools are also available. The data for the other races/ethnicities are too sparse to develop forecasts, but for these groups, the tables in section 1 are adequate to explore significant changes in vaccination rates.
+
+### Data on ages 5 to 11 is too new to be used in forecasts; therefore these forecasts only show ages 12 and older.
+
+### The graphs are intended to be used to identify if there are increases in vaccination rates that can't be explained by the "mathematical inertia" of the red forecasts. Dots that are significantly above the red line likely indicate an external force has bumped up the vaccination rate in that group. This external force could be outreach, communication, or access efforts, or specific clinics, or changes in vaccine confidence. Vaccination rates that grow above the red line indicate that  the efforts of CSD and community partners are likely having some beneficial effect on vaccination rates.
+
+### The forecasts were produced by matching an algorithmically generated function to the vaccination rate data, then projecting that function into the future. The red line fits the empirical data very well through about October 24th, since those data were used to generate the function. It is expected that the observed vaccination rate will begin to deviate from the red line as time moves forward - i.e. these graphs require some patience before they will begin to be useful for detecting variation between expected and actual vaccination rates.
+
+\newpage
+
+```{r forecastOutput, echo = FALSE, message=FALSE, warning=FALSE, fig.align='center', fig.width=6, fig.asp =.8, out.width='100%'}
+vaxFunction(schoolList[[1]],schoolLL[[1]],reList[[1]],cmvrList[[1]])
+vaxFunction(schoolList[[2]],schoolLL[[2]],reList[[2]],cmvrList[[2]])
+vaxFunction(schoolList[[1]],schoolLL[[1]],reList[[3]],cmvrList[[3]])
+vaxFunction(schoolList[[2]],schoolLL[[2]],reList[[4]],cmvrList[[4]])
+vaxFunction(schoolList[[1]],schoolLL[[1]],reList[[5]],cmvrList[[5]])
+vaxFunction(schoolList[[2]],schoolLL[[2]],reList[[6]],cmvrList[[6]])
+```
