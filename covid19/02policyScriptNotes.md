@@ -187,7 +187,7 @@ Various parameters, states, and variables depend on whether prevalence is increa
 `pdCounter` is a timer variable for the decay of physical distancing. The model assumes that if prevalence is low (below the minor threshold), people will eventually stop physically distancing. `pdCounter` is used to track the decay at each time step.
 
 ##### Post-time-step function
-A whole .md could be (and will be) written about the post-time-step function (pts_function). In brief, the pts_function tells SimInf how to change continous variables (with the option of other effects) after every time step. The pts_function is written in C, which can be verbose. The function is stored as a single character and passed to the SimInf routine. To save space, I wrote the pts_function in a separate script and call pts_funScript to generate it. The parameters are passed through from user-defined parameters or paramters already described in this .md.
+A whole .md could be (and will be) written about the post-time-step function (pts_function). In brief, the pts_function tells SimInf how to change continous variables (with the option of other effects) after every time step. The pts_function is written in C, which can be verbose. The function is stored as a single character and passed to the SimInf routine. To save space, I wrote the pts_function in a separate script and call pts_funScript to generate it. The parameters are passed through from user-defined parameters or parameters already described in this .md.
 ```
 pts_fun <- pts_funScript(
     phiPhysicalDistancing = (R0I+R0U)/RPhysicalDistancing, # Phi reflecting that physical distancing and contact tracing will reduce R0 even without stay-at-home orders
@@ -305,7 +305,7 @@ superEventList <- lapply(1:length(superInfections), superFunction,...)
 I developed this model for local projections of a county whose population changes by 25% multiple times a year. Therefore I wanted to be able to model a mass entry event to understand how the disease dynamics may change under a shock to the system like a 25% increase in the susceptible population and the introduction of a number of new infections. As in the super-spreader event the user can define which node groups and how many nodes receive the mass entry. I have not written in a mass exit event or multiple mass entry events, but these can be added to the code by using the super-spreader/mass entry events as templates.  
 
 ###### Mass entry parameters
-The code allows for a single mass entry event. The mass entry event can be turned off by setting `massMassEntryNodes=0` in the user-defined parameters.  
+The code allows for a single mass entry event. The mass entry event can be turned off by setting `maxMassEntryNodes=0` in the user-defined parameters.  
 
 `maxMassEntryNodes <- min(length(which(nodeGroupList %in% massEntryNodeGroups)),maxMassEntryNodes)` is user-defined, but also limited by the number of available nodes in the set of node groups chosen to host the mass entry event.  
 
