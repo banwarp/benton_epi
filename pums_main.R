@@ -4,6 +4,8 @@
 
 # Supervised machine learning using PUMS data to predict census-tract level tables
 
+# citation: Zhang, X., Holt, J. B., Yun, S., Lu, H., Greenlund, K. J., & Croft, J. B. (2015). Validation of multilevel regression and poststratification methodology for small area estimation of health indicators from the behavioral risk factor surveillance system. American journal of epidemiology, 182(2), 127-137.
+
 # load libraries
 library(plyr)
 library(dplyr)
